@@ -26,7 +26,7 @@ const Dashboard: React.FC<DashboardProps> = ({ expenses, categories }) => {
 
   const categoryData = useMemo(() => {
     // Get all unique categories present in expenses
-    const usedCategories = Array.from(new Set(expenses.map(e => e.category)));
+    const usedCategories = Array.from(new Set(expenses.map(e => e.category))) as string[];
     
     const data = usedCategories.map(catName => ({
       name: catName,
@@ -37,16 +37,16 @@ const Dashboard: React.FC<DashboardProps> = ({ expenses, categories }) => {
   }, [expenses, categories]);
 
   const dailyData = useMemo(() => {
-    const last7Days = [...Array(7)].map((_, i) => {
+    const last30Days = [...Array(30)].map((_, i) => {
       const d = new Date();
       d.setDate(d.getDate() - i);
       return d.toISOString().split('T')[0];
     }).reverse();
 
-    return last7Days.map(date => ({
-      date: new Date(date).toLocaleDateString('en-IN', { weekday: 'short' }),
+    return last30Days.map(date => ({
+      date: new Date(date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }),
       amount: expenses
-        .filter(e => e.date.startsWith(date))
+        .filter(e => e.date === date)
         .reduce((sum, e) => sum + e.amount, 0)
     }));
   }, [expenses]);
@@ -58,7 +58,7 @@ const Dashboard: React.FC<DashboardProps> = ({ expenses, categories }) => {
     thirtyDaysAgo.setHours(0, 0, 0, 0);
 
     const recentExpenses = expenses.filter(e => new Date(e.date) >= thirtyDaysAgo);
-    const usedCategories = Array.from(new Set(recentExpenses.map(e => e.category)));
+    const usedCategories = Array.from(new Set(recentExpenses.map(e => e.category))) as string[];
 
     return usedCategories.map(catName => {
       const totalInCategory = recentExpenses
@@ -129,12 +129,18 @@ const Dashboard: React.FC<DashboardProps> = ({ expenses, categories }) => {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-white dark:bg-slate-900 p-5 md:p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800">
-          <h4 className="text-slate-800 dark:text-slate-200 font-semibold mb-6 text-sm md:text-base">Spending Trend</h4>
+          <h4 className="text-slate-800 dark:text-slate-200 font-semibold mb-6 text-sm md:text-base">Spending Trend (Last 30 Days)</h4>
           <div className="h-48 md:h-64">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={dailyData}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDark ? "#1e293b" : "#f1f5f9"} />
-                <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 10}} />
+                <XAxis 
+                  dataKey="date" 
+                  axisLine={false} 
+                  tickLine={false} 
+                  tick={{fill: '#94a3b8', fontSize: 10}} 
+                  minTickGap={15}
+                />
                 <YAxis axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 10}} width={40} />
                 <Tooltip 
                   cursor={{fill: isDark ? '#1e293b' : '#f8fafc'}}
@@ -148,7 +154,7 @@ const Dashboard: React.FC<DashboardProps> = ({ expenses, categories }) => {
                     fontSize: '12px'
                   }}
                 />
-                <Bar dataKey="amount" fill="#6366f1" radius={[4, 4, 0, 0]} barSize={24} />
+                <Bar dataKey="amount" fill="#6366f1" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -241,18 +247,14 @@ const Dashboard: React.FC<DashboardProps> = ({ expenses, categories }) => {
                   {getCategoryIcon(item.category)}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="text-[10px] font-bold text-slate-400 uppercase truncate">{item.category}</p>
-                  <div className="flex items-baseline space-x-1">
-                    <span className="text-lg font-bold text-slate-900 dark:text-white">{formatCurrency(item.average)}</span>
-                    <span className="text-[10px] text-slate-500 dark:text-slate-400">/day</span>
-                  </div>
-                  <p className="text-[10px] text-slate-400 mt-1 truncate">Total: {formatCurrency(item.total)}</p>
+                   <p className="text-xs font-bold text-slate-500 dark:text-slate-400 truncate">{item.category}</p>
+                   <p className="text-sm font-black text-slate-900 dark:text-white">{formatCurrency(item.average)}/day</p>
                 </div>
               </div>
             ))
           ) : (
-            <div className="col-span-full py-10 text-center">
-              <p className="text-slate-500 dark:text-slate-400 text-sm">No spending data for the last 30 days.</p>
+            <div className="col-span-full py-8 text-center text-slate-400 dark:text-slate-500 text-sm">
+              Not enough data for 30-day averages yet.
             </div>
           )}
         </div>

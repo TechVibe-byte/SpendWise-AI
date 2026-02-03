@@ -1,32 +1,17 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { HashRouter as Router, Routes, Route, NavLink } from 'react-router-dom';
-import { Expense, RecurringExpense, RecurringFrequency, CategoryItem, DefaultCategory } from './types';
+import { Expense, RecurringExpense, RecurringFrequency, CategoryItem } from './types';
 import { DEFAULT_CATEGORIES } from './constants';
 import { formatCurrency } from './utils';
 import Dashboard from './components/Dashboard';
 import ExpenseList from './components/ExpenseList';
 import ExpenseForm from './components/ExpenseForm';
-import Insights from './components/Insights';
 import RecurringManager from './components/RecurringManager';
 import CategoryManager from './components/CategoryManager';
 import Settings from './components/Settings';
 import Onboarding from './components/Onboarding';
-
-const AppLogo = ({ className = "w-6 h-6" }: { className?: string }) => (
-  <svg className={className} fill="none" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-    <defs>
-      <linearGradient id="logoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" stopColor="currentColor" stopOpacity="1" />
-        <stop offset="100%" stopColor="currentColor" stopOpacity="0.5" />
-      </linearGradient>
-    </defs>
-    {/* Wallet Icon */}
-    <path stroke="url(#logoGradient)" strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-    {/* AI Sparkle */}
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 2l-1 2-2 1 2 1 1 2 1-2 2-1-2-1-1-2z" fill="currentColor" stroke="none" className="text-amber-300" />
-  </svg>
-);
+import { Logo } from './components/Logo';
 
 const App: React.FC = () => {
   const [expenses, setExpenses] = useState<Expense[]>(() => {
@@ -55,6 +40,30 @@ const App: React.FC = () => {
   const [showOnboarding, setShowOnboarding] = useState(() => {
     return !localStorage.getItem('spendwise-onboarded');
   });
+
+  // PWA Install Prompt State
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [showInstallBtn, setShowInstallBtn] = useState(false);
+
+  useEffect(() => {
+    const handler = (e: any) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+      setShowInstallBtn(true);
+    };
+    window.addEventListener('beforeinstallprompt', handler);
+    return () => window.removeEventListener('beforeinstallprompt', handler);
+  }, []);
+
+  const handleInstallClick = async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === 'accepted') {
+      setShowInstallBtn(false);
+    }
+    setDeferredPrompt(null);
+  };
 
   // Combine defaults with custom categories
   const allCategories = useMemo(() => {
@@ -319,7 +328,7 @@ const App: React.FC = () => {
 
   return (
     <Router>
-      <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col md:flex-row transition-colors duration-300 pb-20 md:pb-0">
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col md:flex-row transition-colors duration-300 pb-28 md:pb-0">
         
         {showOnboarding && <Onboarding onComplete={handleCompleteOnboarding} />}
 
@@ -327,29 +336,40 @@ const App: React.FC = () => {
         <header className="md:hidden bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-5 py-4 flex items-center justify-between sticky top-0 z-40">
           <div className="flex items-center space-x-2">
             <div className="w-9 h-9 bg-gradient-to-br from-indigo-500 via-violet-500 to-indigo-700 rounded-xl flex items-center justify-center shadow-md shadow-indigo-100 dark:shadow-none border border-white/10">
-              <AppLogo className="w-5 h-5 text-white" />
+              <Logo className="w-5 h-5 text-white" />
             </div>
-            <h1 className="text-lg font-black text-slate-900 dark:text-white tracking-tight">SpendWise<span className="text-indigo-600">AI</span></h1>
+            <h1 className="text-lg font-black text-slate-900 dark:text-white tracking-tight">SpendWise</h1>
           </div>
-          <button 
-            onClick={() => setIsDarkMode(!isDarkMode)}
-            className="p-2 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400"
-          >
-            {isDarkMode ? (
-              <svg className="w-5 h-5 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 9h-1m15.364-6.364l-.707.707M6.343 17.657l-.707.707M17.657 17.657l-.707-.707M6.343 6.343l-.707-.707M12 5a7 7 0 100 14 7 7 0 000-14z" /></svg>
-            ) : (
-              <svg className="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" /></svg>
+          <div className="flex items-center space-x-2">
+            {showInstallBtn && (
+              <button
+                onClick={handleInstallClick}
+                className="p-2 rounded-lg bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 animate-pulse"
+                aria-label="Install App"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+              </button>
             )}
-          </button>
+            <button 
+              onClick={() => setIsDarkMode(!isDarkMode)}
+              className="p-2 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400"
+            >
+              {isDarkMode ? (
+                <svg className="w-5 h-5 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 9h-1m15.364-6.364l-.707.707M6.343 17.657l-.707.707M17.657 17.657l-.707-.707M6.343 6.343l-.707-.707M12 5a7 7 0 100 14 7 7 0 000-14z" /></svg>
+              ) : (
+                <svg className="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" /></svg>
+              )}
+            </button>
+          </div>
         </header>
 
         {/* Desktop Navigation Sidebar */}
         <nav className="hidden md:flex w-64 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 p-6 flex-col sticky top-0 h-screen z-40">
           <div className="flex items-center space-x-3 mb-10">
             <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 via-violet-500 to-indigo-700 rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-200 dark:shadow-none border border-white/20">
-              <AppLogo className="w-7 h-7 text-white" />
+              <Logo className="w-7 h-7 text-white" />
             </div>
-            <h1 className="text-xl font-black text-slate-900 dark:text-white tracking-tight">SpendWise<span className="text-indigo-600">AI</span></h1>
+            <h1 className="text-xl font-black text-slate-900 dark:text-white tracking-tight">SpendWise</h1>
           </div>
 
           <div className="flex-1 space-y-2">
@@ -367,6 +387,16 @@ const App: React.FC = () => {
           </div>
 
           <div className="space-y-4 mt-6">
+            {showInstallBtn && (
+              <button 
+                onClick={handleInstallClick}
+                className="w-full bg-slate-900 dark:bg-white text-white dark:text-slate-900 py-3 rounded-2xl font-bold flex items-center justify-center space-x-2 shadow-lg hover:opacity-90 transition-all"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                <span>Install App</span>
+              </button>
+            )}
+
             <button 
               onClick={exportToCSV}
               className="w-full bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 py-3.5 rounded-2xl font-bold flex items-center justify-center space-x-2 hover:border-indigo-500 dark:hover:border-indigo-500 transition-all hover:text-indigo-600 dark:hover:text-indigo-400 group"
@@ -415,7 +445,6 @@ const App: React.FC = () => {
                 </header>
                 
                 <Dashboard expenses={expenses} categories={allCategories} />
-                <Insights expenses={expenses} />
                 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
                   <div className="lg:col-span-2">

@@ -1,7 +1,5 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { Expense, Category, RecurringFrequency, CategoryItem, DefaultCategory } from '../types';
-import { suggestCategory, getApiKey } from '../services/geminiService';
 import { getCategoryIcon } from '../constants';
 
 interface ExpenseFormProps {
@@ -29,7 +27,6 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({ onAdd, onClose, initialExpens
   const [date, setDate] = useState(initialExpense?.date || new Date().toISOString().split('T')[0]);
   const [isRecurring, setIsRecurring] = useState(false);
   const [frequency, setFrequency] = useState<RecurringFrequency>(RecurringFrequency.MONTHLY);
-  const [isSuggesting, setIsSuggesting] = useState(false);
   const [showBankSuggestions, setShowBankSuggestions] = useState(false);
   const [receiptImage, setReceiptImage] = useState<string | null>(initialExpense?.receiptImage || null);
   const [isProcessingImage, setIsProcessingImage] = useState(false);
@@ -65,46 +62,6 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({ onAdd, onClose, initialExpens
       setUserHasManuallySetCategory(false);
     }
   }, [initialExpense]);
-
-  // AI Category Suggestion Logic
-  useEffect(() => {
-    // Don't run if editing and description matches the original (avoids overwriting existing user choice on load)
-    if (initialExpense && description === initialExpense.description) return;
-    
-    // Don't overwrite if user has manually selected a category
-    if (userHasManuallySetCategory) return;
-    
-    // Check if API key exists silently. If not, don't attempt AI.
-    const apiKey = getApiKey();
-    if (!apiKey) return;
-
-    // Debounce the API call to avoid spamming while typing
-    const timer = setTimeout(async () => {
-      // Only suggest for meaningful descriptions (> 3 chars)
-      if (description.length > 3) {
-        setIsSuggesting(true);
-        try {
-          // Extract just the names for the AI context
-          const categoryNames = categories.map(c => c.name);
-          
-          // Call Gemini Service
-          const suggestion = await suggestCategory(description, categoryNames);
-          
-          // Verify the suggestion is actually in our current list of categories
-          // (Protects against AI hallucinating a category not in the list)
-          if (categoryNames.includes(suggestion)) {
-            setCategory(suggestion);
-          }
-        } catch (error) {
-          console.error("Failed to suggest category:", error);
-        } finally {
-          setIsSuggesting(false);
-        }
-      }
-    }, 800); // 800ms delay
-
-    return () => clearTimeout(timer);
-  }, [description, initialExpense, categories, userHasManuallySetCategory]);
 
   const handleImageCapture = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -277,25 +234,19 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({ onAdd, onClose, initialExpens
               <div className="flex justify-between items-center mb-2">
                 <label className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider flex items-center">
                   Category
-                  {isSuggesting && (
-                    <span className="ml-2 text-[10px] text-indigo-500 dark:text-indigo-400 animate-pulse font-black flex items-center">
-                      <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 24 24"><path d="M19 2l-1 2-2 1 2 1 1 2 1-2 2-1-2-1-1-2z" /></svg>
-                      AI
-                    </span>
-                  )}
                 </label>
-                {/* Show clear button if AI has suggested something or user wants to reset to Default */}
+                {/* Show clear button if user wants to reset to Default */}
                 {(category !== DefaultCategory.OTHER || userHasManuallySetCategory) && (
                    <button
                      type="button"
                      onClick={handleClearCategory}
                      className="text-[10px] font-bold text-slate-400 hover:text-indigo-500 dark:text-slate-500 dark:hover:text-indigo-400 transition-colors flex items-center group"
-                     title="Clear selection and stop auto-suggest"
+                     title="Reset selection"
                    >
                      <span className="mr-1 group-hover:rotate-90 transition-transform">
                         <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
                      </span>
-                     CLEAR
+                     RESET
                    </button>
                 )}
               </div>

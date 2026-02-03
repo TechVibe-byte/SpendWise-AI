@@ -1,6 +1,6 @@
 {
-  "name": "SpendWise AI",
-  "description": "A modern daily expense tracker with AI-powered financial insights and smart categorization.",
+  "name": "SpendWise",
+  "description": "A modern daily expense tracker with financial insights and smart categorization.",
   "requestFramePermissions": [
     "camera"
   ]
