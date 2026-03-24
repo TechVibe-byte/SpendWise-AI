@@ -12,6 +12,7 @@ import CategoryManager from './components/CategoryManager';
 import Settings from './components/Settings';
 import Onboarding from './components/Onboarding';
 import { Logo } from './components/Logo';
+import AIInsights from './components/AIInsights';
 
 const App: React.FC = () => {
   const [expenses, setExpenses] = useState<Expense[]>(() => {
@@ -32,6 +33,10 @@ const App: React.FC = () => {
   const [monthlyBudget, setMonthlyBudget] = useState<number>(() => {
     const saved = localStorage.getItem('spendwise-budget');
     return saved ? parseFloat(saved) : 50000;
+  });
+
+  const [openRouterApiKey, setOpenRouterApiKey] = useState<string>(() => {
+    return localStorage.getItem('spendwise-openrouter-key') || '';
   });
 
   const [isDarkMode, setIsDarkMode] = useState(() => {
@@ -93,6 +98,10 @@ const App: React.FC = () => {
   useEffect(() => {
     localStorage.setItem('spendwise-budget', monthlyBudget.toString());
   }, [monthlyBudget]);
+
+  useEffect(() => {
+    localStorage.setItem('spendwise-openrouter-key', openRouterApiKey);
+  }, [openRouterApiKey]);
 
   // Theme management
   useEffect(() => {
@@ -509,6 +518,7 @@ const App: React.FC = () => {
                         </div>
                       </div>
                     </div>
+                    <AIInsights expenses={expenses} categories={allCategories} openRouterApiKey={openRouterApiKey} />
                   </div>
                 </div>
               </div>
@@ -556,6 +566,8 @@ const App: React.FC = () => {
                 setCustomCategories={setCustomCategories}
                 monthlyBudget={monthlyBudget}
                 setMonthlyBudget={setMonthlyBudget}
+                openRouterApiKey={openRouterApiKey}
+                setOpenRouterApiKey={setOpenRouterApiKey}
               />
             } />
           </Routes>

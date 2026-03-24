@@ -11,13 +11,16 @@ interface SettingsProps {
   setCustomCategories: React.Dispatch<React.SetStateAction<CategoryItem[]>>;
   monthlyBudget: number;
   setMonthlyBudget: React.Dispatch<React.SetStateAction<number>>;
+  openRouterApiKey: string;
+  setOpenRouterApiKey: React.Dispatch<React.SetStateAction<string>>;
 }
 
 const Settings: React.FC<SettingsProps> = ({
   expenses, setExpenses,
   recurringExpenses, setRecurringExpenses,
   customCategories, setCustomCategories,
-  monthlyBudget, setMonthlyBudget
+  monthlyBudget, setMonthlyBudget,
+  openRouterApiKey, setOpenRouterApiKey
 }) => {
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [budgetInput, setBudgetInput] = useState(monthlyBudget.toString());
@@ -195,7 +198,7 @@ const Settings: React.FC<SettingsProps> = ({
     <div className="space-y-6 animate-in fade-in duration-500">
       <h2 className="text-2xl md:text-3xl font-black text-slate-900 dark:text-white tracking-tight">Settings</h2>
       
-      {/* General Preferences: Budget */}
+      {/* General Preferences: Budget & AI */}
       <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 md:p-8 shadow-sm border border-slate-100 dark:border-slate-800">
         <div className="flex items-start space-x-4 mb-6">
           <div className="w-12 h-12 bg-blue-50 dark:bg-blue-900/30 rounded-2xl flex items-center justify-center text-blue-600 dark:text-blue-400 shrink-0">
@@ -204,29 +207,46 @@ const Settings: React.FC<SettingsProps> = ({
           <div>
             <h3 className="text-xl font-bold text-slate-900 dark:text-white">General Preferences</h3>
             <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">
-              Customize your experience.
+              Customize your experience and AI integrations.
             </p>
           </div>
         </div>
 
-        <div className="flex flex-col md:flex-row gap-4 items-end">
-          <div className="flex-1 w-full">
-            <label className="block text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">
-              Monthly Budget Goal (₹)
-            </label>
-            <input
-              type="number"
-              className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all font-semibold"
-              value={budgetInput}
-              onChange={(e) => setBudgetInput(e.target.value)}
-            />
+        <div className="space-y-6">
+          <div className="flex flex-col md:flex-row gap-4 items-end">
+            <div className="flex-1 w-full">
+              <label className="block text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">
+                Monthly Budget Goal (₹)
+              </label>
+              <input
+                type="number"
+                className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all font-semibold"
+                value={budgetInput}
+                onChange={(e) => setBudgetInput(e.target.value)}
+              />
+            </div>
+            <button
+              onClick={handleUpdateBudget}
+              className="w-full md:w-auto px-6 py-3.5 bg-indigo-600 text-white font-bold rounded-xl shadow-lg shadow-indigo-100 dark:shadow-none hover:bg-indigo-700 transition-all h-[50px]"
+            >
+              Update Budget
+            </button>
           </div>
-          <button
-            onClick={handleUpdateBudget}
-            className="w-full md:w-auto px-6 py-3.5 bg-indigo-600 text-white font-bold rounded-xl shadow-lg shadow-indigo-100 dark:shadow-none hover:bg-indigo-700 transition-all h-[50px]"
-          >
-            Update Budget
-          </button>
+
+          <div className="flex flex-col md:flex-row gap-4 items-end">
+            <div className="flex-1 w-full">
+              <label className="block text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">
+                OpenRouter API Key (For AI Insights)
+              </label>
+              <input
+                type="password"
+                placeholder="sk-or-v1-..."
+                className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all font-semibold"
+                value={openRouterApiKey}
+                onChange={(e) => setOpenRouterApiKey(e.target.value)}
+              />
+            </div>
+          </div>
         </div>
       </div>
 

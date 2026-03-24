@@ -33,6 +33,7 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({ onAdd, onClose, initialExpens
   const [receiptImage, setReceiptImage] = useState<string | null>(initialExpense?.receiptImage || null);
   const [isProcessingImage, setIsProcessingImage] = useState(false);
   const [userHasManuallySetCategory, setUserHasManuallySetCategory] = useState(false);
+  const [isCategorizing, setIsCategorizing] = useState(false);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -88,6 +89,58 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({ onAdd, onClose, initialExpens
     setReceiptImage(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
+    }
+  };
+
+  const autoCategorize = async () => {
+    if (!description) return;
+    
+    const apiKey = localStorage.getItem('spendwise-openrouter-key');
+    if (!apiKey) {
+      alert('Please set your OpenRouter API Key in Settings to use Auto-Categorize.');
+      return;
+    }
+
+    setIsCategorizing(true);
+    try {
+      const categoryNames = categories.map(c => c.name).join(', ');
+      const prompt = `
+        Categorize the following expense description into exactly one of these categories: ${categoryNames}.
+        Description: "${description}"
+        
+        Reply ONLY with the exact category name from the list above. Do not include any other text.
+      `;
+
+      const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'HTTP-Referer': window.location.origin,
+          'X-Title': 'SpendWise',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          model: 'google/gemini-2.5-flash-lite-preview',
+          messages: [
+            { role: 'user', content: prompt }
+          ]
+        })
+      });
+
+      if (!response.ok) throw new Error('Failed to categorize');
+
+      const data = await response.json();
+      const suggestedCategory = data.choices[0].message.content.trim();
+      
+      // Verify the suggested category exists
+      if (categories.some(c => c.name === suggestedCategory)) {
+        setCategory(suggestedCategory);
+        setUserHasManuallySetCategory(true);
+      }
+    } catch (error) {
+      console.error('Auto-categorize error:', error);
+    } finally {
+      setIsCategorizing(false);
     }
   };
 
@@ -156,7 +209,22 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({ onAdd, onClose, initialExpens
         <form onSubmit={handleSubmit} className="p-6 space-y-6 overflow-y-auto pb-10 md:pb-6">
           <div className="space-y-4">
             <div>
-              <label className="block text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">Description</label>
+              <div className="flex justify-between items-center mb-2">
+                <label className="block text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Description</label>
+                <button 
+                  type="button" 
+                  onClick={autoCategorize}
+                  disabled={!description || isCategorizing}
+                  className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/30 px-2 py-1 rounded hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors disabled:opacity-50 flex items-center"
+                >
+                  {isCategorizing ? (
+                    <svg className="w-3 h-3 animate-spin mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                  ) : (
+                    <span className="mr-1">✨</span>
+                  )}
+                  Auto-Categorize
+                </button>
+              </div>
               <input
                 type="text"
                 required
