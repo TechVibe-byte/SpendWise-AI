@@ -27,7 +27,9 @@ import {
   HelpCircle, 
   Save, 
   X, 
-  PiggyBank 
+  PiggyBank,
+  Smartphone,
+  Laptop
 } from 'lucide-react';
 
 interface SettingsProps {
@@ -51,6 +53,12 @@ interface SettingsProps {
   setTransfers: React.Dispatch<React.SetStateAction<Transfer[]>>;
   openRouterApiKey: string;
   setOpenRouterApiKey: React.Dispatch<React.SetStateAction<string>>;
+  deferredPrompt?: any;
+  showInstallBtn?: boolean;
+  isStandalone?: boolean;
+  handleInstallClick?: () => Promise<void>;
+  showPwaHelp?: boolean;
+  setShowPwaHelp?: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
 const ACCOUNT_TYPES: { value: AccountType; label: string }[] = [
@@ -84,10 +92,30 @@ const Settings: React.FC<SettingsProps> = ({
   budgetRulePercentage, setBudgetRulePercentage,
   accounts, setAccounts,
   transfers, setTransfers,
-  openRouterApiKey, setOpenRouterApiKey
+  openRouterApiKey, setOpenRouterApiKey,
+  deferredPrompt,
+  showInstallBtn = false,
+  isStandalone = false,
+  handleInstallClick,
+  showPwaHelp = false,
+  setShowPwaHelp
 }) => {
   // Navigation active tab
-  const [activeTab, setActiveTab] = useState<'accounts' | 'budget' | 'backup' | 'ai' | 'advanced' | 'danger'>('accounts');
+  const [activeTab, setActiveTab] = useState<'accounts' | 'budget' | 'backup' | 'ai' | 'install' | 'advanced' | 'danger'>('accounts');
+  const [showDiagnostics, setShowDiagnostics] = useState(false);
+  const [isSwActive, setIsSwActive] = useState(false);
+
+  React.useEffect(() => {
+    if (activeTab === 'install') {
+      const checkSw = async () => {
+        if ('serviceWorker' in navigator) {
+          const reg = await navigator.serviceWorker.getRegistration();
+          setIsSwActive(!!reg && (!!reg.active || !!reg.installing || !!reg.waiting));
+        }
+      };
+      checkSw();
+    }
+  }, [activeTab]);
 
   // Custom premium notifications state
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
@@ -458,24 +486,24 @@ const Settings: React.FC<SettingsProps> = ({
         )}
       </AnimatePresence>
 
-      <div className="bg-gradient-to-b from-[#071224] to-[#0d1e3d] border border-white/[0.05] p-5 md:p-8 rounded-[32px] space-y-6 shadow-2xl relative overflow-hidden">
+      <div className="bg-white dark:bg-gradient-to-b dark:from-[#071224] dark:to-[#0d1e3d] border border-slate-200 dark:border-white/[0.05] p-5 md:p-8 rounded-[32px] space-y-6 shadow-[0_10px_35px_-10px_rgba(15,23,42,0.08)] dark:shadow-2xl relative overflow-hidden">
         {/* Subtle decorative purple glow background element */}
         <div className="absolute top-0 right-1/4 w-80 h-80 bg-[#8B5CF6]/5 rounded-full blur-[100px] pointer-events-none" />
         
         <div className="relative z-10 flex items-center justify-between">
           <div>
-            <h2 className="text-xl md:text-2xl font-black text-white tracking-tight flex items-center gap-2">
+            <h2 className="text-xl md:text-2xl font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
               <span className="w-2.5 h-2.5 rounded-full bg-gradient-to-r from-[#7C3AED] to-[#8B5CF6] shadow-[0_0_10px_rgba(139,92,246,0.6)] animate-pulse" />
               Vault Center
             </h2>
-            <p className="text-slate-400 text-xs mt-1">Manage accounts, budgets, and backups.</p>
+            <p className="text-slate-500 dark:text-slate-400 text-xs mt-1">Manage accounts, budgets, and backups.</p>
           </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 md:gap-6 items-start relative z-10">
           
           {/* SIDE BAR / MOBILE CATEGORY NAVIGATION SECTION */}
-          <div className="md:col-span-1 grid grid-cols-2 sm:grid-cols-3 md:flex md:flex-col gap-2.5 p-2 bg-[#040914]/60 border border-white/[0.03] rounded-[24px]">
+          <div className="md:col-span-1 grid grid-cols-2 sm:grid-cols-3 md:flex md:flex-col gap-2.5 p-2 bg-slate-50 dark:bg-[#040914]/60 border border-slate-200 dark:border-white/[0.03] rounded-[24px]">
             
             {/* 1. Accounts Tab */}
             <button
@@ -483,17 +511,17 @@ const Settings: React.FC<SettingsProps> = ({
               className={`w-full flex items-center justify-between px-4 py-3 rounded-2xl text-xs font-bold transition-all duration-300 transform cursor-pointer ${
                 activeTab === 'accounts' 
                   ? 'bg-gradient-to-r from-[#7C3AED] to-[#8B5CF6] text-white shadow-[0_4px_20px_-2px_rgba(139,92,246,0.25)] border border-violet-400/20 scale-[1.02]' 
-                  : 'bg-[#0F172A] text-slate-400 hover:text-white hover:bg-[#111c33] hover:border-violet-500/30 border border-white/[0.08] hover:scale-[1.02] hover:shadow-[0_0_15px_rgba(139,92,246,0.12)]'
+                  : 'bg-slate-100 hover:bg-slate-100 text-slate-600 border border-slate-200 hover:text-slate-900 dark:bg-[#0F172A] dark:text-slate-400 dark:hover:text-white dark:hover:bg-[#111c33] dark:hover:border-violet-500/30 dark:border-white/[0.08] hover:scale-[1.02] hover:shadow-[0_0_15px_rgba(139,92,246,0.12)]'
               }`}
             >
               <div className="flex items-center space-x-2">
-                <CreditCard className={`w-4 h-4 transition-colors ${activeTab === 'accounts' ? 'text-white' : 'text-violet-400'}`} />
+                <CreditCard className={`w-4 h-4 transition-colors ${activeTab === 'accounts' ? 'text-white' : 'text-violet-550 dark:text-violet-400'}`} />
                 <span>Accounts</span>
               </div>
               <span className={`text-[10px] font-black font-mono py-0.5 px-2 rounded-full border transition-all ${
                 activeTab === 'accounts' 
                   ? 'bg-white/15 text-white border-white/20' 
-                  : 'bg-white/5 text-slate-400 border-white/5'
+                  : 'bg-slate-200 text-slate-500 dark:bg-white/5 dark:text-slate-400 border-slate-300 dark:border-white/5'
               }`}>
                 {accounts.length}
               </span>
@@ -505,11 +533,11 @@ const Settings: React.FC<SettingsProps> = ({
               className={`w-full flex items-center justify-between px-4 py-3 rounded-2xl text-xs font-bold transition-all duration-300 transform cursor-pointer ${
                 activeTab === 'budget' 
                   ? 'bg-gradient-to-r from-[#7C3AED] to-[#8B5CF6] text-white shadow-[0_4px_20px_-2px_rgba(139,92,246,0.25)] border border-violet-400/20 scale-[1.02]' 
-                  : 'bg-[#0F172A] text-slate-400 hover:text-white hover:bg-[#111c33] hover:border-indigo-500/30 border border-white/[0.08] hover:scale-[1.02] hover:shadow-[0_0_15px_rgba(99,102,241,0.12)]'
+                  : 'bg-slate-100 hover:bg-slate-100 text-slate-600 border border-slate-200 hover:text-slate-900 dark:bg-[#0F172A] dark:text-slate-400 dark:hover:text-white dark:hover:bg-[#111c33] dark:hover:border-indigo-500/30 dark:border-white/[0.08] hover:scale-[1.02] hover:shadow-[0_0_15px_rgba(99,102,241,0.12)]'
               }`}
             >
               <div className="flex items-center space-x-2">
-                <Landmark className={`w-4 h-4 transition-colors ${activeTab === 'budget' ? 'text-white' : 'text-indigo-400'}`} />
+                <Landmark className={`w-4 h-4 transition-colors ${activeTab === 'budget' ? 'text-white' : 'text-indigo-500 dark:text-indigo-400'}`} />
                 <span>Budget Rules</span>
               </div>
             </button>
@@ -520,11 +548,11 @@ const Settings: React.FC<SettingsProps> = ({
               className={`w-full flex items-center justify-between px-4 py-3 rounded-2xl text-xs font-bold transition-all duration-300 transform cursor-pointer ${
                 activeTab === 'backup' 
                   ? 'bg-gradient-to-r from-[#7C3AED] to-[#8B5CF6] text-white shadow-[0_4px_20px_-2px_rgba(139,92,246,0.25)] border border-violet-400/20 scale-[1.02]' 
-                  : 'bg-[#0F172A] text-slate-400 hover:text-white hover:bg-[#111c33] hover:border-cyan-500/30 border border-white/[0.08] hover:scale-[1.02] hover:shadow-[0_0_15px_rgba(6,182,212,0.12)]'
+                  : 'bg-slate-100 hover:bg-slate-100 text-slate-600 border border-slate-200 hover:text-slate-900 dark:bg-[#0F172A] dark:text-slate-400 dark:hover:text-white dark:hover:bg-[#111c33] dark:hover:border-cyan-500/30 dark:border-white/[0.08] hover:scale-[1.02] hover:shadow-[0_0_15px_rgba(6,182,212,0.12)]'
               }`}
             >
               <div className="flex items-center space-x-2">
-                <Database className={`w-4 h-4 transition-colors ${activeTab === 'backup' ? 'text-white' : 'text-cyan-400'}`} />
+                <Database className={`w-4 h-4 transition-colors ${activeTab === 'backup' ? 'text-white' : 'text-cyan-500 dark:text-cyan-400'}`} />
                 <span>Backup & Restore</span>
               </div>
             </button>
@@ -535,15 +563,15 @@ const Settings: React.FC<SettingsProps> = ({
               className={`w-full flex items-center justify-between px-4 py-3 rounded-2xl text-xs font-bold transition-all duration-300 transform cursor-pointer ${
                 activeTab === 'ai' 
                   ? 'bg-gradient-to-r from-[#7C3AED] to-[#8B5CF6] text-white shadow-[0_4px_20px_-2px_rgba(139,92,246,0.25)] border border-violet-400/20 scale-[1.02]' 
-                  : 'bg-[#0F172A] text-slate-400 hover:text-white hover:bg-[#111c33] hover:border-violet-500/30 border border-white/[0.08] hover:scale-[1.02] hover:shadow-[0_0_15px_rgba(139,92,246,0.12)]'
+                  : 'bg-slate-100 hover:bg-slate-100 text-slate-600 border border-slate-200 hover:text-slate-900 dark:bg-[#0F172A] dark:text-slate-400 dark:hover:text-white dark:hover:bg-[#111c33] dark:hover:border-violet-500/30 dark:border-white/[0.08] hover:scale-[1.02] hover:shadow-[0_0_15px_rgba(139,92,246,0.12)]'
               }`}
             >
               <div className="flex items-center space-x-2">
-                <Sparkles className={`w-4 h-4 transition-colors ${activeTab === 'ai' ? 'text-white' : 'text-violet-400'}`} />
+                <Sparkles className={`w-4 h-4 transition-colors ${activeTab === 'ai' ? 'text-white' : 'text-violet-550 dark:text-violet-400'}`} />
                 <span>AI Assistant</span>
               </div>
               {openRouterApiKey && (
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" />
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 dark:bg-emerald-400 shrink-0" />
               )}
             </button>
 
@@ -553,13 +581,34 @@ const Settings: React.FC<SettingsProps> = ({
               className={`w-full flex items-center justify-between px-4 py-3 rounded-2xl text-xs font-bold transition-all duration-300 transform cursor-pointer ${
                 activeTab === 'advanced' 
                   ? 'bg-gradient-to-r from-[#7C3AED] to-[#8B5CF6] text-white shadow-[0_4px_20px_-2px_rgba(139,92,246,0.25)] border border-violet-400/20 scale-[1.02]' 
-                  : 'bg-[#0F172A] text-slate-400 hover:text-white hover:bg-[#111c33] hover:border-slate-500/30 border border-white/[0.08] hover:scale-[1.02] hover:shadow-[0_0_15px_rgba(148,163,184,0.12)]'
+                  : 'bg-slate-100 hover:bg-slate-100 text-slate-600 border border-slate-200 hover:text-slate-900 dark:bg-[#0F172A] dark:text-slate-400 dark:hover:text-white dark:hover:bg-[#111c33] dark:hover:border-slate-500/30 dark:border-white/[0.08] hover:scale-[1.02] hover:shadow-[0_0_15px_rgba(148,163,184,0.12)]'
               }`}
             >
               <div className="flex items-center space-x-2">
-                <Sliders className={`w-4 h-4 transition-colors ${activeTab === 'advanced' ? 'text-white' : 'text-slate-400'}`} />
+                <Sliders className={`w-4 h-4 transition-colors ${activeTab === 'advanced' ? 'text-white' : 'text-slate-500 dark:text-slate-400'}`} />
                 <span>Advanced</span>
               </div>
+            </button>
+
+            {/* 5.5 App Installation Tab */}
+            <button
+              onClick={() => setActiveTab('install')}
+              className={`w-full flex items-center justify-between px-4 py-3 rounded-2xl text-xs font-bold transition-all duration-300 transform cursor-pointer ${
+                activeTab === 'install' 
+                  ? 'bg-gradient-to-r from-[#7C3AED] to-[#8B5CF6] text-white shadow-[0_4px_20px_-2px_rgba(139,92,246,0.25)] border border-violet-400/20 scale-[1.02]' 
+                  : 'bg-slate-100 hover:bg-slate-100 text-slate-600 border border-slate-200 hover:text-slate-900 dark:bg-[#0F172A] dark:text-slate-400 dark:hover:text-[#8B5CF6] dark:hover:text-white dark:hover:bg-[#111c33] dark:hover:border-[#8B5CF6]/30 dark:border-white/[0.08] hover:scale-[1.02] hover:shadow-[0_0_15px_rgba(139,92,246,0.12)]'
+              }`}
+            >
+              <div className="flex items-center space-x-2">
+                <Smartphone className={`w-4 h-4 transition-colors ${activeTab === 'install' ? 'text-white' : 'text-[#8B5CF6]'}`} />
+                <span>App Installation</span>
+              </div>
+              {showInstallBtn && !isStandalone && (
+                <span className="flex h-2 w-2 relative">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                </span>
+              )}
             </button>
 
             {/* 6. Danger Zone Tab */}
@@ -568,7 +617,7 @@ const Settings: React.FC<SettingsProps> = ({
               className={`w-full flex items-center justify-between px-4 py-3 rounded-2xl text-xs font-bold transition-all duration-300 transform cursor-pointer ${
                 activeTab === 'danger' 
                   ? 'bg-gradient-to-r from-red-650 to-rose-650 text-white shadow-[0_4px_20px_-2px_rgba(239,68,68,0.25)] border border-red-500/30 scale-[1.02]' 
-                  : 'bg-[#0F172A] text-rose-500 hover:text-rose-450 hover:bg-[#1c111c] border border-red-500/20 hover:border-red-500/40 hover:scale-[1.02] hover:shadow-[0_0_15px_rgba(239,68,68,0.12)]'
+                  : 'bg-red-50 hover:bg-red-105 text-red-650 border border-red-200 hover:text-red-750 dark:bg-[#0F172A] dark:text-rose-500 dark:hover:text-rose-450 dark:hover:bg-[#1c111c] dark:border-red-500/20 dark:hover:border-red-500/40 hover:scale-[1.02] hover:shadow-[0_0_15px_rgba(239,68,68,0.12)]'
               }`}
             >
               <div className="flex items-center space-x-2">
@@ -578,7 +627,7 @@ const Settings: React.FC<SettingsProps> = ({
             </button>
 
           {/* Brand Identity Showcase */}
-          <div className="hidden md:flex flex-col bg-[#0F172A] border border-white/[0.04] p-5 rounded-3xl mt-6 text-center relative overflow-hidden group">
+          <div className="hidden md:flex flex-col bg-slate-100 dark:bg-[#0F172A] border border-slate-200 dark:border-white/[0.04] p-5 rounded-3xl mt-6 text-center relative overflow-hidden group">
             <div className="absolute top-0 right-0 w-24 h-24 bg-indigo-500/5 rounded-full blur-xl pointer-events-none transition-all group-hover:scale-125" />
             
             <div className="w-14 h-14 bg-gradient-to-br from-indigo-500 via-violet-650 to-indigo-700 rounded-2xl flex items-center justify-center shadow-lg mx-auto mb-3 border border-white/10">
@@ -597,17 +646,17 @@ const Settings: React.FC<SettingsProps> = ({
               </div>
             </div>
             
-            <h3 className="text-xs font-black text-white tracking-widest uppercase">SpendWise</h3>
+            <h3 className="text-xs font-black text-slate-800 dark:text-white tracking-widest uppercase">SpendWise</h3>
             <p className="text-[10px] text-slate-500 font-bold mt-1">Platform Version 2.4.0</p>
             
-            <div className="mt-4 pt-3 border-t border-white/[0.04] flex flex-col gap-1 text-[10px] text-left">
+            <div className="mt-4 pt-3 border-t border-slate-200 dark:border-white/[0.04] flex flex-col gap-1 text-[10px] text-left">
               <div className="flex justify-between">
                 <span className="text-slate-500">Secure Core:</span>
-                <span className="text-indigo-400 font-extrabold">ACTIVE</span>
+                <span className="text-indigo-650 dark:text-indigo-400 font-extrabold">ACTIVE</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-500">Security Layer:</span>
-                <span className="text-slate-300 font-bold">AES-256</span>
+                <span className="text-slate-705 dark:text-slate-300 font-bold">AES-256</span>
               </div>
             </div>
           </div>
@@ -620,16 +669,16 @@ const Settings: React.FC<SettingsProps> = ({
           {/* TAB 1: ACCOUNTS */}
           {activeTab === 'accounts' && (
             <div className="space-y-6">
-              <div className="bg-[#0F172A] border border-white/[0.08] p-6 rounded-3xl relative overflow-hidden">
+              <div className="bg-white dark:bg-[#0F172A] border border-slate-200 dark:border-white/[0.08] p-6 rounded-3xl relative overflow-hidden shadow-[0_8px_30px_rgb(15,23,42,0.04)] dark:shadow-none">
                 <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 rounded-full blur-2xl pointer-events-none" />
                 
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 pb-4 border-b border-white/[0.06]">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 pb-4 border-b border-slate-200 dark:border-white/[0.06]">
                   <div>
-                    <h3 className="text-lg font-black text-white flex items-center gap-2">
-                      <CreditCard className="w-4 h-4 text-violet-400" />
+                    <h3 className="text-lg font-black text-slate-900 dark:text-white flex items-center gap-2">
+                      <CreditCard className="w-4 h-4 text-[#8B5CF6]" />
                       Manage Accounts
                     </h3>
-                    <p className="text-xs text-slate-400 mt-1">Configure virtual positions, wallets, active bank balances and flow streams.</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-405 mt-1">Configure virtual positions, wallets, active bank balances and flow streams.</p>
                   </div>
                   <button
                     onClick={openNewAccountModal}
@@ -647,7 +696,7 @@ const Settings: React.FC<SettingsProps> = ({
                       return (
                         <div 
                           key={acc.id} 
-                          className="group bg-[#111827] p-5 rounded-2xl border border-white/[0.05] hover:border-white/[0.12] transition-all duration-300 relative overflow-hidden"
+                          className="group bg-slate-50 dark:bg-[#111827] p-5 rounded-2xl border border-slate-200 dark:border-white/[0.05] hover:border-slate-300 dark:hover:border-white/[0.12] transition-all duration-300 relative overflow-hidden hover:shadow-[0_4px_20px_rgba(15,23,42,0.03)]"
                         >
                           <div 
                             className="absolute top-0 left-0 w-1.5 h-full" 
@@ -656,33 +705,33 @@ const Settings: React.FC<SettingsProps> = ({
                           
                           <div className="flex justify-between items-start space-x-4">
                             <div className="min-w-0">
-                              <span className="inline-block bg-white/[0.04] text-[9px] font-black uppercase tracking-wider text-slate-400 px-2 py-0.5 rounded-md mb-2 border border-white/[0.03]">
+                              <span className="inline-block bg-slate-200/50 dark:bg-white/[0.04] text-[9px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 px-2 py-0.5 rounded-md mb-2 border border-slate-300/30 dark:border-white/[0.03]">
                                 {getAccountTypeLabel(acc.type)}
                               </span>
-                              <h4 className="font-extrabold text-slate-100 text-sm truncate">{acc.name}</h4>
+                              <h4 className="font-extrabold text-slate-900 dark:text-slate-100 text-sm truncate">{acc.name}</h4>
                               <p className="text-[10px] text-slate-500 mt-0.5 font-semibold truncate">Issuer: {acc.bankName || 'Self'}</p>
                             </div>
 
                             <div className="flex space-x-0.5">
                               <button 
                                 onClick={() => openEditAccountModal(acc)}
-                                className="p-1 px-1.5 rounded-lg text-slate-450 hover:bg-slate-800 hover:text-white transition-colors"
+                                className="p-1 px-1.5 rounded-lg text-slate-500 hover:bg-slate-200 hover:text-slate-900 dark:text-slate-405 dark:hover:bg-slate-800 dark:hover:text-white transition-colors cursor-pointer"
                               >
                                 <Edit3 className="w-3.5 h-3.5" />
                               </button>
                               <button 
                                 onClick={() => triggerDeleteRequest(acc.id, acc.name)}
-                                className="p-1 px-1.5 rounded-lg text-slate-450 hover:bg-slate-850 hover:text-rose-500 transition-colors"
+                                className="p-1 px-1.5 rounded-lg text-slate-500 hover:bg-slate-200 hover:text-rose-600 dark:text-slate-405 dark:hover:bg-slate-850 dark:hover:text-rose-500 transition-colors cursor-pointer"
                               >
                                 <Trash2 className="w-3.5 h-3.5" />
                               </button>
                             </div>
                           </div>
 
-                          <div className="mt-4 flex items-end justify-between border-t border-white/[0.04] pt-3.5">
+                          <div className="mt-4 flex items-end justify-between border-t border-slate-200 dark:border-white/[0.04] pt-3.5">
                             <div>
-                              <p className="text-[9px] text-slate-450 uppercase tracking-widest font-black">Opening Balance</p>
-                              <h5 className="text-base font-black font-mono tracking-tight text-slate-200 mt-0.5">
+                              <p className="text-[9px] text-slate-550 dark:text-slate-450 uppercase tracking-widest font-black">Opening Balance</p>
+                              <h5 className="text-base font-black font-mono tracking-tight text-slate-900 dark:text-slate-200 mt-0.5">
                                 {formatCurrency(acc.initialBalance)}
                               </h5>
                             </div>
@@ -690,9 +739,9 @@ const Settings: React.FC<SettingsProps> = ({
                             <div className="text-right">
                               <p className="text-[9px] text-slate-550 uppercase tracking-widest font-bold">Monthly Flow</p>
                               <p className="text-[10px] font-black font-mono mt-0.5">
-                                <span className="text-emerald-400">+{formatCurrency(flows.income)}</span>
-                                <span className="text-slate-500 mx-1">/</span>
-                                <span className="text-rose-400">-{formatCurrency(flows.spent)}</span>
+                                <span className="text-emerald-500 dark:text-emerald-400">+{formatCurrency(flows.income)}</span>
+                                <span className="text-slate-400 dark:text-slate-500 mx-1">/</span>
+                                <span className="text-rose-500 dark:text-rose-400">-{formatCurrency(flows.spent)}</span>
                               </p>
                             </div>
                           </div>
@@ -701,12 +750,12 @@ const Settings: React.FC<SettingsProps> = ({
                     })}
                   </div>
                 ) : (
-                  <div className="text-center py-12 px-6 border border-dashed border-white/[0.08] bg-[#111827]/40 rounded-3xl flex flex-col items-center justify-center">
-                    <PiggyBank className="w-12 h-12 text-slate-550 mb-3 stroke-[1.2]" />
-                    <p className="text-sm text-slate-350 font-bold mb-4">No accounts added yet</p>
+                  <div className="text-center py-12 px-6 border border-dashed border-slate-200 dark:border-white/[0.08] bg-slate-50/50 dark:bg-[#111827]/40 rounded-3xl flex flex-col items-center justify-center">
+                    <PiggyBank className="w-12 h-12 text-slate-400 dark:text-slate-550 mb-3 stroke-[1.2]" />
+                    <p className="text-sm text-slate-500 dark:text-slate-350 font-bold mb-4">No accounts added yet</p>
                     <button
                       onClick={openNewAccountModal}
-                      className="px-5 py-2.5 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-extrabold text-xs rounded-2xl transition-all duration-150 hover:scale-[1.03] active:scale-95 flex items-center justify-center space-x-1.5 shadow-lg border border-white/10 cursor-pointer"
+                      className="px-5 py-2.5 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-550 hover:to-indigo-550 text-white font-extrabold text-xs rounded-2xl transition-all duration-150 hover:scale-[1.03] active:scale-95 flex items-center justify-center space-x-1.5 shadow-lg border border-white/10 cursor-pointer"
                     >
                       <Plus className="w-4 h-4" />
                       <span>Add Account</span>
@@ -720,15 +769,15 @@ const Settings: React.FC<SettingsProps> = ({
           {/* TAB 2: BUDGET LIMITS */}
           {activeTab === 'budget' && (
             <div className="space-y-6">
-              <div className="bg-[#0F172A] border border-white/[0.08] p-6 rounded-3xl relative overflow-hidden">
+              <div className="bg-white dark:bg-[#0F172A] border border-slate-200 dark:border-white/[0.08] p-6 rounded-3xl relative overflow-hidden shadow-[0_8px_30px_rgb(15,23,42,0.04)] dark:shadow-none">
                 <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 rounded-full blur-2xl pointer-events-none" />
                 
-                <div className="mb-6 pb-4 border-b border-white/[0.06]">
-                  <h3 className="text-lg font-black text-white flex items-center gap-2">
-                    <Landmark className="w-4 h-4 text-violet-400" />
+                <div className="mb-6 pb-4 border-b border-slate-200 dark:border-white/[0.06]">
+                  <h3 className="text-lg font-black text-slate-900 dark:text-white flex items-center gap-2">
+                    <Landmark className="w-4 h-4 text-[#8B5CF6]" />
                     Budget Rule Engine
                   </h3>
-                  <p className="text-xs text-slate-400 mt-1">Configure automated calculations to dynamically configure monthly ceilings depending on current income velocity.</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Configure automated calculations to dynamically configure monthly ceilings depending on current income velocity.</p>
                 </div>
 
                 <div className="space-y-6">
@@ -738,48 +787,48 @@ const Settings: React.FC<SettingsProps> = ({
                       onClick={() => setLocalRuleType('manual')}
                       className={`p-4 rounded-2xl border text-left cursor-pointer transition-all ${
                         localRuleType === 'manual' 
-                          ? 'bg-gradient-to-br from-indigo-950/60 to-slate-900 border-indigo-500 text-white shadow-md shadow-indigo-950/40' 
-                          : 'bg-[#111827] border-white/[0.05] text-slate-450 hover:text-slate-200 hover:bg-[#111827]/80'
+                          ? 'bg-gradient-to-br from-indigo-600 via-indigo-700 to-indigo-800 dark:from-indigo-950/60 dark:to-slate-900 border-indigo-500 text-white shadow-md shadow-indigo-950/10' 
+                          : 'bg-slate-50 border-slate-200 hover:border-slate-300 dark:bg-[#111827] dark:border-white/[0.05] text-slate-500 dark:text-slate-400 hover:text-slate-950 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-[#111827]/80'
                       }`}
                     >
                       <span className="font-extrabold text-xs block">Manual Cap</span>
-                      <span className="text-[10px] text-slate-500 block mt-1.5 leading-tight">Strict ceiling fixed regardless of income level fluctuations.</span>
+                      <span className="text-[10px] text-slate-500 dark:text-slate-500 block mt-1.5 leading-tight">Strict ceiling fixed regardless of income level fluctuations.</span>
                     </button>
 
                     <button
                       onClick={() => setLocalRuleType('income_100')}
                       className={`p-4 rounded-2xl border text-left cursor-pointer transition-all ${
                         localRuleType === 'income_100' 
-                          ? 'bg-gradient-to-br from-indigo-950/60 to-slate-900 border-indigo-500 text-white shadow-md shadow-indigo-950/40' 
-                          : 'bg-[#111827] border-white/[0.05] text-slate-450 hover:text-slate-200 hover:bg-[#111827]/80'
+                          ? 'bg-gradient-to-br from-indigo-600 via-indigo-700 to-indigo-800 dark:from-indigo-950/60 dark:to-slate-900 border-indigo-500 text-white shadow-md shadow-indigo-950/10' 
+                          : 'bg-slate-50 border-slate-200 hover:border-slate-300 dark:bg-[#111827] dark:border-white/[0.05] text-slate-500 dark:text-slate-400 hover:text-slate-950 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-[#111827]/80'
                       }`}
                     >
                       <span className="font-extrabold text-xs block">100% Incomes Cap</span>
-                      <span className="text-[10px] text-slate-500 block mt-1.5 leading-tight">Entire monthly cumulative income constitutes the available budget.</span>
+                      <span className="text-[10px] text-slate-500 dark:text-slate-500 block mt-1.5 leading-tight">Entire monthly cumulative income constitutes the available budget.</span>
                     </button>
 
                     <button
                       onClick={() => setLocalRuleType('income_percentage')}
                       className={`p-4 rounded-2xl border text-left cursor-pointer transition-all ${
                         localRuleType === 'income_percentage' 
-                          ? 'bg-gradient-to-br from-indigo-950/60 to-slate-900 border-indigo-500 text-white shadow-md shadow-indigo-950/40' 
-                          : 'bg-[#111827] border-white/[0.05] text-slate-450 hover:text-slate-200 hover:bg-[#111827]/80'
+                          ? 'bg-gradient-to-br from-indigo-600 via-indigo-700 to-indigo-800 dark:from-indigo-950/60 dark:to-slate-900 border-indigo-500 text-white shadow-md shadow-indigo-950/10' 
+                          : 'bg-slate-50 border-slate-200 hover:border-slate-300 dark:bg-[#111827] dark:border-white/[0.05] text-slate-500 dark:text-slate-400 hover:text-slate-950 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-[#111827]/80'
                       }`}
                     >
                       <span className="font-extrabold text-xs block">Income Ratio Rules</span>
-                      <span className="text-[10px] text-slate-500 block mt-1.5 leading-tight">Allocate ratio target parameters (e.g. 50/30/20) for expenses allocation.</span>
+                      <span className="text-[10px] text-slate-500 dark:text-slate-500 block mt-1.5 leading-tight">Allocate ratio target parameters (e.g. 50/30/20) for expenses allocation.</span>
                     </button>
 
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 items-end bg-[#111827]/50 p-5 rounded-2xl border border-white/[0.04]">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 items-end bg-slate-50 dark:bg-[#111827]/50 p-5 rounded-2xl border border-slate-200 dark:border-white/[0.04]">
                     <div>
-                      <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">
+                      <label className="block text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-2">
                         Fallback Base Goal (₹)
                       </label>
                       <input
                         type="number"
-                        className="w-full px-4 py-2.5 rounded-xl border border-white/[0.08] bg-[#111827] text-slate-100 font-bold font-mono text-sm leading-none focus:outline-none focus:border-indigo-500"
+                        className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-white/[0.08] bg-white dark:bg-[#111827] text-slate-900 dark:text-slate-100 font-bold font-mono text-sm leading-none focus:outline-none focus:border-indigo-500 transition-colors"
                         value={budgetInput}
                         onChange={(e) => setBudgetInput(e.target.value)}
                       />
@@ -789,17 +838,17 @@ const Settings: React.FC<SettingsProps> = ({
                     {localRuleType === 'income_percentage' && (
                       <div>
                         <div className="flex justify-between items-baseline mb-2">
-                          <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                          <label className="block text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest">
                             Allocation Ratio Limit
                           </label>
-                          <span className="text-xs font-black text-indigo-400 font-mono">{localRulePercentage}%</span>
+                          <span className="text-xs font-black text-indigo-600 dark:text-indigo-400 font-mono">{localRulePercentage}%</span>
                         </div>
                         <input
                           type="range"
                           min="10"
                           max="100"
                           step="5"
-                          className="w-full h-1.5 bg-[#0F172A] rounded-lg appearance-none cursor-pointer accent-indigo-500"
+                          className="w-full h-1.5 bg-slate-200 dark:bg-[#0F172A] rounded-lg appearance-none cursor-pointer accent-indigo-500"
                           value={localRulePercentage}
                           onChange={(e) => setLocalRulePercentage(parseInt(e.target.value, 10))}
                         />
@@ -823,31 +872,31 @@ const Settings: React.FC<SettingsProps> = ({
           {/* TAB 3: BACKUPS & CSV */}
           {activeTab === 'backup' && (
             <div className="space-y-6">
-              <div className="bg-[#0F172A] border border-white/[0.08] p-6 rounded-3xl relative overflow-hidden">
+              <div className="bg-white dark:bg-[#0F172A] border border-slate-200 dark:border-white/[0.08] p-6 rounded-3xl relative overflow-hidden shadow-[0_8px_30px_rgb(15,23,42,0.04)] dark:shadow-none">
                 <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 rounded-full blur-2xl pointer-events-none" />
                 
-                <div className="mb-6 pb-4 border-b border-white/[0.06]">
-                  <h3 className="text-lg font-black text-white flex items-center gap-2">
-                    <Database className="w-4 h-4 text-violet-400" />
+                <div className="mb-6 pb-4 border-b border-slate-200 dark:border-white/[0.06]">
+                  <h3 className="text-lg font-black text-slate-900 dark:text-white flex items-center gap-2">
+                    <Database className="w-4 h-4 text-[#8B5CF6]" />
                     Backup & Restore Registry
                   </h3>
-                  <p className="text-xs text-slate-400 mt-1">Export your structured database vaults to ensure multi-device synchronization and avoid data loss.</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Export your structured database vaults to ensure multi-device synchronization and avoid data loss.</p>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   
                   {/* CSV Card */}
-                  <div className="bg-[#111827] border border-white/[0.04] p-5 rounded-2xl text-center flex flex-col justify-between items-center group hover:border-[#3b82f6]/30 transition-all">
+                  <div className="bg-slate-50 dark:bg-[#111827] border border-slate-200 dark:border-white/[0.04] p-5 rounded-2xl text-center flex flex-col justify-between items-center group hover:border-[#3b82f6]/30 transition-all">
                     <div className="w-10 h-10 bg-[#3b82f6]/10 text-[#3b82f6] rounded-xl flex items-center justify-center mb-4 shrink-0">
                       <FileSpreadsheet className="w-5 h-5" />
                     </div>
                     <div>
-                      <h4 className="text-xs font-black text-slate-200">Export CSV Sheet</h4>
+                      <h4 className="text-xs font-black text-slate-800 dark:text-slate-200">Export CSV Sheet</h4>
                       <p className="text-[10px] text-slate-500 mt-1.5 leading-tight">Download ledger tables configured for Excel / spreadsheets.</p>
                     </div>
                     <button
                       onClick={exportCSV}
-                      className="mt-5 w-full h-9 bg-slate-800 hover:bg-slate-750 text-slate-200 font-bold text-[10px] rounded-xl transition-all active:scale-95 flex items-center justify-center space-x-1 shadow-xs border border-white/[0.03] cursor-pointer"
+                      className="mt-5 w-full h-9 bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-750 text-slate-800 dark:text-slate-200 font-bold text-[10px] rounded-xl transition-all active:scale-95 flex items-center justify-center space-x-1 shadow-xs border border-slate-300 dark:border-white/[0.03] cursor-pointer"
                     >
                       <Download className="w-3 h-3" />
                       <span>Export CSV</span>
@@ -855,17 +904,17 @@ const Settings: React.FC<SettingsProps> = ({
                   </div>
 
                   {/* JSON Backup Card */}
-                  <div className="bg-[#111827] border border-white/[0.04] p-5 rounded-2xl text-center flex flex-col justify-between items-center group hover:border-violet-500/30 transition-all">
+                  <div className="bg-slate-50 dark:bg-[#111827] border border-slate-200 dark:border-white/[0.04] p-5 rounded-2xl text-center flex flex-col justify-between items-center group hover:border-violet-500/30 transition-all">
                     <div className="w-10 h-10 bg-violet-500/10 text-violet-400 rounded-xl flex items-center justify-center mb-4 shrink-0">
                       <Database className="w-5 h-5" />
                     </div>
                     <div>
-                      <h4 className="text-xs font-black text-slate-200">Dump JSON Backup</h4>
+                      <h4 className="text-xs font-black text-slate-800 dark:text-slate-200">Dump JSON Backup</h4>
                       <p className="text-[10px] text-slate-500 mt-1.5 leading-tight">Create an offline database file to save completely.</p>
                     </div>
                     <button
                       onClick={exportJSON}
-                      className="mt-5 w-full h-9 bg-[#2e1065]/35 hover:bg-violet-950/40 text-violet-300 font-bold text-[10px] rounded-xl transition-all active:scale-95 flex items-center justify-center space-x-1 shadow-xs border border-violet-500/10 cursor-pointer"
+                      className="mt-5 w-full h-9 bg-violet-100 hover:bg-violet-200 dark:bg-[#2e1065]/35 dark:hover:bg-violet-950/40 text-violet-700 dark:text-violet-300 font-bold text-[10px] rounded-xl transition-all active:scale-95 flex items-center justify-center space-x-1 shadow-xs border border-violet-200 dark:border-violet-500/10 cursor-pointer"
                     >
                       <Download className="w-3 h-3" />
                       <span>Backup JSON</span>
@@ -873,12 +922,12 @@ const Settings: React.FC<SettingsProps> = ({
                   </div>
 
                   {/* Restore Card */}
-                  <div className="bg-[#111827] border border-white/[0.04] p-5 rounded-2xl text-center flex flex-col justify-between items-center group hover:border-cyan-500/30 transition-all">
+                  <div className="bg-slate-50 dark:bg-[#111827] border border-slate-200 dark:border-white/[0.04] p-5 rounded-2xl text-center flex flex-col justify-between items-center group hover:border-cyan-500/30 transition-all">
                     <div className="w-10 h-10 bg-cyan-500/10 text-cyan-400 rounded-xl flex items-center justify-center mb-4 shrink-0">
                       <RefreshCw className="w-5 h-5" />
                     </div>
                     <div>
-                      <h4 className="text-xs font-black text-slate-200">Restore Backup File</h4>
+                      <h4 className="text-xs font-black text-slate-800 dark:text-slate-200">Restore Backup File</h4>
                       <p className="text-[10px] text-slate-500 mt-1.5 leading-tight">Upload previous offline vaults to overlay details perfectly.</p>
                     </div>
                     <div className="w-full mt-5">
@@ -891,7 +940,7 @@ const Settings: React.FC<SettingsProps> = ({
                       />
                       <button
                         onClick={() => jsonFileInputRef.current?.click()}
-                        className="w-full h-9 bg-cyan-950/25 hover:bg-cyan-900/35 text-cyan-400 font-bold text-[10px] rounded-xl transition-all active:scale-95 flex items-center justify-center space-x-1 shadow-xs border border-cyan-500/15 cursor-pointer"
+                        className="w-full h-9 bg-cyan-100 hover:bg-cyan-200 dark:bg-cyan-950/25 dark:hover:bg-cyan-900/35 text-cyan-705 dark:text-cyan-400 font-bold text-[10px] rounded-xl transition-all active:scale-95 flex items-center justify-center space-x-1 shadow-xs border border-cyan-200 dark:border-cyan-500/15 cursor-pointer"
                       >
                         <Upload className="w-3 h-3" />
                         <span>Restore JSON</span>
@@ -908,24 +957,24 @@ const Settings: React.FC<SettingsProps> = ({
           {/* TAB 4: AI ASSISTANT */}
           {activeTab === 'ai' && (
             <div className="space-y-6">
-              <div className="bg-[#0F172A] border border-white/[0.08] p-6 rounded-3xl relative overflow-hidden">
+              <div className="bg-white dark:bg-[#0F172A] border border-slate-200 dark:border-white/[0.08] p-6 rounded-3xl relative overflow-hidden shadow-[0_8px_30px_rgb(15,23,42,0.04)] dark:shadow-none">
                 <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 rounded-full blur-2xl pointer-events-none" />
                 
-                <div className="flex justify-between items-start mb-6 pb-4 border-b border-white/[0.06]">
+                <div className="flex justify-between items-start mb-6 pb-4 border-b border-slate-200 dark:border-white/[0.06]">
                   <div>
-                    <h3 className="text-lg font-black text-white flex items-center gap-2">
-                      <Sparkles className="w-4 h-4 text-violet-400" />
+                    <h3 className="text-lg font-black text-slate-900 dark:text-white flex items-center gap-2">
+                      <Sparkles className="w-4 h-4 text-[#8B5CF6]" />
                       AI Assistant
                     </h3>
-                    <p className="text-xs text-slate-400 mt-1">Configure advanced conversational interfaces, intelligence modeling platforms and API gateways.</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Configure advanced conversational interfaces, intelligence modeling platforms and API gateways.</p>
                   </div>
                   
                   {/* Dynamic enable toggle */}
-                  <div className="flex items-center space-x-2 bg-[#111827] px-3 py-1.5 rounded-full border border-white/[0.05]">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">{aiEnabled ? 'Enabled' : 'Disabled'}</span>
+                  <div className="flex items-center space-x-2 bg-slate-100 dark:bg-[#111827] px-3 py-1.5 rounded-full border border-slate-200 dark:border-white/[0.05]">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">{aiEnabled ? 'Enabled' : 'Disabled'}</span>
                     <button
                       onClick={() => setAiEnabled(!aiEnabled)}
-                      className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none ${aiEnabled ? 'bg-indigo-600' : 'bg-slate-800'}`}
+                      className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none ${aiEnabled ? 'bg-indigo-600' : 'bg-slate-350 dark:bg-slate-800'}`}
                     >
                       <span className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ${aiEnabled ? 'translate-x-4' : 'translate-x-0'}`} />
                     </button>
@@ -940,19 +989,19 @@ const Settings: React.FC<SettingsProps> = ({
                       exit={{ opacity: 0, y: -10 }}
                       className="space-y-5"
                     >
-                      <div className="bg-[#111827]/50 rounded-2xl p-4 border border-white/[0.04]">
-                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2.5">
+                      <div className="bg-slate-50 dark:bg-[#111827]/50 rounded-2xl p-4 border border-slate-200 dark:border-white/[0.04]">
+                        <label className="block text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-2.5">
                           Optional OpenRouter API Key
                         </label>
                         <div className="relative">
                           <input
                             type="password"
                             placeholder="sk-or-v1-..."
-                            className="w-full px-4 py-2.5 pr-10 rounded-xl border border-white/[0.08] bg-[#111827] text-slate-100 font-bold font-mono text-xs focus:outline-none focus:border-indigo-500 transition-all placeholder:text-slate-650"
+                            className="w-full px-4 py-2.5 pr-10 rounded-xl border border-slate-200 dark:border-white/[0.08] bg-white dark:bg-[#111827] text-slate-900 dark:text-slate-100 font-bold font-mono text-xs focus:outline-none focus:border-indigo-500 transition-all placeholder:text-slate-400 dark:placeholder:text-slate-650"
                             value={openRouterApiKey}
                             onChange={(e) => setOpenRouterApiKey(e.target.value)}
                           />
-                          <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-slate-500">
+                          <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-slate-450 dark:text-slate-500">
                             <Key className="w-3.5 h-3.5" />
                           </div>
                         </div>
@@ -961,9 +1010,9 @@ const Settings: React.FC<SettingsProps> = ({
                         </p>
                       </div>
 
-                      <div className="p-4 bg-violet-950/20 rounded-2xl border border-violet-500/10 flex items-start space-x-3">
-                        <AlertTriangle className="w-4 h-4 text-violet-400 shrink-0 mt-0.5" />
-                        <div className="text-[10px] text-violet-200 leading-normal">
+                      <div className="p-4 bg-violet-50 dark:bg-violet-950/20 rounded-2xl border border-violet-100 dark:border-violet-500/10 flex items-start space-x-3 text-violet-750 dark:text-violet-200">
+                        <AlertTriangle className="w-4 h-4 text-violet-500 dark:text-violet-400 shrink-0 mt-0.5" />
+                        <div className="text-[10px] leading-normal font-semibold">
                           <span className="font-extrabold block mb-0.5">Need a key?</span>
                           Generate free or pay-as-you-go developer keys securely over OpenRouter portal to activate premium budget recommendation models.
                         </div>
@@ -975,8 +1024,8 @@ const Settings: React.FC<SettingsProps> = ({
                       animate={{ opacity: 1, y: 0 }}
                       className="text-center py-6"
                     >
-                      <Sliders className="w-10 h-10 text-slate-700 mx-auto mb-3" />
-                      <p className="text-xs text-slate-400 font-bold">AI Companion is deactivated</p>
+                      <Sliders className="w-10 h-10 text-slate-400 dark:text-slate-700 mx-auto mb-3" />
+                      <p className="text-xs text-slate-600 dark:text-slate-400 font-bold">AI Companion is deactivated</p>
                       <p className="text-[10px] text-slate-500 max-w-xs mx-auto mt-1 leading-normal">Enable artificial intelligence systems on the top toggle to input api secrets and generate forecasts.</p>
                     </motion.div>
                   )}
@@ -988,23 +1037,23 @@ const Settings: React.FC<SettingsProps> = ({
           {/* TAB 5: ADVANCED */}
           {activeTab === 'advanced' && (
             <div className="space-y-6">
-              <div className="bg-[#0F172A] border border-white/[0.08] p-6 rounded-3xl relative overflow-hidden">
+              <div className="bg-white dark:bg-[#0F172A] border border-slate-200 dark:border-white/[0.08] p-6 rounded-3xl relative overflow-hidden shadow-[0_8px_30px_rgb(15,23,42,0.04)] dark:shadow-none">
                 <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 rounded-full blur-2xl pointer-events-none" />
                 
-                <div className="mb-6 pb-4 border-b border-white/[0.06]">
-                  <h3 className="text-lg font-black text-white flex items-center gap-2">
-                    <Sliders className="w-4 h-4 text-violet-400" />
+                <div className="mb-6 pb-4 border-b border-slate-200 dark:border-white/[0.06]">
+                  <h3 className="text-lg font-black text-slate-900 dark:text-white flex items-center gap-2">
+                    <Sliders className="w-4 h-4 text-[#8B5CF6]" />
                     Advanced Controls
                   </h3>
-                  <p className="text-xs text-slate-400 mt-1">Audit customized tags, spending brackets and system-specific data structure files.</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-404 mt-1">Audit customized tags, spending brackets and system-specific data structure files.</p>
                 </div>
 
                 <div className="space-y-6">
                   
                   {/* Category manager */}
-                  <div className="bg-[#111827] border border-white/[0.04] p-5 rounded-2xl">
-                    <h4 className="text-xs font-black text-slate-300 uppercase tracking-wider mb-4 flex items-center gap-2">
-                      <Layers className="w-3.5 h-3.5 text-indigo-400" />
+                  <div className="bg-slate-50 dark:bg-[#111827] border border-slate-200 dark:border-white/[0.04] p-5 rounded-2xl">
+                    <h4 className="text-xs font-black text-slate-800 dark:text-slate-300 uppercase tracking-wider mb-4 flex items-center gap-2">
+                      <Layers className="w-3.5 h-3.5 text-indigo-500 dark:text-indigo-400" />
                       Custom Category Overlays
                     </h4>
                     
@@ -1013,7 +1062,7 @@ const Settings: React.FC<SettingsProps> = ({
                         <label className="block text-[9px] font-black uppercase text-slate-500 mb-1.5">New Category Label</label>
                         <input
                           type="text"
-                          className="w-full h-10 px-4 rounded-xl border border-white/[0.08] bg-[#0F172A] text-slate-200 text-xs font-bold focus:outline-none focus:border-indigo-500"
+                          className="w-full h-10 px-4 rounded-xl border border-slate-200 dark:border-white/[0.08] bg-white dark:bg-[#0F172A] text-slate-900 dark:text-slate-200 text-xs font-bold focus:outline-none focus:border-indigo-500 transition-colors placeholder:text-slate-400 dark:placeholder:text-slate-500"
                           placeholder="e.g. Subscriptions, Pet Care"
                           value={newCatName}
                           onChange={(e) => setNewCatName(e.target.value)}
@@ -1022,12 +1071,12 @@ const Settings: React.FC<SettingsProps> = ({
                       <div>
                         <label className="block text-[9px] font-black uppercase text-slate-500 mb-1.5">Theme Accent Choice</label>
                         <select
-                          className="w-full h-10 px-4 rounded-xl border border-white/[0.08] bg-[#0F172A] text-slate-200 text-xs font-bold cursor-pointer focus:outline-none focus:border-indigo-500"
+                          className="w-full h-10 px-4 rounded-xl border border-slate-200 dark:border-white/[0.08] bg-white dark:bg-[#0F172A] text-slate-900 dark:text-slate-200 text-xs font-bold cursor-pointer focus:outline-none focus:border-indigo-500 transition-colors"
                           value={newCatColor}
                           onChange={(e) => setNewCatColor(e.target.value)}
                         >
                           {ACCOUNT_COLORS.map(c => (
-                            <option key={c.value} value={c.value}>{c.label}</option>
+                            <option key={c.value} value={c.value} className="text-slate-900 bg-white dark:text-slate-200 dark:bg-[#0F172A]">{c.label}</option>
                           ))}
                         </select>
                       </div>
@@ -1042,20 +1091,20 @@ const Settings: React.FC<SettingsProps> = ({
                       </div>
                     </form>
 
-                    <div className="border-t border-white/[0.04] pt-4">
+                    <div className="border-t border-slate-205 dark:border-white/[0.04] pt-4">
                       <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3">Custom Configured Categories</p>
                       {customCategories.filter(c => c.isCustom).length > 0 ? (
                         <div className="flex flex-wrap gap-2">
                           {customCategories.filter(c => c.isCustom).map(c => (
                             <div 
                               key={c.id} 
-                              className="px-3 py-1.5 bg-[#0b0f19] border border-white/[0.06] rounded-xl flex items-center space-x-2 text-xs"
+                              className="px-3 py-1.5 bg-slate-200/50 dark:bg-[#0b0f19] border border-slate-300/30 dark:border-white/[0.06] rounded-xl flex items-center space-x-2 text-xs"
                             >
                               <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: c.color }} />
-                              <span className="font-semibold text-slate-300">{c.name}</span>
+                              <span className="font-semibold text-slate-700 dark:text-slate-300">{c.name}</span>
                               <button 
                                 onClick={() => handleDeleteCategory(c.id, c.name)}
-                                className="text-slate-550 hover:text-rose-500 transition-colors p-0.5 ml-1"
+                                className="text-slate-450 hover:text-rose-600 dark:text-slate-550 dark:hover:text-rose-500 transition-colors p-0.5 ml-1 cursor-pointer"
                               >
                                 <X className="w-3 h-3" />
                               </button>
@@ -1063,7 +1112,7 @@ const Settings: React.FC<SettingsProps> = ({
                           ))}
                         </div>
                       ) : (
-                        <p className="text-[10px] text-slate-550 italic font-medium">No custom categories established yet. Create one above!</p>
+                        <p className="text-[10px] text-slate-500 dark:text-slate-550 italic font-medium">No custom categories established yet. Create one above!</p>
                       )}
                     </div>
                   </div>
@@ -1071,37 +1120,35 @@ const Settings: React.FC<SettingsProps> = ({
                 </div>
               </div>
             </div>
-          )}
-
-          {/* TAB 6: DANGER ZONE */}
+          )}          {/* TAB 6: DANGER ZONE */}
           {activeTab === 'danger' && (
             <div className="space-y-6">
-              <div className="bg-[#0f111a] border border-rose-500/25 p-6 rounded-3xl relative overflow-hidden">
+              <div className="bg-rose-50/20 dark:bg-[#0f111a] border border-rose-350/50 dark:border-rose-500/25 p-6 rounded-3xl relative overflow-hidden">
                 <div className="absolute top-0 right-0 w-32 h-32 bg-rose-500/5 rounded-full blur-2xl pointer-events-none" />
                 
-                <div className="mb-6 pb-4 border-b border-white/[0.06] flex items-start space-x-3">
-                  <div className="w-10 h-10 bg-rose-500/10 text-rose-400 rounded-xl flex items-center justify-center shrink-0">
+                <div className="mb-6 pb-4 border-b border-rose-100 dark:border-white/[0.06] flex items-start space-x-3">
+                  <div className="w-10 h-10 bg-rose-500/10 text-rose-500 dark:text-rose-400 rounded-xl flex items-center justify-center shrink-0">
                     <ShieldAlert className="w-5 h-5 animate-pulse" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-black text-rose-500">Danger Zone: Absolute Purge</h3>
-                    <p className="text-xs text-rose-350/80 mt-1">Irreversible administrative actions. Be extremely careful before triggering deletions.</p>
+                    <h3 className="text-lg font-black text-rose-600 dark:text-rose-500">Danger Zone: Absolute Purge</h3>
+                    <p className="text-xs text-rose-700/80 dark:text-rose-350/80 mt-1">Irreversible administrative actions. Be extremely careful before triggering deletions.</p>
                   </div>
                 </div>
 
-                <div className="space-y-5 bg-rose-950/10 p-5 rounded-2xl border border-rose-500/10">
-                  <div className="text-[11px] text-rose-200/80 leading-relaxed font-semibold">
-                    <span className="font-extrabold text-rose-450 block mb-1">WARNING STATEMENT</span>
+                <div className="space-y-5 bg-rose-50/80 dark:bg-rose-950/10 p-5 rounded-2xl border border-rose-200 dark:border-rose-500/10">
+                  <div className="text-[11px] text-rose-850 dark:text-rose-200/80 leading-relaxed font-semibold">
+                    <span className="font-extrabold text-rose-600 dark:text-rose-450 block mb-1">WARNING STATEMENT</span>
                     Triggering data destruction wipes all transactional ledger, custom category nodes, recurring plans, initial account balances, and security API keys completely. This action resets SpendWise to baseline out-of-the-box system configurations.
                   </div>
 
                   <div className="space-y-2">
-                    <label className="block text-[10px] font-black text-rose-300 uppercase tracking-widest leading-none">
+                    <label className="block text-[10px] font-black text-rose-700 dark:text-rose-300 uppercase tracking-widest leading-none">
                       Type 'DELETE' to confirm data purge:
                     </label>
                     <input
                       type="text"
-                      className="w-full px-4 py-2.5 rounded-xl border border-rose-500/20 bg-[#0F172A] text-slate-100 font-extrabold focus:outline-none focus:border-rose-500 text-xs"
+                      className="w-full px-4 py-2.5 rounded-xl border border-rose-350 bg-white dark:bg-[#0F172A] text-slate-900 dark:text-slate-100 font-extrabold focus:outline-none focus:border-rose-500 text-xs transition-colors"
                       placeholder="Type 'DELETE' exactly..."
                       value={purgeConfirmText}
                       onChange={(e) => setPurgeConfirmText(e.target.value)}
@@ -1114,7 +1161,7 @@ const Settings: React.FC<SettingsProps> = ({
                     className={`w-full h-11 font-extrabold text-xs rounded-2xl flex items-center justify-center space-x-1.5 transition-all shadow-lg ${
                       purgeConfirmText === 'DELETE' 
                         ? 'bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white cursor-pointer active:scale-95 duration-150' 
-                        : 'bg-slate-850 text-slate-500 border border-white/[0.02] cursor-not-allowed'
+                        : 'bg-slate-200 dark:bg-slate-850 text-slate-400 dark:text-slate-500 border border-slate-300 dark:border-white/[0.02] cursor-not-allowed'
                     }`}
                   >
                     <Trash2 className="w-4 h-4" />
@@ -1126,11 +1173,211 @@ const Settings: React.FC<SettingsProps> = ({
             </div>
           )}
 
+          {/* TAB 7: PWA INSTALLATION */}
+          {activeTab === 'install' && (
+            <div className="md:col-span-3 space-y-6 animate-in fade-in duration-300">
+              {/* Header */}
+              <div className="flex flex-col space-y-1.5 p-6 bg-[#0B1220] border border-white/[0.04] rounded-3xl relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 rounded-full blur-2xl pointer-events-none" />
+                <h3 className="text-xl font-bold text-white tracking-tight flex items-center space-x-2">
+                  <Smartphone className="w-5 h-5 text-[#8B5CF6]" />
+                  <span>Install SpendWise App</span>
+                </h3>
+                <p className="text-xs text-slate-400">
+                  Access SpendWise instantly from your device's home screen or desktop with offline support.
+                </p>
+              </div>
+
+              {/* Section: Installation Status */}
+              <div className="bg-white dark:bg-[#0b1220] border border-slate-200 dark:border-white/[0.04] rounded-3xl p-6 space-y-4 shadow-[0_8px_30px_rgb(15,23,42,0.04)] dark:shadow-none">
+                <h4 className="text-sm font-bold text-slate-805 dark:text-slate-200 uppercase tracking-wider">Installation Status</h4>
+                
+                <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-900/55 border border-slate-200 dark:border-white/[0.02] flex items-center space-x-4">
+                  <div className={`p-3 rounded-xl ${
+                    isStandalone 
+                      ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20' 
+                      : showInstallBtn 
+                        ? 'bg-indigo-550/10 text-indigo-600 dark:text-indigo-400 border border-indigo-505/20' 
+                        : 'bg-slate-200 text-slate-500 dark:bg-slate-800/60 dark:text-slate-400 border border-slate-300 dark:border-slate-805'
+                  }`}>
+                    <Smartphone className="w-6 h-6" />
+                  </div>
+                  <div className="flex-1 space-y-0.5">
+                    <p className="text-xs font-bold text-slate-500 dark:text-slate-405 uppercase tracking-wide">Current Status</p>
+                    <p className="text-sm font-extrabold text-slate-900 dark:text-white flex items-center space-x-1.5">
+                      {isStandalone ? (
+                        <span className="text-emerald-500 dark:text-emerald-400 font-bold">Installed ✓</span>
+                      ) : showInstallBtn ? (
+                        <span className="text-indigo-600 dark:text-indigo-400 font-bold">Available to Install</span>
+                      ) : (
+                        <span className="text-slate-500 dark:text-slate-405 font-bold font-mono">Not Available</span>
+                      )}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="text-xs text-slate-500 dark:text-slate-400">
+                  {isStandalone ? (
+                    <div className="text-emerald-700 dark:text-emerald-400/90 font-medium bg-emerald-50 dark:bg-emerald-500/5 p-3.5 rounded-xl border border-emerald-200 dark:border-emerald-500/10 flex items-center space-x-2">
+                      <span className="text-lg">✓</span>
+                      <span>SpendWise is already installed on this device.</span>
+                    </div>
+                  ) : showInstallBtn ? (
+                    <div className="text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-500/5 p-3.5 rounded-xl border border-indigo-200 dark:border-indigo-500/10 font-bold">
+                      Install SpendWise for faster access and offline support.
+                    </div>
+                  ) : (
+                    <div className="text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-850/40 p-3.5 rounded-xl border border-slate-200 dark:border-slate-800/40 font-medium">
+                      Installation is currently unavailable.
+                    </div>
+                  )}
+                </div>
+
+                {/* Button container */}
+                <div className="pt-2">
+                  {isStandalone ? (
+                    <div className="w-full bg-slate-100 dark:bg-[#1e293b]/50 border border-slate-200 dark:border-slate-800 py-3.5 px-4 rounded-xl text-center font-bold text-slate-500 dark:text-slate-400 text-xs flex items-center justify-center space-x-1.5">
+                      <span className="text-emerald-500 dark:text-emerald-400 font-extrabold">✓</span>
+                      <span>Installed</span>
+                    </div>
+                  ) : showInstallBtn ? (
+                    <button
+                      onClick={handleInstallClick}
+                      className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-3.5 rounded-2xl font-bold flex items-center justify-center space-x-2 shadow-xl hover:-translate-y-0.5 active:scale-95 transition-all cursor-pointer"
+                    >
+                      <Download className="w-4 h-4" />
+                      <span>Install SpendWise</span>
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => setShowPwaHelp?.(true)}
+                      className="w-full bg-slate-100 border-2 border-slate-305 text-slate-700 dark:bg-slate-805 dark:border-slate-705 dark:text-slate-350 py-3.5 rounded-2xl font-bold flex items-center justify-center space-x-2 hover:bg-slate-200 dark:hover:bg-slate-700 dark:hover:text-white transition-all cursor-pointer shadow-xs"
+                    >
+                      <HelpCircle className="w-4 h-4" />
+                      <span>How to Install Manually</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Section: Browser-Specific Help */}
+              {!isStandalone && (
+                <div className="bg-[#0b1220] border border-white/[0.04] rounded-3xl p-6 space-y-4">
+                  <h4 className="text-sm font-bold text-slate-200 uppercase tracking-wider flex items-center space-x-1.5">
+                    <HelpCircle className="w-4 h-4 text-slate-400" />
+                    <span>Browser-Specific Guidance</span>
+                  </h4>
+                  <p className="text-xs text-slate-400 leading-relaxed">
+                    If you don't see an option to install, your browser might not support direct installation or you can install it manually:
+                  </p>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
+                    {/* Chrome Android */}
+                    <div className="p-4 rounded-2xl bg-[#040914]/40 border border-white/[0.03] space-y-2">
+                      <p className="text-xs font-bold text-white flex items-center space-x-1.5">
+                        <span className="inline-block w-4 h-4 bg-[#8B5CF6]/10 text-[#8B5CF6] text-[10px] font-black rounded-full text-center leading-4">C</span>
+                        <span>Chrome Android</span>
+                      </p>
+                      <ul className="text-[11px] text-slate-400 space-y-1 list-decimal list-inside leading-relaxed pl-1">
+                        <li>Tap Browser Menu (3 dots)</li>
+                        <li>Select <strong className="text-slate-300">Install App</strong> or <strong className="text-slate-300">Add to Home Screen</strong></li>
+                      </ul>
+                    </div>
+
+                    {/* Samsung Internet */}
+                    <div className="p-4 rounded-2xl bg-[#040914]/40 border border-white/[0.03] space-y-2">
+                      <p className="text-xs font-bold text-white flex items-center space-x-1.5">
+                        <span className="inline-block w-4 h-4 bg-[#8B5CF6]/10 text-[#8B5CF6] text-[10px] font-black rounded-full text-center leading-4">S</span>
+                        <span>Samsung Internet</span>
+                      </p>
+                      <ul className="text-[11px] text-slate-400 space-y-1 list-decimal list-inside leading-relaxed pl-1">
+                        <li>Open Menu (3 lines)</li>
+                        <li>Select <strong className="text-slate-300">Add Page To</strong></li>
+                        <li>Select <strong className="text-slate-300">Home Screen</strong></li>
+                      </ul>
+                    </div>
+
+                    {/* Edge */}
+                    <div className="p-4 rounded-2xl bg-[#040914]/40 border border-white/[0.03] space-y-2">
+                      <p className="text-xs font-bold text-white flex items-center space-x-1.5">
+                        <span className="inline-block w-4 h-4 bg-[#8B5CF6]/10 text-[#8B5CF6] text-[10px] font-black rounded-full text-center leading-4">E</span>
+                        <span>Edge</span>
+                      </p>
+                      <ul className="text-[11px] text-slate-400 space-y-1 list-decimal list-inside leading-relaxed pl-1">
+                        <li>Open Menu (3 dots)</li>
+                        <li>Tap <strong className="text-slate-300">Install App</strong></li>
+                      </ul>
+                    </div>
+                  </div>
+
+                  {/* iOS Help banner as extra value */}
+                  <div className="p-4 rounded-2xl bg-[#040914]/40 border border-white/[0.03] space-y-2">
+                    <p className="text-xs font-bold text-white flex items-center space-x-1.5">
+                      <span className="inline-block w-4 h-4 bg-[#8B5CF6]/10 text-[#8B5CF6] text-[10px] font-black rounded-full text-center leading-4">A</span>
+                      <span>iOS Safari (Apple)</span>
+                    </p>
+                    <ul className="text-[11px] text-slate-400 space-y-1 list-decimal list-inside leading-relaxed pl-1">
+                      <li>Tap the <strong className="text-slate-300">Share</strong> button at bottom toolbar (square with arrow up)</li>
+                      <li>Scroll down and select <strong className="text-slate-300">Add to Home Screen</strong></li>
+                    </ul>
+                  </div>
+                </div>
+              )}
+
+              {/* Section: Hidden Diagnostics Panel Toggle */}
+              <div className="bg-[#0b1220] border border-white/[0.04] rounded-3xl p-6 space-y-4">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-sm font-bold text-slate-200 uppercase tracking-wider">PWA Diagnostics</h4>
+                  <button
+                    onClick={() => setShowDiagnostics(!showDiagnostics)}
+                    className="text-xs font-bold text-[#8B5CF6] bg-[#8B5CF6]/10 px-3 py-1.5 rounded-lg hover:bg-[#8B5CF6]/20 transition-all cursor-pointer"
+                  >
+                    {showDiagnostics ? 'Hide Diagnostics' : 'Show Diagnostics'}
+                  </button>
+                </div>
+
+                {showDiagnostics && (
+                  <div className="space-y-3 p-4 rounded-2xl bg-slate-950 border border-white/[0.03] font-mono select-none">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-2 gap-x-4 text-xs">
+                      <div className="flex items-center justify-between border-b border-white/[0.02] py-1.5">
+                        <span className="text-slate-400">Manifest Loaded</span>
+                        <span className="text-emerald-400 font-bold">✓</span>
+                      </div>
+                      <div className="flex items-center justify-between border-b border-white/[0.02] py-1.5">
+                        <span className="text-slate-400">Service Worker Active</span>
+                        <span className={isSwActive ? 'text-emerald-400 font-bold' : 'text-slate-455'}>{isSwActive ? '✓' : 'Testing...'}</span>
+                      </div>
+                      <div className="flex items-center justify-between border-b border-white/[0.02] py-1.5">
+                        <span className="text-slate-400">Install Prompt Available</span>
+                        <span className={showInstallBtn ? 'text-emerald-400 font-bold' : 'text-rose-450 font-bold'}>{showInstallBtn ? '✓' : '✖'}</span>
+                      </div>
+                      <div className="flex items-center justify-between border-b border-white/[0.02] py-1.5">
+                        <span className="text-slate-400">Standalone Mode</span>
+                        <span className={isStandalone ? 'text-emerald-400 font-bold' : 'text-rose-450'}>{isStandalone ? '✓' : '✖'}</span>
+                      </div>
+                      <div className="flex items-center justify-between border-b border-white/[0.02] py-1.5">
+                        <span className="text-slate-400">Icons Valid</span>
+                        <span className="text-emerald-400 font-bold">✓</span>
+                      </div>
+                      <div className="flex items-center justify-between border-b border-white/[0.02] py-1.5">
+                        <span className="text-slate-400">Installable</span>
+                        <span className={showInstallBtn || isStandalone ? 'text-emerald-400 font-bold' : 'text-rose-400 font-bold'}>{showInstallBtn || isStandalone ? '✓' : '✖'}</span>
+                      </div>
+                    </div>
+                    <div className="pt-2 text-[10px] text-slate-500 text-center">
+                      Browser UA: {navigator.userAgent.slice(0, 50)}...
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
         </div>
       </div>
       </div>
 
-      {/* COMPACT MODAL FOR ACCOUNT CREATION & PROFILE EDITS */}
+       {/* COMPACT MODAL FOR ACCOUNT CREATION & PROFILE EDITS */}
       <AnimatePresence>
         {showAccountModal && (
           <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-50">
@@ -1138,37 +1385,37 @@ const Settings: React.FC<SettingsProps> = ({
               initial={{ scale: 0.93, opacity: 0, y: 15 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.93, opacity: 0, y: 15 }}
-              className="bg-[#0F172A] border border-white/[0.1] w-full max-w-md rounded-3xl overflow-hidden shadow-2xl relative"
+              className="bg-white dark:bg-[#0F172A] border border-slate-200 dark:border-white/[0.1] w-full max-w-md rounded-3xl overflow-hidden shadow-2xl relative"
             >
               <div className="absolute top-4 right-4 z-10">
                 <button 
                   onClick={() => setShowAccountModal(false)}
-                  className="p-1 px-1.5 rounded-xl hover:bg-white/[0.08] text-slate-400 hover:text-white transition-colors cursor-pointer"
+                  className="p-1 px-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-white/[0.08] text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer"
                 >
                   <X className="w-4 h-4" />
                 </button>
               </div>
 
               <div className="p-6">
-                <h4 className="text-base font-black text-white mb-1 flex items-center gap-2">
-                  <CreditCard className="w-5 h-5 text-indigo-400" />
+                <h4 className="text-base font-black text-slate-900 dark:text-white mb-1 flex items-center gap-2">
+                  <CreditCard className="w-5 h-5 text-indigo-500 dark:text-indigo-400" />
                   {editingAcc ? 'Modify Account Details' : 'Initialize Bank Account'}
                 </h4>
-                <p className="text-[10px] text-slate-400 mb-5 leading-normal">
+                <p className="text-[10px] text-slate-500 dark:text-slate-400 mb-5 leading-normal">
                   Configure active currency positions, starting balance levels, and account groupings.
                 </p>
 
                 <form onSubmit={handleSaveAccount} className="space-y-4">
                   
                   <div>
-                    <label className="block text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5">
+                    <label className="block text-[9px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1.5">
                       Account Title name *
                     </label>
                     <input
                       type="text"
                       required
                       placeholder="e.g. HDFC Salary, Cash Wallet"
-                      className="w-full h-10 px-4 rounded-xl border border-white/[0.08] bg-[#111827] text-white text-xs font-bold focus:outline-none focus:border-indigo-500 transition-colors"
+                      className="w-full h-10 px-4 rounded-xl border border-slate-200 dark:border-white/[0.08] bg-white dark:bg-[#111827] text-slate-900 dark:text-white text-xs font-bold focus:outline-none focus:border-indigo-500 transition-colors placeholder:text-slate-400 dark:placeholder:text-slate-505"
                       value={newAccName}
                       onChange={(e) => setNewAccName(e.target.value)}
                     />
@@ -1176,29 +1423,29 @@ const Settings: React.FC<SettingsProps> = ({
 
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5">
+                      <label className="block text-[9px] font-black text-slate-500 dark:text-slate-404 uppercase tracking-widest mb-1.5">
                         Account Position *
                       </label>
                       <select
-                        className="w-full h-10 px-3 rounded-xl border border-white/[0.08] bg-[#111827] text-white text-xs font-bold cursor-pointer focus:outline-none focus:border-indigo-500"
+                        className="w-full h-10 px-3 rounded-xl border border-slate-200 dark:border-white/[0.08] bg-white dark:bg-[#111827] text-slate-900 dark:text-white text-xs font-bold cursor-pointer focus:outline-none focus:border-indigo-500"
                         value={newAccType}
                         onChange={(e) => setNewAccType(e.target.value as AccountType)}
                       >
                         {ACCOUNT_TYPES.map(t => (
-                          <option key={t.value} value={t.value}>{t.label}</option>
+                          <option key={t.value} value={t.value} className="text-slate-900 bg-white dark:text-slate-200 dark:bg-[#111827]">{t.label}</option>
                         ))}
                       </select>
                     </div>
 
                     <div>
-                      <label className="block text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5">
+                      <label className="block text-[9px] font-black text-slate-500 dark:text-slate-404 uppercase tracking-widest mb-1.5">
                         Opening Balance (₹) *
                       </label>
                       <input
                         type="number"
                         required
                         placeholder="0"
-                        className="w-full h-10 px-4 rounded-xl border border-white/[0.08] bg-[#111827] text-white text-xs font-bold font-mono focus:outline-none focus:border-indigo-500 transition-colors"
+                        className="w-full h-10 px-4 rounded-xl border border-slate-200 dark:border-white/[0.08] bg-white dark:bg-[#111827] text-slate-900 dark:text-white text-xs font-bold font-mono focus:outline-none focus:border-indigo-500 transition-colors"
                         value={newAccBalance}
                         onChange={(e) => setNewAccBalance(e.target.value)}
                       />
@@ -1209,7 +1456,7 @@ const Settings: React.FC<SettingsProps> = ({
                     <button
                       type="button"
                       onClick={() => setShowMoreAccountOptions(!showMoreAccountOptions)}
-                      className="text-[10px] font-black text-indigo-400 hover:text-indigo-300 hover:underline transition-colors focus:outline-none flex items-center space-x-1 cursor-pointer"
+                      className="text-[10px] font-black text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300 hover:underline transition-colors focus:outline-none flex items-center space-x-1 cursor-pointer"
                     >
                       <span>More Customization Options</span>
                       <span className="text-[9px] leading-none">{showMoreAccountOptions ? '▲' : '▼'}</span>
@@ -1225,20 +1472,20 @@ const Settings: React.FC<SettingsProps> = ({
                         className="space-y-4 overflow-hidden pt-2"
                       >
                         <div>
-                          <label className="block text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5">
+                          <label className="block text-[9px] font-black text-slate-500 dark:text-slate-404 uppercase tracking-widest mb-1.5">
                             Bank / Issuer Entity Name
                           </label>
                           <input
                             type="text"
                             placeholder="e.g. HDFC Bank, SBI Bank, Cash"
-                            className="w-full h-10 px-4 rounded-xl border border-white/[0.08] bg-[#111827] text-white text-xs font-bold focus:outline-none focus:border-indigo-500 transition-colors"
+                            className="w-full h-10 px-4 rounded-xl border border-slate-200 dark:border-white/[0.08] bg-white dark:bg-[#111827] text-slate-900 dark:text-white text-xs font-bold focus:outline-none focus:border-indigo-500 transition-colors placeholder:text-slate-400 dark:placeholder:text-slate-505"
                             value={newAccBank}
                             onChange={(e) => setNewAccBank(e.target.value)}
                           />
                         </div>
 
                         <div>
-                          <label className="block text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5">
+                          <label className="block text-[9px] font-black text-slate-500 dark:text-slate-404 uppercase tracking-widest mb-1.5">
                             Visual Accent Color Badge
                           </label>
                           <div className="flex flex-wrap gap-2 pt-1">
@@ -1248,7 +1495,7 @@ const Settings: React.FC<SettingsProps> = ({
                                 type="button"
                                 onClick={() => setNewAccColor(c.value)}
                                 className={`w-8 h-8 rounded-full border-2 transition-transform cursor-pointer hover:scale-105 active:scale-95 ${
-                                  newAccColor === c.value ? 'border-white scale-102' : 'border-transparent'
+                                  newAccColor === c.value ? 'border-slate-900 dark:border-white scale-102' : 'border-transparent'
                                 }`}
                                 style={{ backgroundColor: c.value }}
                                 title={c.label}
@@ -1261,11 +1508,11 @@ const Settings: React.FC<SettingsProps> = ({
                     )}
                   </AnimatePresence>
 
-                  <div className="pt-4 grid grid-cols-2 gap-3 border-t border-white/[0.04] mt-5">
+                  <div className="pt-4 grid grid-cols-2 gap-3 border-t border-slate-200 dark:border-white/[0.04] mt-5">
                     <button
                       type="button"
                       onClick={() => setShowAccountModal(false)}
-                      className="h-10 border border-white/[0.08] bg-slate-850 hover:bg-slate-800 text-slate-300 font-bold text-xs rounded-xl transition-all cursor-pointer"
+                      className="h-10 border border-slate-250 dark:border-white/[0.08] bg-slate-100 hover:bg-slate-200 dark:bg-slate-850 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-xs rounded-xl transition-all cursor-pointer"
                     >
                       Dismiss
                     </button>
@@ -1292,20 +1539,20 @@ const Settings: React.FC<SettingsProps> = ({
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-[#0F172A] border border-white/[0.1] w-full max-w-sm rounded-3xl p-6 shadow-2xl text-center"
+              className="bg-white dark:bg-[#0F172A] border border-slate-200 dark:border-white/[0.1] w-full max-w-sm rounded-3xl p-6 shadow-2xl text-center"
             >
-              <div className="w-12 h-12 bg-rose-500/10 text-rose-450 rounded-2xl flex items-center justify-center mx-auto mb-4">
+              <div className="w-12 h-12 bg-rose-500/10 text-rose-500 dark:text-rose-455 rounded-2xl flex items-center justify-center mx-auto mb-4">
                 <AlertTriangle className="w-6 h-6" />
               </div>
 
-              <h4 className="text-base font-black text-rose-500 mb-2">Delete Account Confirmation</h4>
+              <h4 className="text-base font-black text-rose-600 dark:text-rose-500 mb-2">Delete Account Confirmation</h4>
               
-              <p className="text-xs text-slate-350 leading-relaxed font-semibold mb-4">
-                Are you sure you want to completely discard the account <span className="text-slate-100 font-black">"{accountDeletionConfirm.name}"</span>?
+              <p className="text-xs text-slate-605 dark:text-slate-350 leading-relaxed font-semibold mb-4">
+                Are you sure you want to completely discard the account <span className="text-slate-900 dark:text-slate-100 font-black">"{accountDeletionConfirm.name}"</span>?
               </p>
 
               {accountDeletionConfirm.isUsed && (
-                <div className="bg-orange-950/20 text-orange-450 text-[10px] font-bold p-3 rounded-xl border border-orange-500/15 text-left mb-5 leading-normal">
+                <div className="bg-orange-50 dark:bg-orange-950/20 text-orange-600 dark:text-orange-450 text-[10px] font-bold p-3 rounded-xl border border-orange-200 dark:border-orange-500/15 text-left mb-5 leading-normal">
                   ⚠️ Note: This account has active entries listed under your expenses or inflows. Deleting it maps the transactions as orphan accounts.
                 </div>
               )}
@@ -1313,13 +1560,13 @@ const Settings: React.FC<SettingsProps> = ({
               <div className="grid grid-cols-2 gap-3">
                 <button
                   onClick={() => setAccountDeletionConfirm(null)}
-                  className="h-10 border border-white/[0.08] bg-slate-850 hover:bg-slate-800 text-slate-300 font-bold text-xs rounded-xl cursor-pointer"
+                  className="h-10 border border-slate-250 dark:border-white/[0.08] bg-slate-100 hover:bg-slate-200 dark:bg-slate-850 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-xs rounded-xl cursor-pointer shadow-xs"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={confirmDeleteAccount}
-                  className="h-10 bg-rose-600 hover:bg-rose-700 text-white font-black text-xs rounded-xl cursor-pointer"
+                  className="h-10 bg-rose-600 hover:bg-rose-700 text-white font-black text-xs rounded-xl cursor-pointer shadow-md active:scale-95 transition-all"
                 >
                   Delete Account
                 </button>

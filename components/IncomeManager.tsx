@@ -251,29 +251,29 @@ const IncomeManager: React.FC<IncomeManagerProps> = ({
       {salaryReminders.length > 0 && (
         <div className="space-y-3">
           {salaryReminders.map(({ rule, monthLabel, monthPrefix }) => (
-            <div key={rule.id} className="bg-gradient-to-r from-violet-950/95 to-indigo-950/95 border border-violet-500/20 rounded-3xl p-5 text-white flex flex-col md:flex-row justify-between items-start md:items-center gap-4 shadow-xl shadow-indigo-950/20 relative overflow-hidden backdrop-blur-md">
+            <div key={rule.id} className="bg-gradient-to-r from-violet-600 to-indigo-600 dark:from-violet-950/95 dark:to-indigo-950/95 border border-violet-400/20 rounded-3xl p-5 text-white flex flex-col md:flex-row justify-between items-start md:items-center gap-4 shadow-xl shadow-indigo-950/10 dark:shadow-indigo-950/20 relative overflow-hidden backdrop-blur-md">
               <div className="absolute top-0 right-0 w-32 h-32 bg-violet-500/10 rounded-full blur-2xl pointer-events-none" />
               <div className="flex items-center space-x-3.5 relative z-10 min-w-0">
-                <div className="w-10 h-10 rounded-xl bg-violet-500/20 text-violet-300 flex items-center justify-center shrink-0 border border-violet-500/20 text-lg">
+                <div className="w-10 h-10 rounded-xl bg-white/10 dark:bg-violet-500/20 text-violet-100 dark:text-violet-300 flex items-center justify-center shrink-0 border border-white/10 dark:border-violet-500/20 text-lg">
                   💼
                 </div>
                 <div>
-                  <span className="text-[10px] font-black uppercase text-violet-400 tracking-widest block">Salary Credit Reminder</span>
-                  <p className="text-slate-100 text-sm font-semibold mt-0.5">
-                    {monthLabel} salary of <span className="font-bold text-violet-300 font-mono">{formatCurrency(rule.amount)}</span> from <span className="font-bold text-white">{rule.employer}</span> is due.
+                  <span className="text-[10px] font-black uppercase text-violet-200 dark:text-violet-400 tracking-widest block">Salary Credit Reminder</span>
+                  <p className="text-white text-sm font-semibold mt-0.5">
+                    {monthLabel} salary of <span className="font-bold text-violet-100 font-mono">{formatCurrency(rule.amount)}</span> from <span className="font-bold text-white">{rule.employer}</span> is due.
                   </p>
                 </div>
               </div>
               <div className="flex items-center gap-2 w-full md:w-auto relative z-10 shrink-0">
                 <button
                   onClick={() => handleCreditSalary(rule, monthPrefix, monthLabel)}
-                  className="flex-1 md:flex-none px-4 py-2.5 bg-gradient-to-r from-violet-600 to-indigo-650 hover:from-violet-500 hover:to-indigo-500 text-white font-extrabold text-xs rounded-xl shadow-md transition-all active:scale-95 cursor-pointer"
+                  className="flex-1 md:flex-none px-4 py-2.5 bg-white text-indigo-650 hover:bg-slate-100 dark:bg-gradient-to-r dark:from-violet-600 dark:to-indigo-650 dark:hover:from-violet-500 dark:hover:to-indigo-500 dark:text-white font-extrabold text-xs rounded-xl shadow-md transition-all active:scale-95 cursor-pointer"
                 >
                   Confirm Credit
                 </button>
                 <button
                   onClick={() => handleSkipSalary(rule.id, monthPrefix)}
-                  className="flex-1 md:flex-none px-4 py-2.5 bg-slate-850/60 hover:bg-slate-800/80 border border-slate-700/60 hover:border-slate-500 text-slate-300 hover:text-white font-bold text-xs rounded-xl transition-all active:scale-95 cursor-pointer"
+                  className="flex-1 md:flex-none px-4 py-2.5 bg-white/10 hover:bg-white/20 dark:bg-slate-850/60 dark:hover:bg-slate-800/80 border border-white/15 dark:border-slate-700/60 text-white font-bold text-xs rounded-xl transition-all active:scale-95 cursor-pointer"
                 >
                   Skip Month
                 </button>
@@ -284,7 +284,7 @@ const IncomeManager: React.FC<IncomeManagerProps> = ({
       )}
 
       {/* Top action header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white dark:bg-slate-900 p-5 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white dark:bg-slate-900 p-5 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm">
         <div>
           <h2 className="text-xl md:text-2xl font-black text-slate-900 dark:text-white tracking-tight">Income & Cash Flow</h2>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Salary progress, parent/spouse transfers, and balance growth analytics</p>
@@ -303,66 +303,66 @@ const IncomeManager: React.FC<IncomeManagerProps> = ({
       {/* Salary growth trend indicators */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
         {/* Current Salary */}
-        <div className="bg-[#0F172A] border border-white/[0.08] p-5 rounded-2xl shadow-sm flex flex-col justify-between">
+        <div className="bg-white dark:bg-[#0F172A] border border-slate-200 dark:border-white/[0.08] p-5 rounded-2xl shadow-[0_8px_30px_rgb(15,23,42,0.04)] dark:shadow-none flex flex-col justify-between">
           <div>
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">Current Salary</span>
-            <h3 className="text-xl md:text-2xl font-black text-indigo-400 mt-1 font-mono">
+            <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest block">Current Salary</span>
+            <h3 className="text-xl md:text-2xl font-black text-indigo-600 dark:text-indigo-400 mt-1 font-mono">
               {formatCurrency(salaryProgressStats.currentSalary)}
             </h3>
           </div>
-          <div className="text-[10px] text-slate-500 mt-2">
+          <div className="text-[10px] text-slate-400 dark:text-slate-500 mt-2 font-medium">
             Latest base credit logged
           </div>
         </div>
 
         {/* Highest Salary */}
-        <div className="bg-[#0F172A] border border-white/[0.08] p-5 rounded-2xl shadow-sm flex flex-col justify-between">
+        <div className="bg-white dark:bg-[#0F172A] border border-slate-200 dark:border-white/[0.08] p-5 rounded-2xl shadow-[0_8px_30px_rgb(15,23,42,0.04)] dark:shadow-none flex flex-col justify-between">
           <div>
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">Highest Salary</span>
-            <h3 className="text-xl md:text-2xl font-black text-white mt-1 font-mono">
+            <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest block">Highest Salary</span>
+            <h3 className="text-xl md:text-2xl font-black text-slate-900 dark:text-white mt-1 font-mono">
               {formatCurrency(salaryProgressStats.highestSalary)}
             </h3>
           </div>
-          <div className="text-[10px] text-slate-500 mt-2">
+          <div className="text-[10px] text-slate-400 dark:text-slate-500 mt-2 font-medium">
             Peak standard base pay
           </div>
         </div>
 
         {/* Average Monthly Income */}
-        <div className="bg-[#0F172A] border border-white/[0.08] p-5 rounded-2xl shadow-sm flex flex-col justify-between">
+        <div className="bg-white dark:bg-[#0F172A] border border-slate-200 dark:border-white/[0.08] p-5 rounded-2xl shadow-[0_8px_30px_rgb(15,23,42,0.04)] dark:shadow-none flex flex-col justify-between">
           <div>
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">Average Income</span>
-            <h3 className="text-xl md:text-2xl font-black text-white mt-1 font-mono">
+            <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest block">Average Income</span>
+            <h3 className="text-xl md:text-2xl font-black text-slate-900 dark:text-white mt-1 font-mono">
               {formatCurrency(salaryProgressStats.avgIncome)}
             </h3>
           </div>
-          <div className="text-[10px] text-slate-500 mt-2">
+          <div className="text-[10px] text-slate-400 dark:text-slate-500 mt-2 font-medium">
             Per active calendar month
           </div>
         </div>
 
         {/* Yearly Income */}
-        <div className="bg-[#0F172A] border border-white/[0.08] p-5 rounded-2xl shadow-sm flex flex-col justify-between">
+        <div className="bg-white dark:bg-[#0F172A] border border-slate-200 dark:border-white/[0.08] p-5 rounded-2xl shadow-[0_8px_30px_rgb(15,23,42,0.04)] dark:shadow-none flex flex-col justify-between">
           <div>
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">Yearly Income</span>
-            <h3 className="text-xl md:text-2xl font-black text-white mt-1 font-mono">
+            <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest block">Yearly Income</span>
+            <h3 className="text-xl md:text-2xl font-black text-slate-900 dark:text-white mt-1 font-mono">
               {formatCurrency(salaryProgressStats.yearlyIncome)}
             </h3>
           </div>
-          <div className="text-[10px] text-slate-500 mt-2">
+          <div className="text-[10px] text-slate-400 dark:text-slate-500 mt-2 font-medium">
             Total inflows in {new Date().getFullYear()}
           </div>
         </div>
 
         {/* Salary Growth % */}
-        <div className="bg-[#0F172A] border border-white/[0.08] p-5 rounded-2xl shadow-sm flex flex-col justify-between col-span-2 md:col-span-1">
+        <div className="bg-white dark:bg-[#0F172A] border border-slate-200 dark:border-white/[0.08] p-5 rounded-2xl shadow-[0_8px_30px_rgb(15,23,42,0.04)] dark:shadow-none flex flex-col justify-between col-span-2 md:col-span-1">
           <div>
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">Salary Growth</span>
-            <h3 className={`text-xl md:text-2xl font-black mt-1 font-mono ${salaryProgressStats.growthPercent >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+            <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest block">Salary Growth</span>
+            <h3 className={`text-xl md:text-2xl font-black mt-1 font-mono ${salaryProgressStats.growthPercent >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
               {salaryProgressStats.growthPercent >= 0 ? '+' : ''}{salaryProgressStats.growthPercent.toFixed(1)}%
             </h3>
           </div>
-          <div className="text-[10px] text-slate-500 mt-2">
+          <div className="text-[10px] text-slate-400 dark:text-slate-500 mt-2 font-medium">
             First vs latest standard diff
           </div>
         </div>
@@ -371,7 +371,7 @@ const IncomeManager: React.FC<IncomeManagerProps> = ({
       {/* Visual Charts Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Salary Progression Line Chart */}
-        <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm">
+        <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
           <div className="flex justify-between items-center mb-5">
             <div>
               <h4 className="text-slate-800 dark:text-slate-200 font-bold text-sm md:text-base">Salary Credit History</h4>
@@ -420,7 +420,7 @@ const IncomeManager: React.FC<IncomeManagerProps> = ({
         </div>
 
         {/* Income Source Breakdown Donut Chart */}
-        <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col justify-between">
+        <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col justify-between">
           <div className="mb-5">
             <h4 className="text-slate-800 dark:text-slate-200 font-bold text-sm md:text-base">Income Source Breakdown</h4>
             <p className="text-xs text-slate-400">Where your absolute revenue is generated from</p>
@@ -442,7 +442,7 @@ const IncomeManager: React.FC<IncomeManagerProps> = ({
                         dataKey="value"
                       >
                         {sourceBreakdownData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                           <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                         ))}
                       </Pie>
                       <Tooltip 
@@ -476,7 +476,7 @@ const IncomeManager: React.FC<IncomeManagerProps> = ({
               {sourceBreakdownData.slice(0, 5).map((entry, idx) => {
                 const pct = totalIncomeAmount > 0 ? ((entry.value / totalIncomeAmount) * 100).toFixed(1) : '0';
                 return (
-                  <div key={idx} className="flex items-center justify-between text-xs py-1.5 border-b border-slate-100 dark:border-slate-800/60 last:border-0">
+                  <div key={idx} className="flex items-center justify-between text-xs py-1.5 border-b border-slate-200 dark:border-slate-800/60 last:border-0">
                     <div className="flex items-center space-x-2 min-w-0">
                       <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: COLORS[idx % COLORS.length] }} />
                       <span className="font-bold text-slate-600 dark:text-slate-300 truncate">{entry.name}</span>
@@ -496,7 +496,7 @@ const IncomeManager: React.FC<IncomeManagerProps> = ({
       {/* SALARY RULES AND BASE CHRONOLOGY SECTION */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Recurring Salary Rules Card */}
-        <div className="bg-white dark:bg-slate-900 p-5 md:p-6 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col justify-between">
+        <div className="bg-white dark:bg-slate-900 p-5 md:p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col justify-between">
           <div>
             <div className="flex justify-between items-center mb-4">
               <div>
@@ -589,7 +589,7 @@ const IncomeManager: React.FC<IncomeManagerProps> = ({
             <div className="space-y-2.5">
               {salaryRules.length > 0 ? (
                 salaryRules.map(rule => (
-                  <div key={rule.id} className="p-3.5 bg-slate-50 dark:bg-slate-850 border border-slate-150/10 dark:border-slate-800 rounded-2xl flex items-center justify-between">
+                  <div key={rule.id} className="p-3.5 bg-slate-50 dark:bg-slate-850 border border-slate-200 dark:border-slate-800 rounded-2xl flex items-center justify-between">
                     <div className="flex items-center space-x-3">
                       <div className="w-8 h-8 rounded-lg bg-indigo-500/10 text-indigo-500 flex items-center justify-center shrink-0 text-sm">
                         💼
@@ -616,7 +616,7 @@ const IncomeManager: React.FC<IncomeManagerProps> = ({
                   </div>
                 ))
               ) : (
-                <div className="py-8 border border-dashed border-slate-100 dark:border-slate-800 rounded-2xl text-center text-slate-400 text-xs">
+                <div className="py-8 border border-dashed border-slate-200 dark:border-slate-800 rounded-2xl text-center text-slate-400 text-xs">
                   No repeating salary rules configured. Add rules to activate automatic credit checklists!
                 </div>
               )}
@@ -625,7 +625,7 @@ const IncomeManager: React.FC<IncomeManagerProps> = ({
         </div>
 
         {/* Chronological Salary Ledger Card */}
-        <div className="bg-white dark:bg-slate-900 p-5 md:p-6 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col justify-between">
+        <div className="bg-white dark:bg-slate-900 p-5 md:p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col justify-between">
           <div>
             <div className="flex justify-between items-center mb-4">
               <div>
@@ -638,7 +638,7 @@ const IncomeManager: React.FC<IncomeManagerProps> = ({
             <div className="space-y-2.5 max-h-[280px] overflow-y-auto pr-1">
               {salaryProgressStats.monthsData.length > 0 ? (
                 [...salaryProgressStats.monthsData].reverse().map((data, idx) => (
-                  <div key={idx} className="p-3 bg-slate-50 dark:bg-slate-850 rounded-2xl border border-slate-150/10 dark:border-slate-800/50 flex justify-between items-center bg-gradient-to-r hover:from-white hover:to-indigo-50/10 dark:hover:from-slate-900/10 dark:hover:to-indigo-950/5 hover:border-indigo-500/10 transition-all duration-200">
+                  <div key={idx} className="p-3 bg-slate-50 dark:bg-slate-850 rounded-2xl border border-slate-200 dark:border-slate-800/50 flex justify-between items-center bg-gradient-to-r hover:from-white hover:to-indigo-50/10 dark:hover:from-slate-900/10 dark:hover:to-indigo-950/5 hover:border-indigo-500/10 transition-all duration-200">
                     <div className="flex items-center space-x-3">
                       <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-500 dark:bg-emerald-950/40 dark:text-emerald-450 flex items-center justify-center font-bold text-xs shrink-0">
                         IN
@@ -676,7 +676,7 @@ const IncomeManager: React.FC<IncomeManagerProps> = ({
       </div>
 
       {/* Income Records Ledger / Transaction History */}
-      <div className="bg-white dark:bg-slate-900 p-5 md:p-6 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm">
+      <div className="bg-white dark:bg-slate-900 p-5 md:p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm">
         <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 mb-6">
           <div>
             <h4 className="text-slate-800 dark:text-slate-200 font-bold text-sm md:text-base">Income Credit Ledger</h4>
@@ -723,7 +723,7 @@ const IncomeManager: React.FC<IncomeManagerProps> = ({
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.95 }}
-                    className="p-4 bg-slate-50 dark:bg-slate-850 rounded-2xl border border-slate-150/10 dark:border-slate-805/40 hover:border-emerald-500/20 dark:hover:border-emerald-500/10 transition-all flex items-center justify-between gap-4"
+                    className="p-4 bg-slate-50 dark:bg-slate-850 rounded-2xl border border-slate-200 dark:border-slate-800 hover:border-emerald-500/20 dark:hover:border-emerald-500/10 transition-all flex items-center justify-between gap-4"
                   >
                     {/* Visual icon representation */}
                     <div className="flex items-center space-x-3.5 min-w-0 flex-1">
@@ -801,7 +801,7 @@ const IncomeManager: React.FC<IncomeManagerProps> = ({
                 ))}
               </div>
             ) : (
-              <div className="py-12 border-2 border-dashed border-slate-100 dark:border-slate-800 rounded-2xl text-center text-slate-400 text-sm">
+              <div className="py-12 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-2xl text-center text-slate-400 text-sm">
                 No income transactions matched the criteria. Click "Record Income Credit" above to begin.
               </div>
             )}

@@ -107,6 +107,8 @@ const App: React.FC = () => {
   // PWA Install Prompt State
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [showInstallBtn, setShowInstallBtn] = useState(false);
+  const [isStandalone, setIsStandalone] = useState(false);
+  const [showPwaHelp, setShowPwaHelp] = useState(false);
 
   useEffect(() => {
     const handler = (e: any) => {
@@ -115,7 +117,23 @@ const App: React.FC = () => {
       setShowInstallBtn(true);
     };
     window.addEventListener('beforeinstallprompt', handler);
-    return () => window.removeEventListener('beforeinstallprompt', handler);
+
+    const checkStandalone = () => {
+      const standalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone === true;
+      setIsStandalone(standalone);
+    };
+    checkStandalone();
+
+    const handleAppInstalled = () => {
+      setIsStandalone(true);
+      setShowInstallBtn(false);
+    };
+    window.addEventListener('appinstalled', handleAppInstalled);
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handler);
+      window.removeEventListener('appinstalled', handleAppInstalled);
+    };
   }, []);
 
   const handleInstallClick = async () => {
@@ -683,6 +701,9 @@ const App: React.FC = () => {
                   setAccounts={setAccounts}
                   transfers={transfers}
                   setTransfers={setTransfers}
+                  showInstallBtn={showInstallBtn}
+                  isStandalone={isStandalone}
+                  handleInstallClick={handleInstallClick}
                 />
                 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
@@ -793,6 +814,12 @@ const App: React.FC = () => {
                 setTransfers={setTransfers}
                 openRouterApiKey={openRouterApiKey}
                 setOpenRouterApiKey={setOpenRouterApiKey}
+                deferredPrompt={deferredPrompt}
+                showInstallBtn={showInstallBtn}
+                isStandalone={isStandalone}
+                handleInstallClick={handleInstallClick}
+                showPwaHelp={showPwaHelp}
+                setShowPwaHelp={setShowPwaHelp}
               />
             } />
           </Routes>

@@ -1,9 +1,10 @@
-import React, { useMemo, useState, useCallback } from 'react';
+import React, { useMemo, useState, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
   PieChart, Pie, Cell, LineChart, Line, AreaChart, Area, Legend
 } from 'recharts';
+import { Smartphone, Download, X } from 'lucide-react';
 import { Expense, CategoryItem, Income, BudgetRuleType, Account, Transfer } from '../types';
 import { getCategoryIcon } from '../constants';
 import { formatCurrency, parseLocalDate } from '../utils';
@@ -19,6 +20,9 @@ interface DashboardProps {
   setAccounts: React.Dispatch<React.SetStateAction<Account[]>>;
   transfers: Transfer[];
   setTransfers: React.Dispatch<React.SetStateAction<Transfer[]>>;
+  showInstallBtn?: boolean;
+  isStandalone?: boolean;
+  handleInstallClick?: () => Promise<void>;
 }
 
 const Dashboard: React.FC<DashboardProps> = ({ 
@@ -31,7 +35,10 @@ const Dashboard: React.FC<DashboardProps> = ({
   accounts,
   setAccounts,
   transfers,
-  setTransfers
+  setTransfers,
+  showInstallBtn = false,
+  isStandalone = false,
+  handleInstallClick
 }) => {
   const isDark = window.document.documentElement.classList.contains('dark');
   const [distView, setDistView] = useState<'monthly' | 'yearly' | 'overall'>('monthly');
@@ -42,6 +49,16 @@ const Dashboard: React.FC<DashboardProps> = ({
   // Swipeable statistics carousel states
   const [activeSlideIndex, setActiveSlideIndex] = useState(0);
   const [slideDirection, setSlideDirection] = useState(0); // -1 for left, 1 for right
+
+  // PWA banner dismiss state
+  const [isBannerDismissed, setIsBannerDismissed] = useState(() => {
+    return localStorage.getItem('spendwise_install_banner_dismissed') === 'true';
+  });
+
+  const handleDismissBanner = () => {
+    localStorage.setItem('spendwise_install_banner_dismissed', 'true');
+    setIsBannerDismissed(true);
+  };
 
   // Money transfer states
   const [transferFromId, setTransferFromId] = useState('');
@@ -596,6 +613,53 @@ const Dashboard: React.FC<DashboardProps> = ({
 
   return (
     <div className="space-y-6 md:space-y-8">
+      {/* PWA Install Banner */}
+      {showInstallBtn && !isStandalone && !isBannerDismissed && (
+        <motion.div 
+          initial={{ opacity: 0, y: -15, scale: 0.98 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: -10, scale: 0.98 }}
+          className="bg-gradient-to-r from-indigo-950/40 via-purple-950/35 to-slate-950/45 border border-[#8B5CF6]/30 rounded-3xl p-5 md:p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 relative overflow-hidden backdrop-blur-md shadow-[0_10px_35px_-10px_rgba(139,92,246,0.18)]"
+        >
+          {/* Decorative glowing blobs */}
+          <div className="absolute top-0 right-0 w-32 h-32 bg-[#8B5CF6]/10 rounded-full blur-2xl pointer-events-none" />
+          <div className="absolute -bottom-10 -left-10 w-24 h-24 bg-indigo-500/10 rounded-full blur-xl pointer-events-none" />
+
+          {/* Banner Contents */}
+          <div className="flex items-start md:items-center space-x-4 z-10">
+            <div className="p-3.5 bg-gradient-to-br from-[#7C3AED] to-[#8B5CF6]/90 text-white rounded-2xl shadow-[0_4px_15px_-3px_rgba(139,92,246,0.4)] border border-violet-400/20">
+              <Smartphone className="w-6 h-6 animate-pulse" />
+            </div>
+            <div className="space-y-1">
+              <h3 className="font-extrabold text-sm md:text-base text-white tracking-tight flex items-center space-x-2">
+                <span>Experience SpendWise as a Native App! 🚀</span>
+              </h3>
+              <p className="text-xs text-slate-300 max-w-xl leading-relaxed">
+                Install SpendWise on your home screen or desktop for a premium app feel, ultra-fast launch, and zero-compromise offline operation.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center space-x-3 w-full md:w-auto z-10 mt-2 md:mt-0 shrink-0">
+            {/* Install Button */}
+            <button
+              onClick={handleInstallClick}
+              className="flex-1 md:flex-none px-5 py-2.5 bg-gradient-to-r from-[#7C3AED] to-[#8B5CF6] hover:from-[#6D28D9] hover:to-[#7C3AED] text-white text-xs font-black rounded-xl transition-all duration-200 shadow-lg shadow-purple-900/20 hover:-translate-y-0.5 active:scale-95 flex items-center justify-center space-x-2 border border-violet-400/10 cursor-pointer"
+            >
+              <Download className="w-4 h-4" />
+              <span>Install SpendWise</span>
+            </button>
+            {/* Dismiss Button */}
+            <button
+              onClick={handleDismissBanner}
+              className="px-3.5 py-2.5 bg-white/[0.04] hover:bg-white/[0.08] text-slate-400 hover:text-white text-xs font-bold rounded-xl transition-colors flex items-center justify-center border border-white/[0.04] cursor-pointer"
+            >
+              Dismiss
+            </button>
+          </div>
+        </motion.div>
+      )}
+
       {/* 1. Dashboard Improvements: Swipeable Carousel summaries (Mobile) & Classic Grid metrics (Desktop) */}
       
       {/* MOBILE INTERACTIVE SWIPEABLE STATISTICS CARD */}
