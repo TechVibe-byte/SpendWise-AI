@@ -13,6 +13,7 @@ import Settings from './components/Settings';
 import Onboarding from './components/Onboarding';
 import { Logo } from './components/Logo';
 import AIInsights from './components/AIInsights';
+import { ThemeToggle } from './components/ThemeToggle';
 
 const App: React.FC = () => {
   const [expenses, setExpenses] = useState<Expense[]>(() => {
@@ -388,62 +389,48 @@ const App: React.FC = () => {
 
   return (
     <Router>
-      <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col md:flex-row transition-colors duration-300 pb-28 md:pb-0">
+      <div className="min-h-screen bg-slate-50 dark:bg-[#0B1220] flex flex-col md:flex-row transition-colors duration-300 pb-28 md:pb-0">
         
         {showOnboarding && <Onboarding onComplete={handleCompleteOnboarding} />}
 
         {/* Mobile Header */}
-        <header className="md:hidden bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-5 py-4 flex items-center justify-between sticky top-0 z-40">
-          <div className="flex items-center space-x-2">
-            <div className="w-9 h-9 bg-gradient-to-br from-indigo-500 via-violet-500 to-indigo-700 rounded-xl flex items-center justify-center shadow-md shadow-indigo-100 dark:shadow-none border border-white/10">
-              <Logo className="w-5 h-5 text-white" />
+        <header className="md:hidden bg-white dark:bg-[#0B1220] border-b border-slate-200 dark:border-slate-800/60 px-6 py-4 flex items-center justify-between sticky top-0 z-40">
+          <div className="flex items-center space-x-3.5">
+            <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 via-purple-500 to-indigo-700 rounded-xl flex items-center justify-center shadow-md shadow-indigo-100 dark:shadow-none border border-white/10">
+              <Logo className="w-5.5 h-5.5 text-white" />
             </div>
-            <h1 className="text-lg font-black text-slate-900 dark:text-white tracking-tight">SpendWise</h1>
+            <h1 className="text-xl font-extrabold text-slate-900 dark:text-white tracking-tight">SpendWise</h1>
           </div>
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-3">
             {showInstallBtn && (
               <button
                 onClick={handleInstallClick}
-                className="p-2 rounded-lg bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 animate-pulse"
+                className="p-2 rounded-xl bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 animate-pulse border border-indigo-100/50 dark:border-transparent"
                 aria-label="Install App"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
               </button>
             )}
-            <button 
-              onClick={() => setIsDarkMode(!isDarkMode)}
-              className="p-2 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400"
-            >
-              {isDarkMode ? (
-                <svg className="w-5 h-5 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 9h-1m15.364-6.364l-.707.707M6.343 17.657l-.707.707M17.657 17.657l-.707-.707M6.343 6.343l-.707-.707M12 5a7 7 0 100 14 7 7 0 000-14z" /></svg>
-              ) : (
-                <svg className="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" /></svg>
-              )}
-            </button>
+            <ThemeToggle isDarkMode={isDarkMode} onChange={setIsDarkMode} />
           </div>
         </header>
 
         {/* Desktop Navigation Sidebar */}
-        <nav className="hidden md:flex w-64 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 p-6 flex-col sticky top-0 h-screen z-40">
+        <nav className="hidden md:flex w-64 bg-white dark:bg-[#0B1220] border-r border-slate-200 dark:border-slate-850 p-6 flex-col sticky top-0 h-screen z-40">
           <div className="flex items-center space-x-3 mb-10">
-            <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 via-violet-500 to-indigo-700 rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-200 dark:shadow-none border border-white/20">
+            <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 via-purple-500 to-indigo-700 rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-200 dark:shadow-none border border-white/20">
               <Logo className="w-7 h-7 text-white" />
             </div>
-            <h1 className="text-xl font-black text-slate-900 dark:text-white tracking-tight">SpendWise</h1>
+            <h1 className="text-xl font-black text-slate-900 dark:text-white tracking-tight"> SpendWise </h1>
           </div>
 
           <div className="flex-1 space-y-2">
             <NavItems />
-            <button 
-              onClick={() => setIsDarkMode(!isDarkMode)}
-              className="w-full flex items-center space-x-3 px-4 py-3 rounded-xl transition-all font-semibold text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 mt-4"
-            >
-              {isDarkMode ? (
-                <><svg className="w-5 h-5 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 9h-1m15.364-6.364l-.707.707M6.343 17.657l-.707.707M17.657 17.657l-.707-.707M6.343 6.343l-.707-.707M12 5a7 7 0 100 14 7 7 0 000-14z" /></svg><span>Light Mode</span></>
-              ) : (
-                <><svg className="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" /></svg><span>Dark Mode</span></>
-              )}
-            </button>
+            {/* Redesigned Premium Theme Switcher Row */}
+            <div className="flex items-center justify-between px-3 py-2.5 rounded-xl border border-dashed border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/40 mt-4 shadow-sm">
+              <span className="text-xs font-bold text-slate-500 dark:text-slate-400">Theme</span>
+              <ThemeToggle isDarkMode={isDarkMode} onChange={setIsDarkMode} />
+            </div>
           </div>
 
           <div className="space-y-4 mt-6">

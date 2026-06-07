@@ -111,31 +111,67 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({ onAdd, onClose, initialExpens
         Reply ONLY with the exact category name from the list above. Do not include any other text.
       `;
 
-      const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${apiKey}`,
-          'HTTP-Referer': window.location.origin,
-          'X-Title': 'SpendWise',
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          model: 'google/gemini-2.5-flash-lite-preview',
-          messages: [
-            { role: 'user', content: prompt }
-          ]
-        })
-      });
+      const MODELS_TO_TRY = [
+        'google/gemini-2.5-flash',
+        'google/gemini-2.5-flash:free',
+        'google/gemini-2.5-flash-lite',
+        'google/gemini-2.5-flash-lite:free',
+        'meta-llama/llama-3.3-70b-instruct:free',
+        'deepseek/deepseek-chat',
+        'nvidia/llama-3.1-nemotron-70b-instruct:free'
+      ];
 
-      if (!response.ok) throw new Error('Failed to categorize');
+      let suggestedCategory = '';
+      let success = false;
+      let lastError = '';
 
-      const data = await response.json();
-      const suggestedCategory = data.choices[0].message.content.trim();
-      
-      // Verify the suggested category exists
-      if (categories.some(c => c.name === suggestedCategory)) {
-        setCategory(suggestedCategory);
-        setUserHasManuallySetCategory(true);
+      for (const currentModel of MODELS_TO_TRY) {
+        try {
+          const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${apiKey}`,
+              'HTTP-Referer': window.location.origin,
+              'X-Title': 'SpendWise',
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              model: currentModel,
+              messages: [
+                { role: 'user', content: prompt }
+              ]
+            })
+          });
+
+          if (!response.ok) {
+            let errMessage = `HTTP error ${response.status}`;
+            try {
+              const errData = await response.json();
+              errMessage = errData.error?.message || errMessage;
+            } catch (_) {}
+            throw new Error(errMessage);
+          }
+
+          const data = await response.json();
+          if (data.choices && data.choices[0] && data.choices[0].message) {
+            suggestedCategory = data.choices[0].message.content.trim();
+            success = true;
+            break;
+          }
+        } catch (error: any) {
+          console.warn(`Model ${currentModel} auto-categorize failed:`, error.message);
+          lastError = error.message;
+        }
+      }
+
+      if (success && suggestedCategory) {
+        // Verify the suggested category exists
+        if (categories.some(c => c.name === suggestedCategory)) {
+          setCategory(suggestedCategory);
+          setUserHasManuallySetCategory(true);
+        }
+      } else {
+        console.error('Auto-categorize failed for all fallback models. Last error:', lastError);
       }
     } catch (error) {
       console.error('Auto-categorize error:', error);

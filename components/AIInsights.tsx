@@ -50,30 +50,88 @@ const AIInsights: React.FC<AIInsightsProps> = ({ expenses, categories, openRoute
         Keep the response concise, friendly, and formatted in Markdown.
       `;
 
-      const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${openRouterApiKey}`,
-          'HTTP-Referer': window.location.origin,
-          'X-Title': 'SpendWise',
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          model: 'google/gemini-2.5-flash-lite-preview', // Free model on OpenRouter
-          messages: [
-            { role: 'system', content: 'You are a helpful and encouraging financial advisor.' },
-            { role: 'user', content: prompt }
-          ]
-        })
-      });
+      const MODELS_TO_TRY = [
+        'google/gemini-2.5-flash',
+        'google/gemini-2.5-flash:free',
+        'google/gemini-2.5-flash-lite',
+        'google/gemini-2.5-flash-lite:free',
+        'meta-llama/llama-3.3-70b-instruct:free',
+        'deepseek/deepseek-chat',
+        'nvidia/llama-3.1-nemotron-70b-instruct:free'
+      ];
 
-      if (!response.ok) {
-        const errData = await response.json();
-        throw new Error(errData.error?.message || 'Failed to fetch insights from OpenRouter.');
+      let lastErrorMsg = '';
+      let success = false;
+      let chosenModel = '';
+
+      for (let i = 0; i < MODELS_TO_TRY.length; i++) {
+        const currentModel = MODELS_TO_TRY[i];
+        try {
+          console.log(`Attempting to fetch AI insights with model: ${currentModel}`);
+          const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${openRouterApiKey}`,
+              'HTTP-Referer': window.location.origin,
+              'X-Title': 'SpendWise',
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              model: currentModel,
+              messages: [
+                { role: 'system', content: 'You are a helpful and encouraging financial advisor.' },
+                { role: 'user', content: prompt }
+              ]
+            })
+          });
+
+          if (!response.ok) {
+            let errMessage = `HTTP error ${response.status}`;
+            try {
+              const errData = await response.json();
+              errMessage = errData.error?.message || errMessage;
+            } catch (_) {
+              // JSON parse failed
+            }
+            throw new Error(errMessage);
+          }
+
+          const data = await response.json();
+          if (data.choices && data.choices[0] && data.choices[0].message) {
+            setInsights(data.choices[0].message.content);
+            success = true;
+            chosenModel = currentModel;
+            break; // Success! Exit the fallback loop.
+          } else {
+            throw new Error('Invalid response structure from OpenRouter.');
+          }
+        } catch (err: any) {
+          console.warn(`Model ${currentModel} failed:`, err.message);
+          lastErrorMsg = err.message || 'Unknown model error.';
+          // Proceed to next model in sequential fallback
+        }
       }
 
-      const data = await response.json();
-      setInsights(data.choices[0].message.content);
+      if (!success) {
+        // Build a user-friendly error message instead of showing raw payload errors
+        let friendlyError = 'Our AI Financial Advisor is currently experiencing high traffic. Please try again in a few moments.';
+        
+        const lowerError = lastErrorMsg.toLowerCase();
+        if (lowerError.includes('api key') || lowerError.includes('unauthorized') || lowerError.includes('401') || lowerError.includes('key not found')) {
+          friendlyError = 'Invalid API key or key not found. Please verify your OpenRouter credentials in Settings.';
+        } else if (lowerError.includes('rate limit') || lowerError.includes('429') || lowerError.includes('too many requests')) {
+          friendlyError = 'Rate limit exceeded. Please wait a moment and click the refresh button to try again.';
+        } else if (lowerError.includes('balance') || lowerError.includes('credits') || lowerError.includes('insufficient') || lowerError.includes('402')) {
+          friendlyError = 'Your OpenRouter account has insufficient credits. Please top up your OpenRouter balance or check your credit limit.';
+        } else if (lowerError.includes('model') || lowerError.includes('unavailable') || lowerError.includes('not a valid model id')) {
+          friendlyError = 'The configured AI models are currently offline or unavailable. Please try again or verify your OpenRouter key covers these models.';
+        } else {
+          friendlyError = `Could not generate insights: "${lastErrorMsg}". Please verify your internet connection or OpenRouter account status and try again.`;
+        }
+        throw new Error(friendlyError);
+      } else {
+        console.info(`Successfully generated insights using model: ${chosenModel}`);
+      }
     } catch (err: any) {
       setError(err.message || 'An unexpected error occurred.');
     } finally {
