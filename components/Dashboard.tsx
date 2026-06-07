@@ -1,5 +1,6 @@
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
   PieChart, Pie, Cell, Legend 
@@ -16,6 +17,7 @@ interface DashboardProps {
 
 const Dashboard: React.FC<DashboardProps> = ({ expenses, categories, monthlyBudget }) => {
   const isDark = window.document.documentElement.classList.contains('dark');
+  const [spendingView, setSpendingView] = useState<'monthly' | 'overall'>('monthly');
   
   const getCategoryColor = (name: string) => {
     return categories.find(c => c.name === name)?.color || '#94a3b8';
@@ -24,6 +26,17 @@ const Dashboard: React.FC<DashboardProps> = ({ expenses, categories, monthlyBudg
   const totalSpent = useMemo(() => 
     expenses.reduce((sum, e) => sum + e.amount, 0), 
   [expenses]);
+
+  const currentMonthSpent = useMemo(() => {
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = String(now.getMonth() + 1).padStart(2, '0');
+    const monthPrefix = `${currentYear}-${currentMonth}`;
+    
+    return expenses
+      .filter(e => e.date.startsWith(monthPrefix))
+      .reduce((sum, e) => sum + e.amount, 0);
+  }, [expenses]);
 
   const categoryData = useMemo(() => {
     // Get all unique categories present in expenses
@@ -99,12 +112,77 @@ const Dashboard: React.FC<DashboardProps> = ({ expenses, categories, monthlyBudg
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-        <div className="bg-white dark:bg-slate-900 p-5 md:p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800">
-          <p className="text-slate-500 dark:text-slate-400 text-xs md:text-sm font-medium">Total Spending</p>
-          <h3 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white mt-1">{formatCurrency(totalSpent)}</h3>
-          <div className="mt-4 flex items-center text-emerald-600 dark:text-emerald-400 text-[10px] md:text-xs font-semibold">
-            <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>
-            Overall history
+        <div className="relative bg-white dark:bg-slate-900 p-5 md:p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 flex flex-col justify-between overflow-hidden min-h-[148px] md:min-h-[158px]">
+          <motion.div
+            drag="x"
+            dragConstraints={{ left: 0, right: 0 }}
+            dragElastic={0.4}
+            onDragEnd={(_: any, info: any) => {
+              if (info.offset.x < -40) {
+                setSpendingView('overall');
+              } else if (info.offset.x > 40) {
+                setSpendingView('monthly');
+              }
+            }}
+            className="flex-1 cursor-grab active:cursor-grabbing select-none touch-pan-y"
+          >
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={spendingView}
+                initial={{ opacity: 0, x: spendingView === 'monthly' ? -20 : 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: spendingView === 'monthly' ? 20 : -20 }}
+                transition={{ type: "spring", stiffness: 300, damping: 25 }}
+              >
+                <div className="flex justify-between items-start">
+                  <p className="text-slate-500 dark:text-slate-400 text-xs md:text-sm font-medium">
+                    {spendingView === 'monthly' ? 'Monthly Spending' : 'Total Spending'}
+                  </p>
+                  <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider bg-slate-50 dark:bg-slate-800 px-2 py-0.5 rounded flex items-center">
+                    {spendingView === 'monthly' ? 'Monthly' : 'Overall'}
+                  </span>
+                </div>
+                
+                <h3 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white mt-1">
+                  {formatCurrency(spendingView === 'monthly' ? currentMonthSpent : totalSpent)}
+                </h3>
+              </motion.div>
+            </AnimatePresence>
+          </motion.div>
+
+          <div className="mt-4 flex items-center justify-between border-t border-slate-100 dark:border-slate-800 pt-3">
+            <div>
+              {spendingView === 'monthly' ? (
+                <div className="flex items-center text-indigo-600 dark:text-indigo-400 text-[10px] md:text-xs font-semibold">
+                  <svg className="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                  {new Date().toLocaleDateString('en-IN', { month: 'long', year: 'numeric' })}
+                </div>
+              ) : (
+                <div className="flex items-center text-emerald-600 dark:text-emerald-400 text-[10px] md:text-xs font-semibold">
+                  <svg className="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                  </svg>
+                  Overall history
+                </div>
+              )}
+            </div>
+
+            <div className="flex items-center space-x-1.5 bg-slate-50 dark:bg-slate-800 px-2 py-0.5 rounded-full border border-slate-100 dark:border-slate-700/50">
+              <button
+                type="button"
+                onClick={() => setSpendingView('monthly')}
+                className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${spendingView === 'monthly' ? 'bg-indigo-600 dark:bg-indigo-400 scale-125' : 'bg-slate-300 dark:bg-slate-600 hover:bg-slate-400'}`}
+                aria-label="View Monthly Spending"
+              />
+              <button
+                type="button"
+                onClick={() => setSpendingView('overall')}
+                className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${spendingView === 'overall' ? 'bg-emerald-600 dark:bg-emerald-400 scale-125' : 'bg-slate-300 dark:bg-slate-600 hover:bg-slate-400'}`}
+                aria-label="View Overall Spending"
+              />
+            </div>
           </div>
         </div>
         <div className="bg-white dark:bg-slate-900 p-5 md:p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800">
