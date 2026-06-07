@@ -3,16 +3,16 @@ import React from 'react';
 import { DefaultCategory, CategoryItem } from './types';
 
 export const DEFAULT_CATEGORIES: CategoryItem[] = [
-  { id: 'cat_food', name: DefaultCategory.FOOD, color: '#f87171', isCustom: false },
-  { id: 'cat_transport', name: DefaultCategory.TRANSPORT, color: '#60a5fa', isCustom: false },
-  { id: 'cat_shopping', name: DefaultCategory.SHOPPING, color: '#fbbf24', isCustom: false },
-  { id: 'cat_entertainment', name: DefaultCategory.ENTERTAINMENT, color: '#a78bfa', isCustom: false },
-  { id: 'cat_bills', name: DefaultCategory.BILLS, color: '#34d399', isCustom: false },
-  { id: 'cat_health', name: DefaultCategory.HEALTH, color: '#fb7185', isCustom: false },
-  { id: 'cat_loan', name: DefaultCategory.LOAN, color: '#475569', isCustom: false },
-  { id: 'cat_emi', name: DefaultCategory.EMI, color: '#818cf8', isCustom: false },
-  { id: 'cat_borrow', name: DefaultCategory.BORROW, color: '#ea580c', isCustom: false },
-  { id: 'cat_other', name: DefaultCategory.OTHER, color: '#94a3b8', isCustom: false },
+  { id: 'cat_food', name: DefaultCategory.FOOD, color: '#FF6B6B', isCustom: false },
+  { id: 'cat_transport', name: DefaultCategory.TRANSPORT, color: '#4D96FF', isCustom: false },
+  { id: 'cat_shopping', name: DefaultCategory.SHOPPING, color: '#FFC93C', isCustom: false },
+  { id: 'cat_entertainment', name: DefaultCategory.ENTERTAINMENT, color: '#A66CFF', isCustom: false },
+  { id: 'cat_bills', name: DefaultCategory.BILLS, color: '#2DD4BF', isCustom: false },
+  { id: 'cat_health', name: DefaultCategory.HEALTH, color: '#FF7AA2', isCustom: false },
+  { id: 'cat_loan', name: DefaultCategory.LOAN, color: '#64748B', isCustom: false },
+  { id: 'cat_emi', name: DefaultCategory.EMI, color: '#818CF8', isCustom: false },
+  { id: 'cat_borrow', name: DefaultCategory.BORROW, color: '#F97316', isCustom: false },
+  { id: 'cat_other', name: DefaultCategory.OTHER, color: '#94A3B8', isCustom: false },
 ];
 
 export const getCategoryIcon = (categoryName: string) => {

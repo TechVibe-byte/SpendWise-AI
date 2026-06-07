@@ -39,7 +39,8 @@ const RecurringManager: React.FC<RecurringManagerProps> = ({ recurringExpenses, 
     <>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {recurringExpenses.map((rule) => {
-          const nextDueDate = new Date(rule.nextOccurrenceDate);
+          const [year, month, day] = rule.nextOccurrenceDate.split('-').map(Number);
+          const nextDueDate = new Date(year, month - 1, day);
           nextDueDate.setHours(0, 0, 0, 0);
           const isPastDue = rule.isActive && nextDueDate < today;
           const isDueToday = rule.isActive && nextDueDate.getTime() === today.getTime();

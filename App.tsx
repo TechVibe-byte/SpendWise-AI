@@ -3,7 +3,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { HashRouter as Router, Routes, Route, NavLink } from 'react-router-dom';
 import { Expense, RecurringExpense, RecurringFrequency, CategoryItem } from './types';
 import { DEFAULT_CATEGORIES } from './constants';
-import { formatCurrency } from './utils';
+import { formatCurrency, parseLocalDate, formatLocalDate } from './utils';
 import Dashboard from './components/Dashboard';
 import ExpenseList from './components/ExpenseList';
 import ExpenseForm from './components/ExpenseForm';
@@ -127,24 +127,32 @@ const App: React.FC = () => {
     updatedRecurring = updatedRecurring.map(rule => {
       if (!rule.isActive) return rule;
 
-      let nextDate = new Date(rule.nextOccurrenceDate);
+      let nextDate = parseLocalDate(rule.nextOccurrenceDate);
       nextDate.setHours(0, 0, 0, 0);
       
       const instancesToAdd: Expense[] = [];
       const currentRule = { ...rule };
+      let dateHasChanged = false;
 
       while (nextDate <= today) {
-        modified = true;
-        const newInstance: Expense = {
-          id: Math.random().toString(36).substr(2, 9),
-          amount: currentRule.amount,
-          description: `${currentRule.description} (Recurring)`,
-          category: currentRule.category,
-          date: nextDate.toISOString().split('T')[0],
-          bankName: currentRule.bankName,
-          recurringId: currentRule.id
-        };
-        instancesToAdd.push(newInstance);
+        const dateStr = formatLocalDate(nextDate);
+        
+        // Prevent duplicate transaction entries for details
+        const isDuplicate = expenses.some(e => e.recurringId === currentRule.id && e.date === dateStr);
+        
+        if (!isDuplicate) {
+          modified = true;
+          const newInstance: Expense = {
+            id: Math.random().toString(36).substr(2, 9),
+            amount: currentRule.amount,
+            description: `${currentRule.description} (Recurring)`,
+            category: currentRule.category,
+            date: dateStr,
+            bankName: currentRule.bankName,
+            recurringId: currentRule.id
+          };
+          instancesToAdd.push(newInstance);
+        }
 
         if (currentRule.frequency === RecurringFrequency.DAILY) {
           nextDate.setDate(nextDate.getDate() + 1);
@@ -155,21 +163,28 @@ const App: React.FC = () => {
         } else if (currentRule.frequency === RecurringFrequency.YEARLY) {
           nextDate.setFullYear(nextDate.getFullYear() + 1);
         }
+        
+        dateHasChanged = true;
       }
 
-      if (instancesToAdd.length > 0) {
-        newExpensesToAdd = [...newExpensesToAdd, ...instancesToAdd];
-        currentRule.nextOccurrenceDate = nextDate.toISOString().split('T')[0];
+      if (dateHasChanged) {
+        modified = true;
+        if (instancesToAdd.length > 0) {
+          newExpensesToAdd = [...newExpensesToAdd, ...instancesToAdd];
+        }
+        currentRule.nextOccurrenceDate = formatLocalDate(nextDate);
         return currentRule;
       }
       return rule;
     });
 
     if (modified) {
-      setExpenses(prev => [...newExpensesToAdd, ...prev]);
+      if (newExpensesToAdd.length > 0) {
+        setExpenses(prev => [...newExpensesToAdd, ...prev]);
+      }
       setRecurringExpenses(updatedRecurring);
     }
-  }, [recurringExpenses]);
+  }, [recurringExpenses, expenses]);
 
   useEffect(() => {
     processRecurring();
@@ -206,7 +221,7 @@ const App: React.FC = () => {
       setExpenses(prev => [expense, ...prev]);
 
       if (recurringInfo) {
-        const nextDate = new Date(newExpenseData.date);
+        const nextDate = parseLocalDate(newExpenseData.date);
         if (recurringInfo.frequency === RecurringFrequency.DAILY) nextDate.setDate(nextDate.getDate() + 1);
         else if (recurringInfo.frequency === RecurringFrequency.WEEKLY) nextDate.setDate(nextDate.getDate() + 7);
         else if (recurringInfo.frequency === RecurringFrequency.MONTHLY) nextDate.setMonth(nextDate.getMonth() + 1);
@@ -220,7 +235,7 @@ const App: React.FC = () => {
           bankName: newExpenseData.bankName,
           frequency: recurringInfo.frequency,
           startDate: newExpenseData.date,
-          nextOccurrenceDate: nextDate.toISOString().split('T')[0],
+          nextOccurrenceDate: formatLocalDate(nextDate),
           isActive: true
         };
         setRecurringExpenses(prev => [...prev, recurringRule]);

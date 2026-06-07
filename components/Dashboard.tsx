@@ -20,7 +20,29 @@ const Dashboard: React.FC<DashboardProps> = ({ expenses, categories, monthlyBudg
   const [spendingView, setSpendingView] = useState<'monthly' | 'overall'>('monthly');
   
   const getCategoryColor = (name: string) => {
-    return categories.find(c => c.name === name)?.color || '#94a3b8';
+    const nameLower = name.trim().toLowerCase();
+    const explicitMap: Record<string, string> = {
+      'food & dining': '#FF6B6B',
+      'transportation': '#4D96FF',
+      'shopping': '#FFC93C',
+      'entertainment': '#A66CFF',
+      'bills & utilities': '#2DD4BF',
+      'health & wellness': '#FF7AA2',
+      'loan expenses': '#64748B',
+      'emi expenses': '#818CF8',
+      'borrow expenses': '#F97316',
+      'investment': '#10B981',
+      'credit card bill': '#EF4444',
+      'credit bill': '#EF4444',
+      'credit rupay bill': '#8B5CF6',
+      'gadget': '#06B6D4',
+      'other': '#94A3B8',
+      'others': '#94A3B8',
+    };
+    if (explicitMap[nameLower]) {
+      return explicitMap[nameLower];
+    }
+    return categories.find(c => c.name.toLowerCase() === nameLower)?.color || '#94a3b8';
   };
 
   const totalSpent = useMemo(() => 
@@ -38,6 +60,27 @@ const Dashboard: React.FC<DashboardProps> = ({ expenses, categories, monthlyBudg
       .reduce((sum, e) => sum + e.amount, 0);
   }, [expenses]);
 
+  const budgetUtilization = useMemo(() => {
+    if (monthlyBudget <= 0) return 0;
+    return (currentMonthSpent / monthlyBudget) * 100;
+  }, [currentMonthSpent, monthlyBudget]);
+
+  const budgetColor = useMemo(() => {
+    if (budgetUtilization >= 100) return 'bg-red-500 dark:bg-red-600';
+    if (budgetUtilization >= 90) return 'bg-orange-500 dark:bg-orange-600';
+    if (budgetUtilization >= 75) return 'bg-amber-500 dark:bg-amber-600';
+    if (budgetUtilization >= 50) return 'bg-yellow-500 dark:bg-yellow-600';
+    return 'bg-emerald-500 dark:bg-emerald-600';
+  }, [budgetUtilization]);
+
+  const budgetBadgeColor = useMemo(() => {
+    if (budgetUtilization >= 100) return 'bg-red-50 text-red-600 dark:bg-red-950/40 dark:text-red-400 border border-red-100 dark:border-red-900/40';
+    if (budgetUtilization >= 90) return 'bg-orange-50 text-orange-600 dark:bg-orange-950/40 dark:text-orange-400 border border-orange-100 dark:border-orange-900/40';
+    if (budgetUtilization >= 75) return 'bg-amber-50 text-amber-600 dark:bg-amber-950/40 dark:text-amber-400 border border-amber-100 dark:border-amber-900/40';
+    if (budgetUtilization >= 50) return 'bg-yellow-50 text-yellow-600 dark:bg-yellow-950/40 dark:text-yellow-400 border border-yellow-100 dark:border-yellow-900/40';
+    return 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-900/40';
+  }, [budgetUtilization]);
+
   const categoryData = useMemo(() => {
     // Get all unique categories present in expenses
     const usedCategories = Array.from(new Set(expenses.map(e => e.category))) as string[];
@@ -49,6 +92,48 @@ const Dashboard: React.FC<DashboardProps> = ({ expenses, categories, monthlyBudg
     })).filter(d => d.value > 0);
     return data;
   }, [expenses, categories]);
+
+  const chartCategoryData = useMemo(() => {
+    if (categoryData.length === 0) return [];
+    
+    // Sort categoryData by value descending
+    const sorted = [...categoryData].sort((a, b) => b.value - a.value);
+    
+    if (sorted.length <= 5) {
+      return sorted;
+    }
+    
+    // Top 5
+    const top5 = sorted.slice(0, 5);
+    // Remaining
+    const remaining = sorted.slice(5);
+    const remainingValue = remaining.reduce((sum, item) => sum + item.value, 0);
+    
+    top5.push({
+      name: 'Others',
+      value: remainingValue,
+      color: '#94A3B8'
+    });
+    
+    return top5;
+  }, [categoryData]);
+
+  const chartTotal = useMemo(() => {
+    return chartCategoryData.reduce((sum, item) => sum + item.value, 0);
+  }, [chartCategoryData]);
+
+  const largestCategoryIndex = useMemo(() => {
+    if (chartCategoryData.length === 0) return -1;
+    let maxVal = -1;
+    let idx = -1;
+    for (let i = 0; i < chartCategoryData.length; i++) {
+      if (chartCategoryData[i].value > maxVal) {
+        maxVal = chartCategoryData[i].value;
+        idx = i;
+      }
+    }
+    return idx;
+  }, [chartCategoryData]);
 
   const dailyData = useMemo(() => {
     const last30Days = [...Array(30)].map((_, i) => {
@@ -185,16 +270,35 @@ const Dashboard: React.FC<DashboardProps> = ({ expenses, categories, monthlyBudg
             </div>
           </div>
         </div>
-        <div className="bg-white dark:bg-slate-900 p-5 md:p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800">
-          <p className="text-slate-500 dark:text-slate-400 text-xs md:text-sm font-medium">Monthly Budget</p>
-          <h3 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white mt-1">{formatCurrency(monthlyBudget)}</h3>
-          <div className="mt-4 w-full bg-slate-100 dark:bg-slate-800 h-2 rounded-full overflow-hidden">
-            <div 
-              className={`h-full rounded-full transition-all duration-500 ${
-                totalSpent > monthlyBudget ? 'bg-red-500' : 'bg-blue-500 dark:bg-blue-600'
-              }`}
-              style={{ width: `${Math.min((totalSpent / monthlyBudget) * 100, 100)}%` }}
-            />
+        <div className="bg-white dark:bg-slate-900 p-5 md:p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 flex flex-col justify-between min-h-[148px] md:min-h-[158px]">
+          <div>
+            <div className="flex justify-between items-center">
+              <p className="text-slate-500 dark:text-slate-400 text-xs md:text-sm font-medium">Monthly Budget</p>
+              <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${budgetBadgeColor}`}>
+                {budgetUtilization.toFixed(1)}% used
+              </span>
+            </div>
+            <h3 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white mt-1">{formatCurrency(monthlyBudget)}</h3>
+          </div>
+          
+          <div className="mt-4">
+            <div className="w-full bg-slate-100 dark:bg-slate-800 h-2 rounded-full overflow-hidden">
+              <div 
+                className={`h-full rounded-full transition-all duration-500 ${budgetColor}`}
+                style={{ width: `${Math.min(budgetUtilization, 100)}%` }}
+              />
+            </div>
+            <div className="flex justify-between items-center mt-2.5">
+              <p className="text-[10px] md:text-xs text-slate-400 dark:text-slate-500 font-medium">
+                {formatCurrency(currentMonthSpent)} spent
+              </p>
+              <p className="text-[10px] md:text-xs text-slate-400 dark:text-slate-500 font-medium">
+                {currentMonthSpent > monthlyBudget 
+                  ? `Over by ${formatCurrency(currentMonthSpent - monthlyBudget)}`
+                  : `${formatCurrency(monthlyBudget - currentMonthSpent)} left`
+                }
+              </p>
+            </div>
           </div>
         </div>
         <div className="bg-white dark:bg-slate-900 p-5 md:p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 sm:col-span-2 md:col-span-1">
@@ -241,43 +345,97 @@ const Dashboard: React.FC<DashboardProps> = ({ expenses, categories, monthlyBudg
           </div>
         </div>
 
-        <div className="bg-white dark:bg-slate-900 p-5 md:p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800">
+        <div className="bg-white dark:bg-slate-900 p-5 md:p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 flex flex-col justify-between">
           <h4 className="text-slate-800 dark:text-slate-200 font-semibold mb-6 text-sm md:text-base">Distribution</h4>
-          <div className="h-48 md:h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={categoryData}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={50}
-                  outerRadius={70}
-                  paddingAngle={5}
-                  dataKey="value"
-                >
-                  {categoryData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Tooltip 
-                  formatter={(value: number) => [formatCurrency(value), 'Spent']}
-                  contentStyle={{
-                    borderRadius: '12px',
-                    border: 'none',
-                    backgroundColor: isDark ? '#1e293b' : '#ffffff',
-                    color: isDark ? '#f1f5f9' : '#1e293b',
-                    fontSize: '12px'
-                  }}
-                />
-                <Legend 
-                  iconType="circle" 
-                  wrapperStyle={{fontSize: '10px', color: '#64748b', paddingTop: '10px'}} 
-                  layout="horizontal"
-                  verticalAlign="bottom"
-                  align="center"
-                />
-              </PieChart>
-            </ResponsiveContainer>
+          
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-6 lg:gap-8 flex-1">
+            {/* Donut Chart with center overlay */}
+            <div className="w-full sm:w-1/2 h-48 flex items-center justify-center relative select-none">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={chartCategoryData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={55}
+                    outerRadius={75}
+                    paddingAngle={0}
+                    dataKey="value"
+                    isAnimationActive={true}
+                    animationDuration={800}
+                  >
+                    {chartCategoryData.map((entry, index) => {
+                      const isLargest = index === largestCategoryIndex;
+                      return (
+                        <Cell 
+                          key={`cell-${index}`} 
+                          fill={entry.color} 
+                          stroke={isLargest ? (isDark ? '#ffffff' : '#0f172a') : 'none'}
+                          strokeWidth={isLargest ? 3 : 0}
+                          style={{ outline: 'none' }}
+                        />
+                      );
+                    })}
+                  </Pie>
+                  <Tooltip 
+                    formatter={(value: number) => [formatCurrency(value), 'Spent']}
+                    contentStyle={{
+                      borderRadius: '12px',
+                      border: 'none',
+                      backgroundColor: isDark ? '#1e293b' : '#ffffff',
+                      color: isDark ? '#f1f5f9' : '#1e293b',
+                      fontSize: '12px',
+                      boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)'
+                    }}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+              <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none mt-1">
+                <span className="text-[10px] uppercase font-bold tracking-widest text-slate-400 dark:text-slate-500">Total</span>
+                <span className="text-base font-black text-slate-900 dark:text-white mt-0.5">{formatCurrency(chartTotal)}</span>
+              </div>
+            </div>
+
+            {/* Custom Responsive Legend with percentages & exact values */}
+            <div className="w-full sm:w-1/2">
+              <div className="grid grid-cols-1 xs:grid-cols-2 gap-3">
+                {chartCategoryData.map((entry, index) => {
+                  const pct = chartTotal > 0 ? ((entry.value / chartTotal) * 100).toFixed(1) : '0.0';
+                  const isLargest = index === largestCategoryIndex;
+                  return (
+                    <div 
+                      key={`legend-${index}`} 
+                      className={`flex items-center space-x-2.5 p-2 rounded-xl border transition-all duration-300 ${isLargest ? 'bg-indigo-50/40 dark:bg-slate-800/60 border-indigo-100/50 dark:border-slate-800 ring-1 ring-indigo-500/10' : 'bg-transparent border-transparent hover:bg-slate-50 dark:hover:bg-slate-800/30'}`}
+                    >
+                      <span 
+                        className="w-2.5 h-2.5 rounded-full shrink-0 shadow-sm" 
+                        style={{ backgroundColor: entry.color }}
+                      />
+                      <div className="min-w-0 flex-1 flex flex-col">
+                        <div className="flex items-center justify-between gap-1">
+                          <span className="text-xs font-bold text-slate-700 dark:text-slate-300 truncate leading-tight">
+                            {entry.name}
+                          </span>
+                          {isLargest && (
+                            <span className="text-[8px] font-extrabold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/40 px-1 py-0.5 rounded uppercase tracking-wider shrink-0">
+                              Top
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-center justify-between mt-0.5">
+                          <span className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 font-mono">
+                            {pct}%
+                          </span>
+                          <span className="text-[10px] font-bold text-slate-600 dark:text-slate-400 font-mono">
+                            {formatCurrency(entry.value)}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
           </div>
         </div>
       </div>
