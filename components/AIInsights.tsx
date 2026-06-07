@@ -1071,22 +1071,44 @@ export const AIInsights: React.FC<AIInsightsProps> = ({ expenses, categories, op
 
             {/* Chats stream container */}
             <div className="flex-1 bg-slate-50 dark:bg-[#0B1220] border border-slate-200/60 dark:border-slate-800/80 rounded-2xl p-4 overflow-y-auto max-h-[220px] mb-3 space-y-3 font-medium text-xs shadow-inner">
-              {chatHistory.map((ch, idx) => (
-                <div key={idx} className={`flex ${ch.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                  <div 
-                    className={`p-3.5 md:p-4 rounded-2xl max-w-[85%] shadow-sm border ${
-                      ch.role === 'user' 
-                        ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-semibold rounded-tr-none border-transparent' 
-                        : 'bg-white dark:bg-[#1E293B] text-slate-900 dark:text-[#FFFFFF] border-slate-200/85 dark:border-slate-800 rounded-tl-none font-medium'
-                    }`}
-                  >
-                    <p className="whitespace-pre-wrap leading-relaxed text-[13px] text-slate-800 dark:text-[#FFFFFF]">{ch.content}</p>
+              {chatHistory.map((ch, idx) => {
+                const isWelcome = idx === 0 && ch.role === 'assistant';
+                
+                if (isWelcome) {
+                  return (
+                    <div key={idx} className="flex justify-start">
+                      <div className="p-5 rounded-2xl max-w-[95%] bg-slate-100/50 dark:bg-[#1E293B] text-slate-900 dark:text-[#FFFFFF] border border-slate-200/50 dark:border-slate-800 shadow-sm rounded-tl-none">
+                        <div className="flex items-center space-x-2 text-indigo-600 dark:text-purple-400 mb-2 font-black shrink-0">
+                          <Sparkles className="w-4 h-4 shrink-0 text-purple-500" />
+                          <span className="text-[11px] tracking-widest uppercase font-bold">SpendWise Hub</span>
+                        </div>
+                        <p className="whitespace-pre-wrap leading-relaxed text-[14px] font-semibold text-slate-800 dark:text-[#FFFFFF]">
+                          {ch.content}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                }
+
+                return (
+                  <div key={idx} className={`flex ${ch.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                    <div 
+                      className={`p-3.5 md:p-4 rounded-2xl max-w-[85%] shadow-sm border ${
+                        ch.role === 'user' 
+                          ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-semibold rounded-tr-none border-transparent' 
+                          : 'bg-white dark:bg-[#111827] text-slate-900 dark:text-[#FFFFFF] border-slate-200/85 dark:border-slate-800 rounded-tl-none font-medium'
+                      }`}
+                    >
+                      <p className={`whitespace-pre-wrap leading-relaxed text-[13px] ${ch.role === 'user' ? 'text-white' : 'text-slate-800 dark:text-[#CBD5E1]'}`}>
+                        {ch.content}
+                      </p>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
               {chatLoading && (
                 <div className="flex justify-start">
-                  <div className="bg-white dark:bg-[#1E293B] border border-slate-200/85 dark:border-slate-800 p-3 rounded-2xl rounded-tl-none flex items-center space-x-1 shadow-sm">
+                  <div className="bg-white dark:bg-[#111827] border border-slate-200/85 dark:border-slate-800 p-3 rounded-2xl rounded-tl-none flex items-center space-x-1 shadow-sm">
                     <span className="w-1.5 h-1.5 bg-purple-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
                     <span className="w-1.5 h-1.5 bg-purple-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
                     <span className="w-1.5 h-1.5 bg-purple-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
@@ -1101,7 +1123,7 @@ export const AIInsights: React.FC<AIInsightsProps> = ({ expenses, categories, op
               <input
                 type="text"
                 placeholder="Ask about spending or forecast trends..."
-                className="flex-1 px-4 py-3 text-xs bg-slate-50 dark:bg-[#0B1220] rounded-xl border border-slate-200 dark:border-slate-800/80 text-slate-900 dark:text-[#FFFFFF] placeholder-[#94A3B8] placeholder:text-[#94A3B8] caret-purple-600 dark:caret-purple-400 outline-none focus:ring-2 focus:ring-purple-500/30 dark:focus:ring-purple-500/20 focus:border-purple-500 transition-all font-medium"
+                className="flex-1 px-4 py-3 text-xs bg-slate-50 dark:bg-[#111827] rounded-xl border border-slate-200 dark:border-slate-800/80 text-slate-900 dark:text-[#FFFFFF] placeholder-[#94A3B8] placeholder:text-[#94A3B8] caret-purple-600 dark:caret-purple-400 outline-none focus:ring-2 focus:ring-purple-500/30 dark:focus:ring-purple-500/20 focus:border-purple-500 transition-all font-medium"
                 value={chatInput}
                 onChange={(e) => setChatInput(e.target.value)}
                 onKeyDown={(e) => {

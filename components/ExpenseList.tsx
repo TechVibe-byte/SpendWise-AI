@@ -1,8 +1,7 @@
-
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Expense, CategoryItem } from '../types';
 import { getCategoryIcon } from '../constants';
-import { formatCurrency } from '../utils';
+import { formatCurrency, parseLocalDate } from '../utils';
 
 interface ExpenseListProps {
   expenses: Expense[];
@@ -11,10 +10,70 @@ interface ExpenseListProps {
   categories: CategoryItem[];
 }
 
+const MONTHS = [
+  { value: "0", label: "January" },
+  { value: "1", label: "February" },
+  { value: "2", label: "March" },
+  { value: "3", label: "April" },
+  { value: "4", label: "May" },
+  { value: "5", label: "June" },
+  { value: "6", label: "July" },
+  { value: "7", label: "August" },
+  { value: "8", label: "September" },
+  { value: "9", label: "October" },
+  { value: "10", label: "November" },
+  { value: "11", label: "December" },
+];
+
 const ExpenseList: React.FC<ExpenseListProps> = ({ expenses, onDelete, onEdit, categories }) => {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedBank, setSelectedBank] = useState('');
+  // Load persistent parameters from localStorage with dynamic fallback
+  const [searchQuery, setSearchQuery] = useState(() => localStorage.getItem('spendwise_filter_searchQuery') || '');
+  const [selectedBank, setSelectedBank] = useState(() => localStorage.getItem('spendwise_filter_selectedBank') || '');
+  const [selectedMonth, setSelectedMonth] = useState(() => localStorage.getItem('spendwise_filter_selectedMonth') || '');
+  const [selectedYear, setSelectedYear] = useState(() => localStorage.getItem('spendwise_filter_selectedYear') || '');
+  const [filterMode, setFilterMode] = useState<'standard' | 'custom'>(() => (localStorage.getItem('spendwise_filter_filterMode') as 'standard' | 'custom') || 'standard');
+  const [customStartDate, setCustomStartDate] = useState(() => localStorage.getItem('spendwise_filter_customStartDate') || '');
+  const [customEndDate, setCustomEndDate] = useState(() => localStorage.getItem('spendwise_filter_customEndDate') || '');
+  const [activeQuickChip, setActiveQuickChip] = useState<string | null>(() => localStorage.getItem('spendwise_filter_activeQuickChip') || 'all_time');
+
   const [confirmEditExpense, setConfirmEditExpense] = useState<Expense | null>(null);
+
+  // Sync state variables to localStorage
+  useEffect(() => {
+    localStorage.setItem('spendwise_filter_searchQuery', searchQuery);
+  }, [searchQuery]);
+
+  useEffect(() => {
+    localStorage.setItem('spendwise_filter_selectedBank', selectedBank);
+  }, [selectedBank]);
+
+  useEffect(() => {
+    localStorage.setItem('spendwise_filter_selectedMonth', selectedMonth);
+  }, [selectedMonth]);
+
+  useEffect(() => {
+    localStorage.setItem('spendwise_filter_selectedYear', selectedYear);
+  }, [selectedYear]);
+
+  useEffect(() => {
+    localStorage.setItem('spendwise_filter_filterMode', filterMode);
+  }, [filterMode]);
+
+  useEffect(() => {
+    localStorage.setItem('spendwise_filter_customStartDate', customStartDate);
+  }, [customStartDate]);
+
+  useEffect(() => {
+    localStorage.setItem('spendwise_filter_customEndDate', customEndDate);
+  }, [customEndDate]);
+
+  useEffect(() => {
+    if (activeQuickChip) {
+      localStorage.setItem('spendwise_filter_activeQuickChip', activeQuickChip);
+    } else {
+      localStorage.removeItem('spendwise_filter_activeQuickChip');
+    }
+  }, [activeQuickChip]);
 
   // Extract unique bank names
   const uniqueBanks = useMemo(() => {
@@ -22,16 +81,173 @@ const ExpenseList: React.FC<ExpenseListProps> = ({ expenses, onDelete, onEdit, c
     return Array.from(banks).sort();
   }, [expenses]);
 
-  const filteredExpenses = expenses.filter(expense => {
-    const matchesSearch = expense.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (expense.bankName && expense.bankName.toLowerCase().includes(searchQuery.toLowerCase()));
+  // Extract unique years from expenses
+  const uniqueYears = useMemo(() => {
+    const years = new Set<string>();
+    expenses.forEach(e => {
+      if (e.date) {
+        const yr = e.date.split('-')[0];
+        if (yr && yr.length === 4) {
+          years.add(yr);
+        }
+      }
+    });
+    // Always append current year and previous year for convenience
+    const currentYear = new Date().getFullYear();
+    years.add(String(currentYear));
+    years.add(String(currentYear - 1));
+    return Array.from(years).sort((a, b) => b.localeCompare(a));
+  }, [expenses]);
+
+  // Combined Filtering Pipeline
+  const filteredExpenses = useMemo(() => {
+    return expenses.filter(expense => {
+      // 1. Description or Bank Text Search Match
+      const matchesSearch = expense.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (expense.bankName && expense.bankName.toLowerCase().includes(searchQuery.toLowerCase()));
+      
+      // 2. Specific Bank Match
+      const matchesBank = selectedBank ? expense.bankName === selectedBank : true;
+
+      // 3. Date / Time Period Match
+      let matchesDate = true;
+      if (filterMode === 'custom') {
+        if (customStartDate && expense.date < customStartDate) {
+          matchesDate = false;
+        }
+        if (customEndDate && expense.date > customEndDate) {
+          matchesDate = false;
+        }
+      } else {
+        // Standard Dropdowns Mode
+        const dateParts = expense.date.split('-');
+        if (selectedMonth !== '' && dateParts[1]) {
+          const expMonth = parseInt(dateParts[1], 10) - 1; // 0-indexed month
+          if (expMonth !== parseInt(selectedMonth, 10)) {
+            matchesDate = false;
+          }
+        }
+        if (selectedYear !== '' && dateParts[0]) {
+          const expYear = parseInt(dateParts[0], 10);
+          if (expYear !== parseInt(selectedYear, 10)) {
+            matchesDate = false;
+          }
+        }
+      }
+
+      return matchesSearch && matchesBank && matchesDate;
+    });
+  }, [expenses, searchQuery, selectedBank, filterMode, customStartDate, customEndDate, selectedMonth, selectedYear]);
+
+  // Sort chronological descending
+  const sortedExpenses = useMemo(() => {
+    return [...filteredExpenses].sort((a, b) => b.date.localeCompare(a.date));
+  }, [filteredExpenses]);
+
+  // Period Analysis Metrics
+  const summaryStats = useMemo(() => {
+    const totalTransactions = filteredExpenses.length;
+    const totalSpending = filteredExpenses.reduce((sum, e) => sum + e.amount, 0);
+    const averageTransaction = totalTransactions > 0 ? (totalSpending / totalTransactions) : 0;
+    const highestTransaction = totalTransactions > 0 ? Math.max(...filteredExpenses.map(e => e.amount)) : 0;
+
+    return {
+      totalTransactions,
+      totalSpending,
+      averageTransaction,
+      highestTransaction
+    };
+  }, [filteredExpenses]);
+
+  // Text representation of the filtered scope
+  const showingPeriodString = useMemo(() => {
+    if (filterMode === 'custom') {
+      if (customStartDate && customEndDate) {
+        const startStr = parseLocalDate(customStartDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+        const endStr = parseLocalDate(customEndDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+        return `${startStr} to ${endStr}`;
+      } else if (customStartDate) {
+        const startStr = parseLocalDate(customStartDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+        return `From ${startStr}`;
+      } else if (customEndDate) {
+        const endStr = parseLocalDate(customEndDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+        return `Until ${endStr}`;
+      }
+      return 'Custom Range';
+    } else {
+      const hasMonth = selectedMonth !== '';
+      const hasYear = selectedYear !== '';
+      
+      if (hasMonth && hasYear) {
+        const monthName = MONTHS.find(m => m.value === selectedMonth)?.label;
+        return `${monthName} ${selectedYear}`;
+      } else if (hasMonth) {
+        const monthName = MONTHS.find(m => m.value === selectedMonth)?.label;
+        return `${monthName} (All Years)`;
+      } else if (hasYear) {
+        return `Year ${selectedYear}`;
+      }
+      return 'All Time';
+    }
+  }, [filterMode, customStartDate, customEndDate, selectedMonth, selectedYear]);
+
+  // Apply Quick Period presets
+  const applyQuickFilter = (type: 'this_month' | 'last_month' | 'last_3_months' | 'last_6_months' | 'this_year' | 'all_time') => {
+    const today = new Date();
     
-    const matchesBank = selectedBank ? expense.bankName === selectedBank : true;
+    const localFormat = (d: Date): string => {
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    };
 
-    return matchesSearch && matchesBank;
-  });
-
-  const sortedExpenses = [...filteredExpenses].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    if (type === 'this_month') {
+      setFilterMode('standard');
+      setSelectedMonth(String(today.getMonth()));
+      setSelectedYear(String(today.getFullYear()));
+      setCustomStartDate('');
+      setCustomEndDate('');
+    } else if (type === 'last_month') {
+      setFilterMode('standard');
+      const d = new Date();
+      d.setMonth(d.getMonth() - 1);
+      setSelectedMonth(String(d.getMonth()));
+      setSelectedYear(String(d.getFullYear()));
+      setCustomStartDate('');
+      setCustomEndDate('');
+    } else if (type === 'last_3_months') {
+      setFilterMode('custom');
+      const start = new Date();
+      start.setMonth(start.getMonth() - 3);
+      const startStr = localFormat(start);
+      const endStr = localFormat(today);
+      setCustomStartDate(startStr);
+      setCustomEndDate(endStr);
+    } else if (type === 'last_6_months') {
+      setFilterMode('custom');
+      const start = new Date();
+      start.setMonth(start.getMonth() - 6);
+      const startStr = localFormat(start);
+      const endStr = localFormat(today);
+      setCustomStartDate(startStr);
+      setCustomEndDate(endStr);
+    } else if (type === 'this_year') {
+      setFilterMode('standard');
+      setSelectedMonth('');
+      setSelectedYear(String(today.getFullYear()));
+      setCustomStartDate('');
+      setCustomEndDate('');
+    } else if (type === 'all_time') {
+      setFilterMode('standard');
+      setSelectedMonth('');
+      setSelectedYear('');
+      setSelectedBank('');
+      setSearchQuery('');
+      setCustomStartDate('');
+      setCustomEndDate('');
+    }
+  };
 
   const getCategoryColor = (name: string) => {
     return categories.find(c => c.name === name)?.color || '#94a3b8';
@@ -41,7 +257,9 @@ const ExpenseList: React.FC<ExpenseListProps> = ({ expenses, onDelete, onEdit, c
     return (
       <div className="text-center py-20 bg-white dark:bg-slate-900 rounded-3xl border border-dashed border-slate-200 dark:border-slate-800">
         <div className="inline-flex items-center justify-center w-16 h-16 bg-slate-50 dark:bg-slate-800 rounded-full mb-4">
-          <svg className="w-8 h-8 text-slate-300 dark:text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+          <svg className="w-8 h-8 text-slate-300 dark:text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
         </div>
         <p className="text-slate-500 dark:text-slate-400 font-medium">No expenses tracked yet.</p>
         <p className="text-slate-400 dark:text-slate-500 text-sm mt-1">Add your first expense to see it here.</p>
@@ -52,31 +270,40 @@ const ExpenseList: React.FC<ExpenseListProps> = ({ expenses, onDelete, onEdit, c
   return (
     <>
       <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-800 overflow-hidden">
+        {/* Filters Top Bar */}
         <div className="px-5 py-4 md:px-6 border-b border-slate-50 dark:border-slate-800 space-y-4">
           <div className="flex justify-between items-center">
-            <h3 className="font-bold text-slate-800 dark:text-slate-200">Recent Transactions</h3>
-            <span className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">{filteredExpenses.length} Total</span>
+            <h3 className="font-bold text-slate-850 dark:text-slate-200">Recent Transactions</h3>
+            <span className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+              {filteredExpenses.length} Filtered ({expenses.length} total)
+            </span>
           </div>
           
-          <div className="flex flex-col md:flex-row gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
             {/* Search Bar */}
-            <div className="relative group flex-1">
+            <div className="relative group">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <svg className="h-4 h-4 text-slate-400 dark:text-slate-500 group-focus-within:text-indigo-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="h-4 w-4 text-slate-400 dark:text-slate-500 group-focus-within:text-indigo-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                 </svg>
               </div>
               <input
                 type="text"
                 placeholder="Search description..."
-                className="block w-full pl-10 pr-10 py-3 md:py-2.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all placeholder:text-slate-400 dark:placeholder:text-slate-500"
+                className="block w-full pl-10 pr-10 py-3 md:py-2.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all placeholder:text-slate-400"
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  setActiveQuickChip(null);
+                }}
               />
               {searchQuery && (
                 <button 
-                  onClick={() => setSearchQuery('')}
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
+                  onClick={() => {
+                    setSearchQuery('');
+                    setActiveQuickChip(null);
+                  }}
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
                 >
                   <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -85,34 +312,284 @@ const ExpenseList: React.FC<ExpenseListProps> = ({ expenses, onDelete, onEdit, c
               )}
             </div>
 
-            {/* Bank Filter Dropdown */}
-            {uniqueBanks.length > 0 && (
-              <div className="relative min-w-[180px]">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <svg className="h-4 h-4 text-slate-400 dark:text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4v3H3V7z" />
-                  </svg>
+            {/* Bank Filter */}
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <svg className="h-4 w-4 text-slate-400 dark:text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4v3H3V7z" />
+                </svg>
+              </div>
+              <select
+                value={selectedBank}
+                onChange={(e) => {
+                  setSelectedBank(e.target.value);
+                  setActiveQuickChip(null);
+                }}
+                className="appearance-none block w-full pl-10 pr-10 py-3 md:py-2.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all cursor-pointer font-medium"
+              >
+                <option value="">All Banks</option>
+                {uniqueBanks.map(bank => (
+                  <option key={bank} value={bank}>{bank}</option>
+                ))}
+              </select>
+              <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-slate-400">
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </div>
+            </div>
+
+            {/* Month Filter */}
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <svg className="h-4 w-4 text-slate-400 dark:text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2" strokeWidth={2} />
+                  <line x1="16" y1="2" x2="16" y2="6" strokeWidth={2} />
+                  <line x1="8" y1="2" x2="8" y2="6" strokeWidth={2} />
+                  <line x1="3" y1="10" x2="21" y2="10" strokeWidth={2} />
+                </svg>
+              </div>
+              <select
+                value={selectedMonth}
+                disabled={filterMode === 'custom'}
+                onChange={(e) => {
+                  setSelectedMonth(e.target.value);
+                  setFilterMode('standard');
+                  setActiveQuickChip(null);
+                }}
+                className="appearance-none disabled:opacity-50 block w-full pl-10 pr-10 py-3 md:py-2.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all cursor-pointer font-medium"
+              >
+                <option value="">All Months</option>
+                {MONTHS.map(m => (
+                  <option key={m.value} value={m.value}>{m.label}</option>
+                ))}
+              </select>
+              <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-slate-400">
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </div>
+            </div>
+
+            {/* Year Filter */}
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <svg className="h-4 w-4 text-slate-400 dark:text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <circle cx="12" cy="12" r="10" strokeWidth={2} />
+                  <polyline points="12 6 12 12 16 14" strokeWidth={2} />
+                </svg>
+              </div>
+              <select
+                value={selectedYear}
+                disabled={filterMode === 'custom'}
+                onChange={(e) => {
+                  setSelectedYear(e.target.value);
+                  setFilterMode('standard');
+                  setActiveQuickChip(null);
+                }}
+                className="appearance-none disabled:opacity-50 block w-full pl-10 pr-10 py-3 md:py-2.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all cursor-pointer font-medium"
+              >
+                <option value="">All Years</option>
+                {uniqueYears.map(yr => (
+                  <option key={yr} value={yr}>{yr}</option>
+                ))}
+              </select>
+              <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-slate-400">
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </div>
+            </div>
+          </div>
+
+          {/* Quick Filter Chips list */}
+          <div className="flex flex-wrap items-center gap-1.5 pt-1">
+            <span className="text-[10px] uppercase font-bold tracking-widest text-slate-400 dark:text-slate-500 mr-1.5">Preset:</span>
+            <button
+              type="button"
+              onClick={() => { applyQuickFilter('this_month'); setActiveQuickChip('this_month'); }}
+              className={`px-3 py-1 text-xs font-semibold rounded-full border transition-all cursor-pointer ${
+                activeQuickChip === 'this_month'
+                  ? 'bg-purple-600 border-transparent text-white shadow-sm'
+                  : 'bg-slate-50 dark:bg-slate-800/40 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+              }`}
+            >
+              This Month
+            </button>
+            <button
+              type="button"
+              onClick={() => { applyQuickFilter('last_month'); setActiveQuickChip('last_month'); }}
+              className={`px-3 py-1 text-xs font-semibold rounded-full border transition-all cursor-pointer ${
+                activeQuickChip === 'last_month'
+                  ? 'bg-purple-600 border-transparent text-white shadow-sm'
+                  : 'bg-slate-50 dark:bg-slate-800/40 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+              }`}
+            >
+              Last Month
+            </button>
+            <button
+              type="button"
+              onClick={() => { applyQuickFilter('last_3_months'); setActiveQuickChip('last_3_months'); }}
+              className={`px-3 py-1 text-xs font-semibold rounded-full border transition-all cursor-pointer ${
+                activeQuickChip === 'last_3_months'
+                  ? 'bg-purple-600 border-transparent text-white shadow-sm'
+                  : 'bg-slate-50 dark:bg-slate-800/40 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+              }`}
+            >
+              Last 3 Months
+            </button>
+            <button
+              type="button"
+              onClick={() => { applyQuickFilter('last_6_months'); setActiveQuickChip('last_6_months'); }}
+              className={`px-3 py-1 text-xs font-semibold rounded-full border transition-all cursor-pointer ${
+                activeQuickChip === 'last_6_months'
+                  ? 'bg-purple-600 border-transparent text-white shadow-sm'
+                  : 'bg-slate-50 dark:bg-slate-800/40 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+              }`}
+            >
+              Last 6 Months
+            </button>
+            <button
+              type="button"
+              onClick={() => { applyQuickFilter('this_year'); setActiveQuickChip('this_year'); }}
+              className={`px-3 py-1 text-xs font-semibold rounded-full border transition-all cursor-pointer ${
+                activeQuickChip === 'this_year'
+                  ? 'bg-purple-600 border-transparent text-white shadow-sm'
+                  : 'bg-slate-50 dark:bg-slate-800/40 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+              }`}
+            >
+              This Year
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                const nextMode = filterMode === 'custom' ? 'standard' : 'custom';
+                setFilterMode(nextMode);
+                setActiveQuickChip(nextMode === 'custom' ? 'custom' : null);
+              }}
+              className={`px-3 py-1 text-xs font-semibold rounded-full border transition-all cursor-pointer ${
+                filterMode === 'custom'
+                  ? 'bg-gradient-to-r from-purple-600 to-indigo-600 border-transparent text-white shadow-sm font-bold'
+                  : 'bg-slate-50 dark:bg-slate-800/40 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+              }`}
+            >
+              Custom Range 📅
+            </button>
+            <button
+              type="button"
+              onClick={() => { applyQuickFilter('all_time'); setActiveQuickChip('all_time'); }}
+              className={`px-3 py-1 text-xs font-semibold rounded-full border transition-all cursor-pointer ${
+                activeQuickChip === 'all_time'
+                  ? 'bg-purple-600 border-transparent text-white shadow-sm'
+                  : 'bg-slate-50 dark:bg-slate-800/40 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+              }`}
+            >
+              All Time
+            </button>
+          </div>
+
+          {/* Custom Date Range Picker Block */}
+          {filterMode === 'custom' && (
+            <div className="p-3 bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800 rounded-2xl flex flex-col sm:flex-row items-center gap-3 animate-in slide-in-from-top-1 duration-200">
+              <span className="text-xs font-semibold text-slate-550 dark:text-slate-400 uppercase tracking-widest shrink-0">
+                Custom Range Parameters:
+              </span>
+              <div className="flex items-center gap-2 w-full">
+                <div className="relative flex-1">
+                  <input
+                    type="date"
+                    className="w-full px-3 py-2 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800/80 rounded-xl text-xs text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-medium"
+                    value={customStartDate}
+                    onChange={(e) => {
+                      setCustomStartDate(e.target.value);
+                      setActiveQuickChip(null);
+                    }}
+                  />
                 </div>
-                <select
-                  value={selectedBank}
-                  onChange={(e) => setSelectedBank(e.target.value)}
-                  className="appearance-none block w-full pl-10 pr-10 py-3 md:py-2.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all cursor-pointer font-medium"
-                >
-                  <option value="">All Banks</option>
-                  {uniqueBanks.map(bank => (
-                    <option key={bank} value={bank}>{bank}</option>
-                  ))}
-                </select>
-                <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-slate-400">
-                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
+                <span className="text-slate-400 dark:text-slate-600 text-xs font-bold font-mono">to</span>
+                <div className="relative flex-1">
+                  <input
+                    type="date"
+                    className="w-full px-3 py-2 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800/80 rounded-xl text-xs text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-medium"
+                    value={customEndDate}
+                    onChange={(e) => {
+                      setCustomEndDate(e.target.value);
+                      setActiveQuickChip(null);
+                    }}
+                  />
                 </div>
               </div>
+            </div>
+          )}
+        </div>
+
+        {/* Transaction Summary Card */}
+        <div className="px-5 py-4 md:px-6 bg-slate-50/40 dark:bg-slate-900/20 border-b border-slate-100 dark:border-slate-800/80 space-y-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5">
+            <div>
+              <span className="text-[10px] uppercase font-bold tracking-widest text-slate-400 dark:text-slate-500 block leading-none">
+                Filtered Scope Analytics
+              </span>
+              <h4 className="text-xs md:text-sm font-bold text-slate-800 dark:text-slate-200 mt-1">
+                Showing: <span className="text-indigo-600 dark:text-indigo-400 font-extrabold">{showingPeriodString}</span>
+                {selectedBank && (
+                  <span className="text-slate-500 dark:text-slate-400 font-medium"> at {selectedBank}</span>
+                )}
+              </h4>
+            </div>
+
+            {(searchQuery || selectedBank || selectedMonth || selectedYear || customStartDate || customEndDate) && (
+              <button
+                onClick={() => {
+                  setSearchQuery('');
+                  setSelectedBank('');
+                  setSelectedMonth('');
+                  setSelectedYear('');
+                  setCustomStartDate('');
+                  setCustomEndDate('');
+                  setFilterMode('standard');
+                  setActiveQuickChip('all_time');
+                }}
+                className="text-[10px] uppercase font-extrabold tracking-widest text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 transition-colors flex items-center md:self-end self-start"
+              >
+                Clear Filters ✕
+              </button>
             )}
+          </div>
+
+          {/* Stats Quad Grid */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            <div className="bg-white dark:bg-slate-950 p-3 rounded-2xl border border-slate-100 dark:border-slate-800/40 shadow-sm">
+              <span className="text-[9px] font-bold text-slate-400 dark:text-slate-550 uppercase block tracking-widest leading-none">Transactions</span>
+              <p className="text-base md:text-lg font-black font-mono mt-1 text-slate-800 dark:text-slate-100 leading-none">
+                {summaryStats.totalTransactions}
+              </p>
+            </div>
+            
+            <div className="bg-white dark:bg-slate-950 p-3 rounded-2xl border border-slate-100 dark:border-slate-800/40 shadow-sm animate-pulse-once">
+              <span className="text-[9px] font-bold text-slate-400 dark:text-slate-550 uppercase block tracking-widest leading-none">Total Spending</span>
+              <p className="text-base md:text-lg font-black font-mono mt-1 text-purple-600 dark:text-purple-400 leading-none">
+                {formatCurrency(summaryStats.totalSpending)}
+              </p>
+            </div>
+
+            <div className="bg-white dark:bg-slate-950 p-3 rounded-2xl border border-slate-100 dark:border-slate-800/40 shadow-sm">
+              <span className="text-[9px] font-bold text-slate-400 dark:text-slate-550 uppercase block tracking-widest leading-none">Average</span>
+              <p className="text-base md:text-lg font-black font-mono mt-1 text-slate-800 dark:text-slate-100 leading-none">
+                {formatCurrency(summaryStats.averageTransaction)}
+              </p>
+            </div>
+
+            <div className="bg-white dark:bg-slate-950 p-3 rounded-2xl border border-slate-100 dark:border-slate-800/40 shadow-sm">
+              <span className="text-[9px] font-bold text-slate-400 dark:text-slate-550 uppercase block tracking-widest leading-none">Highest Spend</span>
+              <p className="text-base md:text-lg font-black font-mono mt-1 text-indigo-600 dark:text-indigo-400 leading-none">
+                {formatCurrency(summaryStats.highestTransaction)}
+              </p>
+            </div>
           </div>
         </div>
 
+        {/* Transactions List View */}
         <div className="divide-y divide-slate-50 dark:divide-slate-800 max-h-[500px] overflow-y-auto">
           {sortedExpenses.length > 0 ? (
             sortedExpenses.map((expense) => {
@@ -149,7 +626,7 @@ const ExpenseList: React.FC<ExpenseListProps> = ({ expenses, onDelete, onEdit, c
                         </>
                       )}
                       <span className="mx-1.5 hidden xs:inline">•</span>
-                      <span className="w-full xs:w-auto mt-0.5 xs:mt-0">{new Date(expense.date).toLocaleDateString('en-IN', {day: 'numeric', month: 'short'})}</span>
+                      <span className="w-full xs:w-auto mt-0.5 xs:mt-0">{parseLocalDate(expense.date).toLocaleDateString('en-IN', {day: 'numeric', month: 'short'})}</span>
                     </div>
                   </div>
                   <div className="text-right shrink-0 flex flex-col items-end pl-2">
@@ -158,7 +635,7 @@ const ExpenseList: React.FC<ExpenseListProps> = ({ expenses, onDelete, onEdit, c
                     <div className="flex items-center space-x-3 mt-1.5 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
                       <button 
                         onClick={() => setConfirmEditExpense(expense)}
-                        className="p-1.5 md:p-0 bg-indigo-50 md:bg-transparent rounded-lg md:rounded-none text-indigo-600 md:text-indigo-500 hover:text-indigo-700 dark:text-indigo-400"
+                        className="p-1.5 md:p-0 bg-indigo-50 md:bg-transparent rounded-lg md:rounded-none text-indigo-600 md:text-indigo-500 hover:text-indigo-700 dark:text-indigo-405"
                         title="Edit"
                       >
                          <svg className="w-4 h-4 md:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
@@ -180,9 +657,9 @@ const ExpenseList: React.FC<ExpenseListProps> = ({ expenses, onDelete, onEdit, c
           ) : (
             <div className="text-center py-12 px-6">
               <p className="text-slate-500 dark:text-slate-400 text-sm font-medium">
-                {selectedBank && !searchQuery ? `No transactions found for ${selectedBank}` : `No results found for "${searchQuery}"`}
+                No matching transactions found.
               </p>
-              <p className="text-slate-400 dark:text-slate-500 text-xs mt-1">Try adjusting your filters.</p>
+              <p className="text-slate-400 dark:text-slate-500 text-xs mt-1">Try resetting or adjusting your active filter parameters.</p>
             </div>
           )}
         </div>

@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { HashRouter as Router, Routes, Route, NavLink } from 'react-router-dom';
-import { Expense, RecurringExpense, RecurringFrequency, CategoryItem } from './types';
+import { Expense, RecurringExpense, RecurringFrequency, CategoryItem, Income, BudgetRuleType, Account, Transfer } from './types';
 import { DEFAULT_CATEGORIES } from './constants';
 import { formatCurrency, parseLocalDate, formatLocalDate } from './utils';
 import Dashboard from './components/Dashboard';
@@ -11,6 +11,8 @@ import RecurringManager from './components/RecurringManager';
 import CategoryManager from './components/CategoryManager';
 import Settings from './components/Settings';
 import Onboarding from './components/Onboarding';
+import IncomeForm from './components/IncomeForm';
+import IncomeManager from './components/IncomeManager';
 import { Logo } from './components/Logo';
 import AIInsights from './components/AIInsights';
 import { ThemeToggle } from './components/ThemeToggle';
@@ -20,6 +22,44 @@ const App: React.FC = () => {
     const saved = localStorage.getItem('spendwise-expenses');
     return saved ? JSON.parse(saved) : [];
   });
+
+  const [incomes, setIncomes] = useState<Income[]>(() => {
+    const saved = localStorage.getItem('spendwise-incomes');
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  const [budgetRuleType, setBudgetRuleType] = useState<BudgetRuleType>(() => {
+    const saved = localStorage.getItem('spendwise-budget-rule-type');
+    return (saved as BudgetRuleType) || 'manual';
+  });
+
+  const [budgetRulePercentage, setBudgetRulePercentage] = useState<number>(() => {
+    const saved = localStorage.getItem('spendwise-budget-rule-percentage');
+    return saved ? parseInt(saved, 10) : 90;
+  });
+
+  const [accounts, setAccounts] = useState<Account[]>(() => {
+    const saved = localStorage.getItem('spendwise-accounts');
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  const [transfers, setTransfers] = useState<Transfer[]>(() => {
+    const saved = localStorage.getItem('spendwise-transfers');
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  const initialBalances = useMemo(() => {
+    const map: { [bankName: string]: number } = {};
+    accounts.forEach(acc => {
+      map[acc.name] = acc.initialBalance;
+    });
+    return map;
+  }, [accounts]);
+
+  const setInitialBalances = () => {};
+
+  const [showIncomeForm, setShowIncomeForm] = useState(false);
+  const [editingIncome, setEditingIncome] = useState<Income | null>(null);
 
   const [recurringExpenses, setRecurringExpenses] = useState<RecurringExpense[]>(() => {
     const saved = localStorage.getItem('spendwise-recurring');
@@ -87,6 +127,26 @@ const App: React.FC = () => {
   useEffect(() => {
     localStorage.setItem('spendwise-expenses', JSON.stringify(expenses));
   }, [expenses]);
+
+  useEffect(() => {
+    localStorage.setItem('spendwise-incomes', JSON.stringify(incomes));
+  }, [incomes]);
+
+  useEffect(() => {
+    localStorage.setItem('spendwise-budget-rule-type', budgetRuleType);
+  }, [budgetRuleType]);
+
+  useEffect(() => {
+    localStorage.setItem('spendwise-budget-rule-percentage', budgetRulePercentage.toString());
+  }, [budgetRulePercentage]);
+
+  useEffect(() => {
+    localStorage.setItem('spendwise-accounts', JSON.stringify(accounts));
+  }, [accounts]);
+
+  useEffect(() => {
+    localStorage.setItem('spendwise-transfers', JSON.stringify(transfers));
+  }, [transfers]);
 
   useEffect(() => {
     localStorage.setItem('spendwise-recurring', JSON.stringify(recurringExpenses));
@@ -269,6 +329,25 @@ const App: React.FC = () => {
     ));
   };
 
+  const handleSaveIncome = (inc: Income) => {
+    if (editingIncome) {
+      setIncomes(prev => prev.map(item => item.id === editingIncome.id ? inc : item));
+      setEditingIncome(null);
+    } else {
+      setIncomes(prev => [inc, ...prev]);
+    }
+    setShowIncomeForm(false);
+  };
+
+  const deleteIncome = (id: string) => {
+    setIncomes(prev => prev.filter(item => item.id !== id));
+  };
+
+  const handleEditIncome = (inc: Income) => {
+    setEditingIncome(inc);
+    setShowIncomeForm(true);
+  };
+
   // Category Management Handlers
   const addCustomCategory = (name: string, color: string) => {
     // Prevent duplicates
@@ -350,6 +429,22 @@ const App: React.FC = () => {
         <span className="text-[10px] md:text-sm mt-1 md:mt-0">Dashboard</span>
       </NavLink>
       <NavLink 
+        to="/income" 
+        className={({ isActive }) => `flex flex-col md:flex-row items-center md:space-x-3 px-3 py-2 md:px-4 md:py-3 rounded-xl transition-all font-semibold ${isActive ? 'bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'}`}
+      >
+        <svg className="w-6 h-6 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <span className="text-[10px] md:text-sm mt-1 md:mt-0 flex items-center">
+          Income
+          {incomes.length > 0 && (
+            <span className="ml-1.5 px-1.5 py-0.5 text-[9px] md:text-[10px] font-black bg-emerald-100 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 rounded-full min-w-[1.25rem] text-center shadow-sm">
+              {incomes.length}
+            </span>
+          )}
+        </span>
+      </NavLink>
+      <NavLink 
         to="/history" 
         className={({ isActive }) => `flex flex-col md:flex-row items-center md:space-x-3 px-3 py-2 md:px-4 md:py-3 rounded-xl transition-all font-semibold ${isActive ? 'bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'}`}
       >
@@ -396,10 +491,12 @@ const App: React.FC = () => {
         {/* Mobile Header */}
         <header className="md:hidden bg-white dark:bg-[#0B1220] border-b border-slate-200 dark:border-slate-800/60 px-6 py-4 flex items-center justify-between sticky top-0 z-40">
           <div className="flex items-center space-x-3.5">
-            <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 via-purple-500 to-indigo-700 rounded-xl flex items-center justify-center shadow-md shadow-indigo-100 dark:shadow-none border border-white/10">
+            <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 via-violet-650 to-indigo-700 rounded-xl flex items-center justify-center shadow-md shadow-indigo-100/10 dark:shadow-none border border-white/10">
               <Logo className="w-5.5 h-5.5 text-white" />
             </div>
-            <h1 className="text-xl font-extrabold text-slate-900 dark:text-white tracking-tight">SpendWise</h1>
+            <h1 className="text-xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+              <span className="hidden xs:inline">SpendWise</span>
+            </h1>
           </div>
           <div className="flex items-center space-x-3">
             {showInstallBtn && (
@@ -418,7 +515,7 @@ const App: React.FC = () => {
         {/* Desktop Navigation Sidebar */}
         <nav className="hidden md:flex w-64 bg-white dark:bg-[#0B1220] border-r border-slate-200 dark:border-slate-850 p-6 flex-col sticky top-0 h-screen z-40">
           <div className="flex items-center space-x-3 mb-10">
-            <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 via-purple-500 to-indigo-700 rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-200 dark:shadow-none border border-white/20">
+            <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 via-violet-650 to-indigo-700 rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-200/20 dark:shadow-none border border-white/20">
               <Logo className="w-7 h-7 text-white" />
             </div>
             <h1 className="text-xl font-black text-slate-900 dark:text-white tracking-tight"> SpendWise </h1>
@@ -491,7 +588,18 @@ const App: React.FC = () => {
                   </div>
                 </header>
                 
-                <Dashboard expenses={expenses} categories={allCategories} monthlyBudget={monthlyBudget} />
+                <Dashboard 
+                  expenses={expenses} 
+                  incomes={incomes}
+                  categories={allCategories} 
+                  monthlyBudget={monthlyBudget} 
+                  budgetRuleType={budgetRuleType}
+                  budgetRulePercentage={budgetRulePercentage}
+                  accounts={accounts}
+                  setAccounts={setAccounts}
+                  transfers={transfers}
+                  setTransfers={setTransfers}
+                />
                 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
                   <div className="lg:col-span-2">
@@ -523,6 +631,23 @@ const App: React.FC = () => {
                     <AIInsights expenses={expenses} categories={allCategories} openRouterApiKey={openRouterApiKey} />
                   </div>
                 </div>
+              </div>
+            } />
+            <Route path="/income" element={
+              <div className="space-y-6 animate-in fade-in duration-500">
+                <IncomeManager 
+                  incomes={incomes}
+                  expenses={expenses}
+                  accounts={accounts}
+                  transfers={transfers}
+                  onAddIncome={handleSaveIncome}
+                  onDeleteIncome={deleteIncome}
+                  onEditIncome={handleEditIncome}
+                  openForm={() => {
+                    setEditingIncome(null);
+                    setShowIncomeForm(true);
+                  }}
+                />
               </div>
             } />
             <Route path="/history" element={
@@ -562,12 +687,22 @@ const App: React.FC = () => {
               <Settings 
                 expenses={expenses}
                 setExpenses={setExpenses}
+                incomes={incomes}
+                setIncomes={setIncomes}
                 recurringExpenses={recurringExpenses}
                 setRecurringExpenses={setRecurringExpenses}
                 customCategories={customCategories}
                 setCustomCategories={setCustomCategories}
                 monthlyBudget={monthlyBudget}
                 setMonthlyBudget={setMonthlyBudget}
+                budgetRuleType={budgetRuleType}
+                setBudgetRuleType={setBudgetRuleType}
+                budgetRulePercentage={budgetRulePercentage}
+                setBudgetRulePercentage={setBudgetRulePercentage}
+                accounts={accounts}
+                setAccounts={setAccounts}
+                transfers={transfers}
+                setTransfers={setTransfers}
                 openRouterApiKey={openRouterApiKey}
                 setOpenRouterApiKey={setOpenRouterApiKey}
               />
@@ -590,10 +725,27 @@ const App: React.FC = () => {
             } : undefined)}
             initialRecurringFrequency={editingRecurring?.frequency}
             categories={allCategories}
+            accounts={accounts}
             onSwitchToAdd={() => {
               setEditingExpense(null);
               setEditingRecurring(null);
             }}
+          />
+        )}
+
+        {/* Global Income Modal */}
+        {showIncomeForm && (
+          <IncomeForm 
+            onAdd={handleSaveIncome}
+            onClose={() => {
+              setShowIncomeForm(false);
+              setEditingIncome(null);
+            }}
+            initialIncome={editingIncome || undefined}
+            expenses={expenses}
+            incomes={incomes}
+            accounts={accounts}
+            transfers={transfers}
           />
         )}
       </div>

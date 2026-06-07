@@ -1,5 +1,6 @@
 
 import React, { useState } from 'react';
+import { Logo } from './Logo';
 
 interface OnboardingProps {
   onComplete: () => void;
@@ -10,11 +11,8 @@ const ONBOARDING_STEPS = [
     title: "Welcome to SpendWise",
     description: "Take control of your finances with smart tracking and automated tools.",
     icon: (
-      <div className="w-24 h-24 bg-gradient-to-br from-indigo-500 to-indigo-700 rounded-[32px] flex items-center justify-center shadow-2xl shadow-indigo-200 dark:shadow-none mx-auto mb-8 border border-white/20">
-        <svg className="w-12 h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-          {/* Wallet Icon */}
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-        </svg>
+      <div className="w-24 h-24 bg-gradient-to-br from-indigo-500 via-emerald-600 to-indigo-700 rounded-[32px] flex items-center justify-center shadow-2xl shadow-indigo-950/20 mx-auto mb-8 border border-white/20">
+        <Logo className="w-12 h-12 text-white" />
       </div>
     )
   },

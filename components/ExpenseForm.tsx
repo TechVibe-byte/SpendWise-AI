@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Expense, Category, RecurringFrequency, CategoryItem, DefaultCategory } from '../types';
+import { Expense, Category, RecurringFrequency, CategoryItem, DefaultCategory, Account } from '../types';
 import { getCategoryIcon } from '../constants';
 
 interface ExpenseFormProps {
@@ -9,6 +9,7 @@ interface ExpenseFormProps {
   initialExpense?: Expense;
   initialRecurringFrequency?: RecurringFrequency;
   categories: CategoryItem[];
+  accounts?: Account[];
   onSwitchToAdd?: () => void;
 }
 
@@ -35,11 +36,11 @@ const COMMON_BANKS = [
   "Flipkart Pay Later", "Lazypay", "ZestMoney", "Simpl", "mPokket", "Cashe"
 ];
 
-const ExpenseForm: React.FC<ExpenseFormProps> = ({ onAdd, onClose, initialExpense, initialRecurringFrequency, categories, onSwitchToAdd }) => {
+const ExpenseForm: React.FC<ExpenseFormProps> = ({ onAdd, onClose, initialExpense, initialRecurringFrequency, categories, accounts, onSwitchToAdd }) => {
   const [description, setDescription] = useState(initialExpense?.description || '');
   const [amount, setAmount] = useState(initialExpense?.amount.toString() || '');
   const [category, setCategory] = useState<Category>(initialExpense?.category || DefaultCategory.OTHER);
-  const [bankName, setBankName] = useState(initialExpense?.bankName || '');
+  const [bankName, setBankName] = useState(initialExpense?.bankName || (accounts && accounts.length > 0 ? accounts[0].name : ''));
   const [date, setDate] = useState(initialExpense?.date || new Date().toISOString().split('T')[0]);
   const [isRecurring, setIsRecurring] = useState(false);
   const [frequency, setFrequency] = useState<RecurringFrequency>(RecurringFrequency.MONTHLY);
@@ -52,7 +53,6 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({ onAdd, onClose, initialExpens
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const isEditMode = !!initialExpense;
-  const showBankField = category === DefaultCategory.LOAN || category === DefaultCategory.EMI;
 
   // Sync state when initialExpense changes (e.g., when switching from Edit to Add mode)
   useEffect(() => {
@@ -76,7 +76,7 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({ onAdd, onClose, initialExpens
       setDescription('');
       setAmount('');
       setCategory(DefaultCategory.OTHER);
-      setBankName('');
+      setBankName(accounts && accounts.length > 0 ? accounts[0].name : '');
       setDate(new Date().toISOString().split('T')[0]);
       setReceiptImage(null);
       setIsRecurring(false);
@@ -84,7 +84,7 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({ onAdd, onClose, initialExpens
       setShowBankSuggestions(false);
       setUserHasManuallySetCategory(false);
     }
-  }, [initialExpense, initialRecurringFrequency]);
+  }, [initialExpense, initialRecurringFrequency, accounts]);
 
   const handleImageCapture = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -197,7 +197,10 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({ onAdd, onClose, initialExpens
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!description || !amount) return;
-    if (showBankField && !bankName) return;
+    if (!bankName) {
+      alert("Please select a payment account first.");
+      return;
+    }
 
     onAdd(
       {
@@ -205,7 +208,7 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({ onAdd, onClose, initialExpens
         amount: parseFloat(amount),
         category,
         date,
-        bankName: showBankField ? bankName : undefined,
+        bankName,
         receiptImage: receiptImage || undefined
       },
       isRecurring ? { frequency } : undefined
@@ -309,51 +312,38 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({ onAdd, onClose, initialExpens
               })()}
             </div>
 
-            {showBankField && (
-              <div className="animate-in slide-in-from-top-2 duration-300 relative z-20">
-                <label className="block text-xs font-bold text-indigo-500 dark:text-indigo-400 uppercase tracking-wider mb-2">
-                  Bank / Lender Name <span className="text-red-500">*</span>
-                </label>
+            <div>
+              <label className="block text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">
+                Paid From Account <span className="text-red-500">*</span>
+              </label>
+              {accounts && accounts.length > 0 ? (
                 <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-indigo-600 dark:text-indigo-400">
-                    <div className="scale-90">
-                      {getCategoryIcon(category)}
-                    </div>
-                  </div>
-                  <input
-                    type="text"
+                  <select
                     required
-                    placeholder="e.g. HDFC Bank, SBI, MoneyTap"
-                    className="w-full pl-12 pr-4 py-4 md:py-3 rounded-xl border border-indigo-200 dark:border-indigo-900 bg-indigo-50/30 dark:bg-indigo-900/10 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all placeholder:text-slate-400 text-base font-medium"
+                    className="w-full px-4 py-4 md:py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all appearance-none cursor-pointer text-base font-medium"
                     value={bankName}
-                    onChange={(e) => {
-                      setBankName(e.target.value);
-                      setShowBankSuggestions(true);
-                    }}
-                    onFocus={() => setShowBankSuggestions(true)}
-                    onBlur={() => setTimeout(() => setShowBankSuggestions(false), 200)}
-                    autoComplete="off"
-                  />
-                  {showBankSuggestions && filteredBanks.length > 0 && (
-                    <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl max-h-48 overflow-y-auto z-30">
-                      {filteredBanks.map((bank) => (
-                        <button
-                          key={bank}
-                          type="button"
-                          className="w-full text-left px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-700 text-sm text-slate-700 dark:text-slate-200 border-b border-slate-50 dark:border-slate-700/50 last:border-0 transition-colors"
-                          onClick={() => {
-                            setBankName(bank);
-                            setShowBankSuggestions(false);
-                          }}
-                        >
-                          {bank}
-                        </button>
-                      ))}
-                    </div>
-                  )}
+                    onChange={(e) => setBankName(e.target.value)}
+                  >
+                    <option value="">Choose Account</option>
+                    {accounts.map(acc => (
+                      <option key={acc.id} value={acc.name}>
+                        {acc.name} ({acc.bankName !== acc.name ? acc.bankName : ''})
+                      </option>
+                    ))}
+                  </select>
+                  <div className="absolute inset-y-0 right-4 flex items-center pointer-events-none text-slate-400">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                  </div>
                 </div>
-              </div>
-            )}
+              ) : (
+                <div className="text-sm text-amber-650 bg-amber-50 dark:bg-amber-950/20 dark:text-amber-400 p-4 rounded-xl border border-amber-100 dark:border-transparent flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+                  <span>No accounts set up yet. Add one first.</span>
+                  <a href="#/settings" className="text-xs font-black underline flex items-center hover:text-amber-700 shrink-0" onClick={onClose}>
+                    Go to Settings &rarr;
+                  </a>
+                </div>
+              )}
+            </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div>
