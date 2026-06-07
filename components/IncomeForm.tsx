@@ -19,15 +19,10 @@ const INCOME_CATEGORIES = [
   "Variable Pay",
   "Incentive",
   "Reimbursement",
-  "Freelance Income",
-  "Investment Income",
+  "Freelance",
+  "Gift",
+  "Parent Support",
   "Refund",
-  "Gift Received",
-  "Money Received (Parents)",
-  "Money Received (Spouse)",
-  "Money Received (Friend)",
-  "Money Received (Relative)",
-  "Money Received (Other)",
   "Other Income"
 ];
 

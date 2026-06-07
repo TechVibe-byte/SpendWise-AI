@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { HashRouter as Router, Routes, Route, NavLink } from 'react-router-dom';
-import { Expense, RecurringExpense, RecurringFrequency, CategoryItem, Income, BudgetRuleType, Account, Transfer } from './types';
+import { Expense, RecurringExpense, RecurringFrequency, CategoryItem, Income, BudgetRuleType, Account, Transfer, SalaryRule } from './types';
 import { DEFAULT_CATEGORIES } from './constants';
 import { formatCurrency, parseLocalDate, formatLocalDate } from './utils';
 import Dashboard from './components/Dashboard';
@@ -45,6 +45,16 @@ const App: React.FC = () => {
 
   const [transfers, setTransfers] = useState<Transfer[]>(() => {
     const saved = localStorage.getItem('spendwise-transfers');
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  const [salaryRules, setSalaryRules] = useState<SalaryRule[]>(() => {
+    const saved = localStorage.getItem('spendwise-salary-rules');
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  const [skippedSalaries, setSkippedSalaries] = useState<string[]>(() => {
+    const saved = localStorage.getItem('spendwise-skipped-salaries');
     return saved ? JSON.parse(saved) : [];
   });
 
@@ -147,6 +157,14 @@ const App: React.FC = () => {
   useEffect(() => {
     localStorage.setItem('spendwise-transfers', JSON.stringify(transfers));
   }, [transfers]);
+
+  useEffect(() => {
+    localStorage.setItem('spendwise-salary-rules', JSON.stringify(salaryRules));
+  }, [salaryRules]);
+
+  useEffect(() => {
+    localStorage.setItem('spendwise-skipped-salaries', JSON.stringify(skippedSalaries));
+  }, [skippedSalaries]);
 
   useEffect(() => {
     localStorage.setItem('spendwise-recurring', JSON.stringify(recurringExpenses));
@@ -713,6 +731,10 @@ const App: React.FC = () => {
                     setEditingIncome(null);
                     setShowIncomeForm(true);
                   }}
+                  salaryRules={salaryRules}
+                  setSalaryRules={setSalaryRules}
+                  skippedSalaries={skippedSalaries}
+                  setSkippedSalaries={setSkippedSalaries}
                 />
               </div>
             } />

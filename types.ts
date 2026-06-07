@@ -94,3 +94,11 @@ export interface Transfer {
   date: string;
   description: string;
 }
+
+export interface SalaryRule {
+  id: string;
+  employer: string;
+  amount: number;
+  creditDate: number; // Day of month (1 to 31)
+  accountName: string; // Name of receiving account
+}
