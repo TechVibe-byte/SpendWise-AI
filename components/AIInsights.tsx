@@ -759,12 +759,12 @@ export const AIInsights: React.FC<AIInsightsProps> = ({ expenses, categories, op
                 </div>
                 <div>
                   <p className="text-[10px] font-bold text-slate-500 dark:text-slate-450 uppercase leading-none">Surplus Target</p>
-                  <p className="text-lg font-black font-mono mt-1 text-slate-750 dark:text-slate-250">
+                  <p className="text-lg font-black font-mono mt-1 text-slate-700 dark:text-slate-300">
                     {formatCurrency(predictionDetails.predictedSurplus)}
                   </p>
                 </div>
               </div>
-              <div className="mt-3.5 pt-2.5 border-t border-dashed border-slate-100 dark:border-slate-850 flex items-center justify-between text-[11px] font-bold">
+              <div className="mt-3.5 pt-2.5 border-t border-dashed border-slate-100 dark:border-slate-800 flex items-center justify-between text-[11px] font-bold">
                 <span className="text-slate-400 uppercase tracking-wide">Forecast State</span>
                 <span className={predictionDetails.statusColor}>{predictionDetails.budgetStatus}</span>
               </div>
@@ -846,18 +846,18 @@ export const AIInsights: React.FC<AIInsightsProps> = ({ expenses, categories, op
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <span className="text-[10px] font-bold text-slate-500 uppercase leading-none">Monthly Load</span>
-                  <p className="text-lg font-black font-mono mt-1 text-slate-850 dark:text-slate-200">
+                  <p className="text-lg font-black font-mono mt-1 text-slate-800 dark:text-slate-200">
                     {formatCurrency(subscriptionTotals.monthlyComm)}
                   </p>
                 </div>
                 <div>
                   <span className="text-[10px] font-bold text-slate-500 uppercase leading-none">Yearly Projection</span>
-                  <p className="text-lg font-black font-mono mt-1 text-slate-850 dark:text-slate-200">
+                  <p className="text-lg font-black font-mono mt-1 text-slate-800 dark:text-slate-200">
                     {formatCurrency(subscriptionTotals.annualComm)}
                   </p>
                 </div>
               </div>
-              <div className="mt-3.5 pt-2.5 border-t border-dashed border-slate-100 dark:border-slate-850 text-[11px] font-medium text-slate-500 flex justify-between items-center">
+              <div className="mt-3.5 pt-2.5 border-t border-dashed border-slate-100 dark:border-slate-800 text-[11px] font-medium text-slate-500 flex justify-between items-center">
                 <span>Active commitments</span>
                 <span className="font-extrabold text-slate-800 dark:text-slate-200">{subscriptionTotals.activeCount} rules</span>
               </div>
@@ -916,7 +916,7 @@ export const AIInsights: React.FC<AIInsightsProps> = ({ expenses, categories, op
                     type="text"
                     required
                     placeholder="e.g. New Laptop Purchase"
-                    className="w-full text-xs px-3 py-2.5 rounded-lg border border-slate-200 dark:border-slate-850 bg-white dark:bg-slate-900 text-slate-800 dark:text-white outline-none"
+                    className="w-full text-xs px-3 py-2.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-800 dark:text-white outline-none"
                     value={newGoalName}
                     onChange={(e) => setNewGoalName(e.target.value)}
                   />
@@ -927,14 +927,14 @@ export const AIInsights: React.FC<AIInsightsProps> = ({ expenses, categories, op
                     required
                     min="1"
                     placeholder="Target Amount (₹)"
-                    className="w-full text-xs px-3 py-2.5 rounded-lg border border-slate-200 dark:border-slate-850 bg-white dark:bg-slate-900 text-slate-800 dark:text-white outline-none"
+                    className="w-full text-xs px-3 py-2.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-800 dark:text-white outline-none"
                     value={newGoalTarget}
                     onChange={(e) => setNewGoalTarget(e.target.value)}
                   />
                   <input
                     type="date"
                     required
-                    className="w-full text-xs px-3 py-2.5 rounded-lg border border-slate-200 dark:border-slate-850 bg-white dark:bg-slate-900 text-slate-850 dark:text-white outline-none"
+                    className="w-full text-xs px-3 py-2.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-800 dark:text-white outline-none"
                     value={newGoalDate}
                     onChange={(e) => setNewGoalDate(e.target.value)}
                   />
@@ -1001,7 +1001,7 @@ export const AIInsights: React.FC<AIInsightsProps> = ({ expenses, categories, op
                       </div>
 
                       {/* Increment / Decrement actions */}
-                      <div className="flex items-center justify-end space-x-1.5 mt-3 pt-2.5 border-t border-slate-100 dark:border-slate-850/50">
+                      <div className="flex items-center justify-end space-x-1.5 mt-3 pt-2.5 border-t border-slate-100 dark:border-slate-800/50">
                         <button
                           onClick={() => handleUpdateGoalProgress(g.id, -1000)}
                           className="px-2 py-1 border border-slate-250 dark:border-slate-800 text-[10px] font-extrabold text-slate-600 dark:text-slate-400 rounded-md hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors"
@@ -1034,35 +1034,35 @@ export const AIInsights: React.FC<AIInsightsProps> = ({ expenses, categories, op
           <div className="flex flex-col h-full min-h-[380px] pt-1 animate-in fade-in duration-200">
             {/* Quick Queries Suggestion chips */}
             <div className="mb-3 shrink-0">
-              <span className="text-[10px] uppercase font-bold tracking-widest text-slate-400 block mb-1.5 pl-1">
+              <span className="text-[10px] uppercase font-bold tracking-widest text-slate-400 dark:text-[#CBD5E1] block mb-1.5 pl-1">
                 ⚡ Popular Data Queries
               </span>
               <div className="flex flex-wrap gap-1.5 pr-1">
                 <button
                   type="button"
                   onClick={() => handleQueryAssistant('Where did I spend the most money?')}
-                  className="px-2.5 py-1 text-[10px] font-bold bg-slate-50 hover:bg-slate-100 dark:bg-slate-900 dark:hover:bg-slate-800 border border-slate-150-custom dark:border-slate-805 text-slate-700 dark:text-slate-300 rounded-full transition-all"
+                  className="px-2.5 py-1 text-[10px] font-bold bg-slate-50 hover:bg-slate-100 dark:bg-slate-950 dark:hover:bg-[#1E293B] border border-slate-200 dark:border-slate-800 text-slate-705 dark:text-[#CBD5E1] rounded-full transition-all cursor-pointer"
                 >
                   🔍 Where did I spend the most?
                 </button>
                 <button
                   type="button"
                   onClick={() => handleQueryAssistant('How much did I spend on Food this month?')}
-                  className="px-2.5 py-1 text-[10px] font-bold bg-slate-50 hover:bg-slate-100 dark:bg-slate-900 dark:hover:bg-slate-800 border border-slate-150-custom dark:border-slate-805 text-slate-700 dark:text-slate-300 rounded-full transition-all"
+                  className="px-2.5 py-1 text-[10px] font-bold bg-slate-50 hover:bg-slate-100 dark:bg-slate-950 dark:hover:bg-[#1E293B] border border-slate-200 dark:border-slate-800 text-slate-705 dark:text-[#CBD5E1] rounded-full transition-all cursor-pointer"
                 >
                   🍔 spent on Food?
                 </button>
                 <button
                   type="button"
                   onClick={() => handleQueryAssistant('What are my upcoming EMIs?')}
-                  className="px-2.5 py-1 text-[10px] font-bold bg-slate-50 hover:bg-slate-100 dark:bg-slate-900 dark:hover:bg-slate-800 border border-slate-150-custom dark:border-slate-805 text-slate-700 dark:text-slate-300 rounded-full transition-all"
+                  className="px-2.5 py-1 text-[10px] font-bold bg-slate-50 hover:bg-slate-100 dark:bg-slate-950 dark:hover:bg-[#1E293B] border border-slate-200 dark:border-slate-800 text-slate-705 dark:text-[#CBD5E1] rounded-full transition-all cursor-pointer"
                 >
                   📅 upcoming due dates?
                 </button>
                 <button
                   type="button"
                   onClick={() => handleQueryAssistant('Which category increased compared to last month?')}
-                  className="px-2.5 py-1 text-[10px] font-bold bg-slate-50 hover:bg-slate-100 dark:bg-slate-900 dark:hover:bg-slate-800 border border-slate-150-custom dark:border-slate-805 text-slate-700 dark:text-slate-300 rounded-full transition-all"
+                  className="px-2.5 py-1 text-[10px] font-bold bg-slate-50 hover:bg-slate-100 dark:bg-slate-950 dark:hover:bg-[#1E293B] border border-slate-200 dark:border-slate-800 text-slate-750 dark:text-[#CBD5E1] rounded-full transition-all cursor-pointer"
                 >
                   📈 rising trends?
                 </button>
@@ -1070,22 +1070,26 @@ export const AIInsights: React.FC<AIInsightsProps> = ({ expenses, categories, op
             </div>
 
             {/* Chats stream container */}
-            <div className="flex-1 bg-slate-50 dark:bg-slate-950/30 border border-slate-150-custom dark:border-slate-805 rounded-2xl p-3 overflow-y-auto max-h-[220px] mb-3 space-y-3 font-medium text-xs">
+            <div className="flex-1 bg-slate-50 dark:bg-[#0B1220] border border-slate-200/60 dark:border-slate-800/80 rounded-2xl p-4 overflow-y-auto max-h-[220px] mb-3 space-y-3 font-medium text-xs shadow-inner">
               {chatHistory.map((ch, idx) => (
                 <div key={idx} className={`flex ${ch.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                   <div 
-                    className={`p-2.5 rounded-2xl max-w-[85%] leading-normal ${ch.role === 'user' ? 'bg-purple-600 text-white font-semibold rounded-tr-none' : 'bg-white dark:bg-slate-900 text-slate-750 dark:text-slate-250 border border-slate-100 dark:border-slate-805 rounded-tl-none font-medium'}`}
+                    className={`p-3.5 md:p-4 rounded-2xl max-w-[85%] shadow-sm border ${
+                      ch.role === 'user' 
+                        ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-semibold rounded-tr-none border-transparent' 
+                        : 'bg-white dark:bg-[#1E293B] text-slate-900 dark:text-[#FFFFFF] border-slate-200/85 dark:border-slate-800 rounded-tl-none font-medium'
+                    }`}
                   >
-                    <p className="whitespace-pre-wrap leading-relaxed">{ch.content}</p>
+                    <p className="whitespace-pre-wrap leading-relaxed text-[13px] text-slate-800 dark:text-[#FFFFFF]">{ch.content}</p>
                   </div>
                 </div>
               ))}
               {chatLoading && (
                 <div className="flex justify-start">
-                  <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-805 p-3 rounded-2xl rounded-tl-none flex items-center space-x-1">
-                    <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                    <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                    <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                  <div className="bg-white dark:bg-[#1E293B] border border-slate-200/85 dark:border-slate-800 p-3 rounded-2xl rounded-tl-none flex items-center space-x-1 shadow-sm">
+                    <span className="w-1.5 h-1.5 bg-purple-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                    <span className="w-1.5 h-1.5 bg-purple-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                    <span className="w-1.5 h-1.5 bg-purple-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
                   </div>
                 </div>
               )}
@@ -1097,7 +1101,7 @@ export const AIInsights: React.FC<AIInsightsProps> = ({ expenses, categories, op
               <input
                 type="text"
                 placeholder="Ask about spending or forecast trends..."
-                className="flex-1 px-3 py-3 text-xs bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-850 dark:text-white outline-none focus:ring-1 focus:ring-purple-500 placeholder:text-slate-400"
+                className="flex-1 px-4 py-3 text-xs bg-slate-50 dark:bg-[#0B1220] rounded-xl border border-slate-200 dark:border-slate-800/80 text-slate-900 dark:text-[#FFFFFF] placeholder-[#94A3B8] placeholder:text-[#94A3B8] caret-purple-600 dark:caret-purple-400 outline-none focus:ring-2 focus:ring-purple-500/30 dark:focus:ring-purple-500/20 focus:border-purple-500 transition-all font-medium"
                 value={chatInput}
                 onChange={(e) => setChatInput(e.target.value)}
                 onKeyDown={(e) => {
@@ -1108,7 +1112,7 @@ export const AIInsights: React.FC<AIInsightsProps> = ({ expenses, categories, op
                 type="button"
                 onClick={() => handleQueryAssistant()}
                 disabled={!chatInput.trim() || chatLoading}
-                className="w-10 h-10 shrink-0 bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white rounded-xl flex items-center justify-center transition-colors"
+                className="w-10 h-10 shrink-0 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 disabled:opacity-50 text-white rounded-xl flex items-center justify-center transition-all shadow-sm transform active:scale-95 cursor-pointer"
                 title="Send query"
               >
                 <Send className="w-4 h-4" />
