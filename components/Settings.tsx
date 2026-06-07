@@ -1262,7 +1262,7 @@ const Settings: React.FC<SettingsProps> = ({
 
               {/* Section: Browser-Specific Help */}
               {!isStandalone && (
-                <div className="bg-[#0b1220] border border-white/[0.04] rounded-3xl p-6 space-y-4">
+                <div className="bg-white dark:bg-[#0b1220] border border-slate-200 dark:border-white/[0.04] rounded-3xl p-6 space-y-4 shadow-sm dark:shadow-none">
                   <h4 className="text-sm font-bold text-slate-200 uppercase tracking-wider flex items-center space-x-1.5">
                     <HelpCircle className="w-4 h-4 text-slate-400" />
                     <span>Browser-Specific Guidance</span>
@@ -1273,9 +1273,9 @@ const Settings: React.FC<SettingsProps> = ({
                   
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
                     {/* Chrome Android */}
-                    <div className="p-4 rounded-2xl bg-[#040914]/40 border border-white/[0.03] space-y-2">
-                      <p className="text-xs font-bold text-white flex items-center space-x-1.5">
-                        <span className="inline-block w-4 h-4 bg-[#8B5CF6]/10 text-[#8B5CF6] text-[10px] font-black rounded-full text-center leading-4">C</span>
+                    <div className="p-4 rounded-2xl bg-slate-50 dark:bg-[#040914]/40 border border-slate-200 dark:border-white/[0.03] space-y-2">
+                      <p className="text-xs font-bold text-slate-900 dark:text-white flex items-center space-x-1.5">
+                        <span className="inline-block w-4 h-4 bg-indigo-100 dark:bg-[#8B5CF6]/10 text-indigo-600 dark:text-[#8B5CF6] text-[10px] font-black rounded-full text-center leading-4">C</span>
                         <span>Chrome Android</span>
                       </p>
                       <ul className="text-[11px] text-slate-400 space-y-1 list-decimal list-inside leading-relaxed pl-1">
@@ -1285,9 +1285,9 @@ const Settings: React.FC<SettingsProps> = ({
                     </div>
 
                     {/* Samsung Internet */}
-                    <div className="p-4 rounded-2xl bg-[#040914]/40 border border-white/[0.03] space-y-2">
-                      <p className="text-xs font-bold text-white flex items-center space-x-1.5">
-                        <span className="inline-block w-4 h-4 bg-[#8B5CF6]/10 text-[#8B5CF6] text-[10px] font-black rounded-full text-center leading-4">S</span>
+                    <div className="p-4 rounded-2xl bg-slate-50 dark:bg-[#040914]/40 border border-slate-200 dark:border-white/[0.03] space-y-2">
+                      <p className="text-xs font-bold text-slate-900 dark:text-white flex items-center space-x-1.5">
+                        <span className="inline-block w-4 h-4 bg-indigo-100 dark:bg-[#8B5CF6]/10 text-indigo-600 dark:text-[#8B5CF6] text-[10px] font-black rounded-full text-center leading-4">S</span>
                         <span>Samsung Internet</span>
                       </p>
                       <ul className="text-[11px] text-slate-400 space-y-1 list-decimal list-inside leading-relaxed pl-1">
@@ -1298,9 +1298,9 @@ const Settings: React.FC<SettingsProps> = ({
                     </div>
 
                     {/* Edge */}
-                    <div className="p-4 rounded-2xl bg-[#040914]/40 border border-white/[0.03] space-y-2">
-                      <p className="text-xs font-bold text-white flex items-center space-x-1.5">
-                        <span className="inline-block w-4 h-4 bg-[#8B5CF6]/10 text-[#8B5CF6] text-[10px] font-black rounded-full text-center leading-4">E</span>
+                    <div className="p-4 rounded-2xl bg-slate-50 dark:bg-[#040914]/40 border border-slate-200 dark:border-white/[0.03] space-y-2">
+                      <p className="text-xs font-bold text-slate-900 dark:text-white flex items-center space-x-1.5">
+                        <span className="inline-block w-4 h-4 bg-indigo-100 dark:bg-[#8B5CF6]/10 text-indigo-600 dark:text-[#8B5CF6] text-[10px] font-black rounded-full text-center leading-4">E</span>
                         <span>Edge</span>
                       </p>
                       <ul className="text-[11px] text-slate-400 space-y-1 list-decimal list-inside leading-relaxed pl-1">
@@ -1311,9 +1311,9 @@ const Settings: React.FC<SettingsProps> = ({
                   </div>
 
                   {/* iOS Help banner as extra value */}
-                  <div className="p-4 rounded-2xl bg-[#040914]/40 border border-white/[0.03] space-y-2">
-                    <p className="text-xs font-bold text-white flex items-center space-x-1.5">
-                      <span className="inline-block w-4 h-4 bg-[#8B5CF6]/10 text-[#8B5CF6] text-[10px] font-black rounded-full text-center leading-4">A</span>
+                  <div className="p-4 rounded-2xl bg-slate-50 dark:bg-[#040914]/40 border border-slate-200 dark:border-white/[0.03] space-y-2">
+                    <p className="text-xs font-bold text-slate-900 dark:text-white flex items-center space-x-1.5">
+                      <span className="inline-block w-4 h-4 bg-indigo-100 dark:bg-[#8B5CF6]/10 text-indigo-600 dark:text-[#8B5CF6] text-[10px] font-black rounded-full text-center leading-4">A</span>
                       <span>iOS Safari (Apple)</span>
                     </p>
                     <ul className="text-[11px] text-slate-400 space-y-1 list-decimal list-inside leading-relaxed pl-1">
@@ -1325,7 +1325,7 @@ const Settings: React.FC<SettingsProps> = ({
               )}
 
               {/* Section: Hidden Diagnostics Panel Toggle */}
-              <div className="bg-[#0b1220] border border-white/[0.04] rounded-3xl p-6 space-y-4">
+              <div className="bg-white dark:bg-[#0b1220] border border-slate-200 dark:border-white/[0.04] rounded-3xl p-6 space-y-4 shadow-sm dark:shadow-none">
                 <div className="flex items-center justify-between">
                   <h4 className="text-sm font-bold text-slate-200 uppercase tracking-wider">PWA Diagnostics</h4>
                   <button

@@ -66,6 +66,7 @@ const Dashboard: React.FC<DashboardProps> = ({
   const [transferAmount, setTransferAmount] = useState('');
   const [transferDesc, setTransferDesc] = useState('');
   const [showTransferForm, setShowTransferForm] = useState(false);
+  const [transferSuccessMsg, setTransferSuccessMsg] = useState<string | null>(null);
 
   const handleExecuteTransfer = (e: React.FormEvent) => {
     e.preventDefault();
@@ -97,10 +98,19 @@ const Dashboard: React.FC<DashboardProps> = ({
     };
 
     setTransfers(prev => [...prev, newTransfer]);
-    setTransferAmount('');
-    setTransferDesc('');
-    setShowTransferForm(false);
-    alert('Internal account transfer completed successfully!');
+    
+    const toAcc = bankBalancesData.accounts.find(a => a.id === transferToId);
+    const fromName = srcAcc?.name || 'Account A';
+    const toName = toAcc?.name || 'Account B';
+    
+    setTransferSuccessMsg(`✓ Transfer Successful. ₹${amt} transferred from ${fromName} to ${toName}`);
+    
+    setTimeout(() => {
+      setTransferSuccessMsg(null);
+      setTransferAmount('');
+      setTransferDesc('');
+      setShowTransferForm(false);
+    }, 3500);
   };
 
   // Month definition helpers
@@ -953,103 +963,122 @@ const Dashboard: React.FC<DashboardProps> = ({
               <div className="pt-2">
                 {!showTransferForm ? (
                   <button
-                    onClick={() => setShowTransferForm(true)}
+                    onClick={() => {
+                      setShowTransferForm(true);
+                      setTransferSuccessMsg(null);
+                    }}
                     className="w-full py-2.5 text-xs font-black text-indigo-600 dark:text-indigo-400 bg-indigo-50/50 dark:bg-indigo-950/20 border border-indigo-100/50 dark:border-indigo-900/40 rounded-xl hover:bg-indigo-50 dark:hover:bg-indigo-950/35 transition-colors cursor-pointer flex items-center justify-center space-x-1.5"
                   >
                     <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
                     </svg>
-                    <span>Collapsible Money Transfer Desk</span>
+                    <span>Transfer Between Accounts</span>
                   </button>
                 ) : (
-                  <form onSubmit={handleExecuteTransfer} className="p-4 bg-slate-50 dark:bg-slate-850 rounded-2xl border border-slate-100 dark:border-slate-800/40 space-y-4">
-                    <div className="flex justify-between items-center text-xs border-b border-slate-200/50 dark:border-slate-800/50 pb-2">
-                      <span className="font-extrabold uppercase tracking-wider text-slate-400 dark:text-slate-500">Internal Mudra Transfer</span>
-                      <button 
-                        type="button" 
-                        onClick={() => setShowTransferForm(false)} 
-                        className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 font-extrabold cursor-pointer"
-                      >
-                        ✕ Close Desk
-                      </button>
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
-                      <div>
-                        <label className="block text-[10px] font-bold text-slate-450 dark:text-slate-500 uppercase tracking-wildest mb-1">From Account</label>
-                        <select
-                          required
-                          className="w-full p-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-850 dark:text-white text-xs font-medium cursor-pointer"
-                          value={transferFromId}
-                          onChange={(e) => setTransferFromId(e.target.value)}
-                        >
-                          <option value="">Select Origin</option>
-                          {bankBalancesData.accounts.map(a => (
-                            <option key={a.id} value={a.id}>
-                              {a.name} ({formatCurrency(a.balance)})
-                            </option>
-                          ))}
-                        </select>
+                  <div className="p-4 bg-slate-50 dark:bg-slate-850 rounded-2xl border border-slate-100 dark:border-slate-800/40 space-y-6">
+                    {transferSuccessMsg ? (
+                      <div className="flex items-center justify-center space-x-2 text-emerald-500 font-semibold p-6 bg-emerald-500/10 rounded-xl border border-emerald-500/20 animate-pulse">
+                        <span>{transferSuccessMsg}</span>
                       </div>
+                    ) : (
+                      <form onSubmit={handleExecuteTransfer} className="space-y-6">
+                        <div className="flex justify-between items-start border-b border-slate-200/50 dark:border-slate-800/50 pb-4">
+                          <div>
+                            <h3 className="font-extrabold text-sm text-slate-800 dark:text-slate-200 uppercase tracking-wider">Transfer Between Accounts</h3>
+                            <p className="text-xs text-slate-500 mt-1">Move funds between your linked accounts without affecting income or expense totals.</p>
+                          </div>
+                          <button 
+                            type="button" 
+                            onClick={() => setShowTransferForm(false)} 
+                            className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 font-extrabold cursor-pointer text-xs"
+                          >
+                            ✕ Close
+                          </button>
+                        </div>
 
-                      <div>
-                        <label className="block text-[10px] font-bold text-slate-455 dark:text-slate-520 uppercase tracking-wildest mb-1">To Account</label>
-                        <select
-                          required
-                          className="w-full p-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-850 dark:text-white text-xs font-medium cursor-pointer"
-                          value={transferToId}
-                          onChange={(e) => setTransferToId(e.target.value)}
-                        >
-                          <option value="">Select Destination</option>
-                          {bankBalancesData.accounts.map(a => (
-                            <option key={a.id} value={a.id}>
-                              {a.name} ({formatCurrency(a.balance)})
-                            </option>
-                          ))}
-                        </select>
-                      </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-6">
+                          <div className="space-y-4">
+                            <label className="block text-xs font-semibold text-[#CBD5E1] tracking-wide">From Account</label>
+                            <select
+                              required
+                              className="w-full p-2.5 rounded-xl bg-[#0F172A] border border-[#334155] text-[#FFFFFF] text-xs font-medium cursor-pointer focus:border-[#8B5CF6] focus:ring-0 focus:outline-none focus:shadow-[0_0_0_3px_rgba(139,92,246,0.25)] transition-all"
+                              value={transferFromId}
+                              onChange={(e) => setTransferFromId(e.target.value)}
+                            >
+                              <option value="">Select Origin</option>
+                              {bankBalancesData.accounts.map(a => (
+                                <option key={a.id} value={a.id}>
+                                  {a.name} ({formatCurrency(a.balance)})
+                                </option>
+                              ))}
+                            </select>
+                            <p className="text-[10px] text-slate-500 mt-1">Select the account to transfer money from.</p>
+                          </div>
 
-                      <div>
-                        <label className="block text-[10px] font-bold text-slate-455 dark:text-slate-520 uppercase tracking-wildest mb-1">Amount (₹)</label>
-                        <input
-                          type="number"
-                          required
-                          step="any"
-                          placeholder="0.00"
-                          className="w-full p-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-xs font-mono font-semibold"
-                          value={transferAmount}
-                          onChange={(e) => setTransferAmount(e.target.value)}
-                        />
-                      </div>
-                    </div>
+                          <div className="space-y-4">
+                            <label className="block text-xs font-semibold text-[#CBD5E1] tracking-wide">To Account</label>
+                            <select
+                              required
+                              className="w-full p-2.5 rounded-xl bg-[#0F172A] border border-[#334155] text-[#FFFFFF] text-xs font-medium cursor-pointer focus:border-[#8B5CF6] focus:ring-0 focus:outline-none focus:shadow-[0_0_0_3px_rgba(139,92,246,0.25)] transition-all"
+                              value={transferToId}
+                              onChange={(e) => setTransferToId(e.target.value)}
+                            >
+                              <option value="">Select Destination</option>
+                              {bankBalancesData.accounts.map(a => (
+                                <option key={a.id} value={a.id}>
+                                  {a.name} ({formatCurrency(a.balance)})
+                                </option>
+                              ))}
+                            </select>
+                            <p className="text-[10px] text-slate-500 mt-1">Select the destination account.</p>
+                          </div>
 
-                    <div>
-                      <label className="block text-[10px] font-bold text-slate-455 dark:text-slate-520 uppercase tracking-wildest mb-1">Description Note</label>
-                      <input
-                        type="text"
-                        placeholder="e.g. Relocating funds, credit card settlement..."
-                        className="w-full p-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-xs"
-                        value={transferDesc}
-                        onChange={(e) => setTransferDesc(e.target.value)}
-                      />
-                    </div>
+                          <div className="space-y-4">
+                            <label className="block text-xs font-semibold text-[#CBD5E1] tracking-wide">Amount (₹)</label>
+                            <input
+                              type="number"
+                              required
+                              step="any"
+                              placeholder="0.00"
+                              className="w-full p-2.5 rounded-xl bg-[#0F172A] border border-[#334155] text-[#FFFFFF] placeholder-[#94A3B8] text-xs font-mono font-semibold focus:border-[#8B5CF6] focus:ring-0 focus:outline-none focus:shadow-[0_0_0_3px_rgba(139,92,246,0.25)] transition-all"
+                              value={transferAmount}
+                              onChange={(e) => setTransferAmount(e.target.value)}
+                            />
+                            <p className="text-[10px] text-slate-500 mt-1">Enter the amount to move.</p>
+                          </div>
 
-                    <div className="flex justify-end space-x-2 pt-1">
-                      <button
-                        type="button"
-                        onClick={() => setShowTransferForm(false)}
-                        className="px-4 py-2 bg-slate-200/60 dark:bg-slate-800 text-slate-655 font-bold text-[10px] rounded-lg cursor-pointer hover:bg-slate-200"
-                      >
-                        Cancel
-                      </button>
-                      <button
-                        type="submit"
-                        className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-[10px] rounded-lg cursor-pointer shadow-sm transition-colors"
-                      >
-                        Confirm Internal Transfer &rarr;
-                      </button>
-                    </div>
-                  </form>
+                          <div className="space-y-4">
+                            <label className="block text-xs font-semibold text-[#CBD5E1] tracking-wide">Description Note</label>
+                            <input
+                              type="text"
+                              placeholder="Optional note for future reference"
+                              className="w-full p-2.5 rounded-xl bg-[#0F172A] border border-[#334155] text-[#FFFFFF] placeholder-[#94A3B8] text-xs focus:border-[#8B5CF6] focus:ring-0 focus:outline-none focus:shadow-[0_0_0_3px_rgba(139,92,246,0.25)] transition-all"
+                              value={transferDesc}
+                              onChange={(e) => setTransferDesc(e.target.value)}
+                            />
+                            <p className="text-[10px] text-slate-500 mt-1">Optional note for future reference.</p>
+                          </div>
+                        </div>
+
+                        <div className="flex justify-end space-x-3 pt-4 border-t border-slate-200/50 dark:border-slate-800/50">
+                          <button
+                            type="button"
+                            onClick={() => setShowTransferForm(false)}
+                            className="px-5 py-2.5 bg-transparent border border-[#475569] text-[#CBD5E1] font-bold text-xs rounded-xl cursor-pointer hover:bg-slate-800 transition-colors"
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            type="submit"
+                            disabled={!transferFromId || !transferToId || transferFromId === transferToId || !transferAmount || parseFloat(transferAmount) <= 0}
+                            className="px-5 py-2.5 bg-gradient-to-r from-[#7C3AED] to-[#8B5CF6] hover:from-[#6D28D9] hover:to-[#7C3AED] text-white font-bold text-xs rounded-xl cursor-pointer shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-95"
+                          >
+                            Confirm Transfer &rarr;
+                          </button>
+                        </div>
+                      </form>
+                    )}
+                  </div>
                 )}
               </div>
             </>
