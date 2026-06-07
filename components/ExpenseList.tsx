@@ -632,21 +632,23 @@ const ExpenseList: React.FC<ExpenseListProps> = ({ expenses, onDelete, onEdit, c
                   <div className="text-right shrink-0 flex flex-col items-end pl-2">
                     <p className="font-bold text-slate-900 dark:text-white text-sm md:text-base">-{formatCurrency(expense.amount)}</p>
                     {/* Actions: Visible on Mobile, Hover on Desktop */}
-                    <div className="flex items-center space-x-3 mt-1.5 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
+                    <div className="flex items-center space-x-2 mt-1.5 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
                       <button 
                         onClick={() => setConfirmEditExpense(expense)}
-                        className="p-1.5 md:p-0 bg-indigo-50 md:bg-transparent rounded-lg md:rounded-none text-indigo-600 md:text-indigo-500 hover:text-indigo-700 dark:text-indigo-405"
+                        className="p-2.5 md:p-1 bg-indigo-50 md:bg-transparent rounded-xl md:rounded-lg text-indigo-600 md:text-indigo-500 hover:text-indigo-700 dark:bg-indigo-900/50 dark:md:bg-transparent dark:text-indigo-400"
                         title="Edit"
+                        aria-label="Edit"
                       >
-                         <svg className="w-4 h-4 md:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                         <svg className="w-5 h-5 md:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
                          <span className="hidden md:inline text-[10px] font-bold uppercase tracking-tight">Edit</span>
                       </button>
                       <button 
                         onClick={() => onDelete(expense.id)}
-                        className="p-1.5 md:p-0 bg-red-50 md:bg-transparent rounded-lg md:rounded-none text-red-500 md:text-red-400 hover:text-red-600 dark:text-red-400"
+                        className="p-2.5 md:p-1 bg-red-50 md:bg-transparent rounded-xl md:rounded-lg text-red-500 md:text-red-400 hover:text-red-600 dark:bg-red-900/40 dark:md:bg-transparent dark:text-red-400"
                         title="Delete"
+                        aria-label="Delete"
                       >
-                        <svg className="w-4 h-4 md:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                        <svg className="w-5 h-5 md:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                         <span className="hidden md:inline text-[10px] font-bold uppercase tracking-tight">Delete</span>
                       </button>
                     </div>

@@ -22,43 +22,67 @@
         theme: {
           extend: {
             colors: {
-              // Override indigo with our premier fintech brand green scale
+              primary: '#8B5CF6',
+              secondary: '#7C3AED',
+              success: '#10B981',
+              danger: '#EF4444',
+              warning: '#F59E0B',
+              surface: '#0F172A',
+              background: '#071224',
+              // Map indigo class styles to use the new Primary & Secondary specs
               indigo: {
-                50: '#f0fdf4',
-                100: '#dcfce7',
-                200: '#bbf7d0',
-                300: '#86efac',
-                400: '#4ade80',
-                500: '#22c55e', // Primrose green branding
-                600: '#16a34a',
-                705: '#15803d',
-                700: '#15803d',
-                850: '#111827',
-                800: '#166534',
-                900: '#14532d',
+                50: '#f5f3ff',
+                100: '#ede9fe',
+                200: '#ddd6fe',
+                300: '#c4b5fd',
+                400: '#a78bfa',
+                500: '#8B5CF6', // Primary
+                600: '#7C3AED', // Secondary
+                650: '#6d28d9',
+                700: '#5b21b6',
+                800: '#4c1d95',
+                900: '#2e1065',
+                950: '#1e0a4a',
+              },
+              emerald: {
+                50: '#ecfdf5',
+                100: '#d1fae5',
+                200: '#a7f3d0',
+                300: '#6ee7b7',
+                400: '#34d399',
+                500: '#10B981', // Success
+                600: '#059669',
+                700: '#047857',
+                800: '#065f46',
+                900: '#064e3b',
                 950: '#022c22',
               },
-              // Override violet to provide beautiful secondary balance and gradients
-              violet: {
-                50: '#f0fbf7',
-                100: '#dbf7ec',
-                200: '#b7efda',
-                300: '#83dfc1',
-                400: '#4bc5a3',
-                500: '#26a987',
-                550: '#1ca17d',
-                600: '#108566',
-                650: '#0c664f', // Deep emerald slate
-                700: '#075240',
-                800: '#043d30',
-                900: '#022b22',
-                950: '#011c16',
+              slate: {
+                50: '#f8fafc',
+                100: '#f1f5f9',
+                150: '#e2e8f0',
+                200: '#e2e8f0',
+                250: '#cbd5e1',
+                300: '#cbd5e1',
+                400: '#94a3b8',
+                450: '#64748b',
+                500: '#64748b',
+                600: '#475569',
+                700: '#334155',
+                800: '#1e293b',
+                850: '#1e293b',
+                900: '#0F172A', // Surface
+                905: '#0c1322',
+                950: '#071224', // Background
               }
             },
             fontFamily: {
               sans: ['Inter', 'sans-serif'],
             },
             padding: {
+              'safe': 'env(safe-area-inset-bottom)',
+            },
+            margin: {
               'safe': 'env(safe-area-inset-bottom)',
             },
             spacing: {

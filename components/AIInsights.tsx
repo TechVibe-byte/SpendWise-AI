@@ -510,10 +510,10 @@ export const AIInsights: React.FC<AIInsightsProps> = ({ expenses, categories, op
         Total entries: ${expenses.length}.
         Weekly Spend: ${formatCurrency(weeklySummary.weeklyTotal)}.
         Active subscriptions counts: ${subscriptionTotals.activeCount} totaling ${formatCurrency(subscriptionTotals.monthlyComm)} monthly.
-        Categories distribution: ${JSON.stringify(Object.fromEntries(stats.curMonthExpenses.reduce((acc, e) => {
+        Categories distribution: ${JSON.stringify(stats.curMonthExpenses.reduce((acc, e) => {
           acc[e.category] = (acc[e.category] || 0) + e.amount;
           return acc;
-        }, {} as Record<string, number>)))}.
+        }, {} as Record<string, number>))}.
       `;
 
       // Prompt optimization: restrict token usage forcefully
@@ -940,7 +940,7 @@ export const AIInsights: React.FC<AIInsightsProps> = ({ expenses, categories, op
                   />
                 </div>
                 <div className="flex items-center space-x-2 pt-1.5">
-                  <submit
+                  <button
                     type="submit"
                     onClick={(e) => {
                       handleAddGoal(e);
@@ -948,7 +948,7 @@ export const AIInsights: React.FC<AIInsightsProps> = ({ expenses, categories, op
                     className="flex-1 text-center bg-purple-600 hover:bg-purple-700 text-white rounded-lg py-2.5 text-xs font-bold cursor-pointer"
                   >
                     Confirm Goal
-                  </submit>
+                  </button>
                   <button
                     type="button"
                     onClick={() => setShowGoalForm(false)}
