@@ -11,12 +11,12 @@ const PRECACHE_URLS = [
   './icon-512.png'
 ];
 
-// Domains allowed for runtime caching
 const ALLOWED_ORIGINS = [
   self.location.origin,
   'https://cdn.tailwindcss.com',
   'https://fonts.googleapis.com',
-  'https://fonts.gstatic.com'
+  'https://fonts.gstatic.com',
+  'https://esm.sh'
 ];
 
 // Install SW and precache essentials
@@ -59,15 +59,15 @@ self.addEventListener('fetch', (event) => {
   event.respondWith(
     caches.open(CACHE_NAME).then((cache) => {
       return cache.match(event.request).then((cachedResponse) => {
-        // Network request to update cache
         const fetchPromise = fetch(event.request).then((networkResponse) => {
           // Check if valid response
           if (networkResponse && networkResponse.status === 200) {
             cache.put(event.request, networkResponse.clone());
           }
           return networkResponse;
-        }).catch(() => {
-          // Network failed
+        }).catch((error) => {
+          // Network failed, fallback
+          return new Response("Offline Mode. Content unavailable.", { status: 503 });
         });
 
         // Return cached response if available, otherwise wait for network
