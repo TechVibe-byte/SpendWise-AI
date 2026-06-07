@@ -5,7 +5,9 @@ const CACHE_NAME = 'spendwise-v3';
 const PRECACHE_URLS = [
   './',
   './index.html',
-  './manifest.json'
+  './manifest.json',
+  './icon-192.png',
+  './icon-512.png'
 ];
 
 // Domains allowed for runtime caching

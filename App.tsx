@@ -419,68 +419,134 @@ const App: React.FC = () => {
     setEditingRecurring(null);
   };
 
-  const NavItems = () => (
-    <>
-      <NavLink 
-        to="/" 
-        className={({ isActive }) => `flex flex-col md:flex-row items-center md:space-x-3 px-3 py-2 md:px-4 md:py-3 rounded-xl transition-all font-semibold ${isActive ? 'bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'}`}
-      >
-        <svg className="w-6 h-6 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" /></svg>
-        <span className="text-[10px] md:text-sm mt-1 md:mt-0">Dashboard</span>
-      </NavLink>
-      <NavLink 
-        to="/income" 
-        className={({ isActive }) => `flex flex-col md:flex-row items-center md:space-x-3 px-3 py-2 md:px-4 md:py-3 rounded-xl transition-all font-semibold ${isActive ? 'bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'}`}
-      >
-        <svg className="w-6 h-6 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
-        <span className="text-[10px] md:text-sm mt-1 md:mt-0 flex items-center">
-          Income
-          {incomes.length > 0 && (
-            <span className="ml-1.5 px-1.5 py-0.5 text-[9px] md:text-[10px] font-black bg-emerald-100 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 rounded-full min-w-[1.25rem] text-center shadow-sm">
-              {incomes.length}
-            </span>
-          )}
-        </span>
-      </NavLink>
-      <NavLink 
-        to="/history" 
-        className={({ isActive }) => `flex flex-col md:flex-row items-center md:space-x-3 px-3 py-2 md:px-4 md:py-3 rounded-xl transition-all font-semibold ${isActive ? 'bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'}`}
-      >
-        <svg className="w-6 h-6 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
-        <span className="text-[10px] md:text-sm mt-1 md:mt-0 flex items-center">
-          Transactions
-          {expenses.length > 0 && (
-            <span className="ml-1.5 px-1.5 py-0.5 text-[9px] md:text-[10px] font-black bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400 rounded-full min-w-[1.25rem] text-center shadow-sm">
-              {expenses.length}
-            </span>
-          )}
-        </span>
-      </NavLink>
-      <NavLink 
-        to="/recurring" 
-        className={({ isActive }) => `flex flex-col md:flex-row items-center md:space-x-3 px-3 py-2 md:px-4 md:py-3 rounded-xl transition-all font-semibold ${isActive ? 'bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'}`}
-      >
-        <svg className="w-6 h-6 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
-        <span className="text-[10px] md:text-sm mt-1 md:mt-0">Recurring</span>
-      </NavLink>
-      <NavLink 
-        to="/categories" 
-        className={({ isActive }) => `flex flex-col md:flex-row items-center md:space-x-3 px-3 py-2 md:px-4 md:py-3 rounded-xl transition-all font-semibold ${isActive ? 'bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'}`}
-      >
-        <svg className="w-6 h-6 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" /></svg>
-        <span className="text-[10px] md:text-sm mt-1 md:mt-0">Categories</span>
-      </NavLink>
-      <NavLink 
-        to="/settings" 
-        className={({ isActive }) => `flex flex-col md:flex-row items-center md:space-x-3 px-3 py-2 md:px-4 md:py-3 rounded-xl transition-all font-semibold ${isActive ? 'bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'}`}
-      >
-        <svg className="w-6 h-6 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-        <span className="text-[10px] md:text-sm mt-1 md:mt-0">Settings</span>
-      </NavLink>
-    </>
-  );
+  const NavItems = ({ isMobile = false }: { isMobile?: boolean }) => {
+    const items = [
+      {
+        to: "/",
+        label: "Dashboard",
+        mobLabel: "Home",
+        icon: (className: string) => (
+          <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+          </svg>
+        )
+      },
+      {
+        to: "/income",
+        label: "Income",
+        mobLabel: "Income",
+        badge: incomes.length,
+        badgeType: "emerald",
+        icon: (className: string) => (
+          <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        )
+      },
+      {
+        to: "/history",
+        label: "Transactions",
+        mobLabel: "Txns",
+        badge: expenses.length,
+        badgeType: "indigo",
+        icon: (className: string) => (
+          <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+          </svg>
+        )
+      },
+      {
+        to: "/recurring",
+        label: "Recurring",
+        mobLabel: "Bills",
+        icon: (className: string) => (
+          <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          </svg>
+        )
+      },
+      {
+        to: "/categories",
+        label: "Categories",
+        mobLabel: "Tags",
+        icon: (className: string) => (
+          <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+          </svg>
+        )
+      },
+      {
+        to: "/settings",
+        label: "Settings",
+        mobLabel: "Settings",
+        icon: (className: string) => (
+          <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+          </svg>
+        )
+      }
+    ];
+
+    return (
+      <>
+        {items.map((item) => (
+          <NavLink
+            key={item.to}
+            to={item.to}
+            className={({ isActive }) => {
+              if (isMobile) {
+                return `flex items-center transition-all duration-350 ease-out select-none ${
+                  isActive
+                    ? 'flex-grow max-w-[115px] justify-center space-x-1 px-2.5 py-2 bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 rounded-full font-bold shadow-sm border border-indigo-100/35 dark:border-indigo-900/40 transform scale-[1.02]'
+                    : 'text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 p-2 ml-1'
+                }`;
+              }
+              return `flex flex-col md:flex-row items-center md:space-x-3 px-3 py-2 md:px-4 md:py-3 rounded-xl transition-all font-semibold ${
+                isActive
+                  ? 'bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400'
+                  : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
+              }`;
+            }}
+          >
+            {({ isActive }) => (
+              <>
+                <div className="relative flex items-center justify-center">
+                  {item.icon(isMobile ? "w-[21px] h-[21px]" : "w-6 h-6 md:w-5 md:h-5")}
+                  {isMobile && !isActive && item.badge !== undefined && item.badge > 0 && (
+                    <span className={`absolute -top-1.5 -right-1.5 text-[8px] font-black leading-none text-white rounded-full min-w-[14px] h-[14px] flex items-center justify-center border border-white dark:border-slate-900 shadow-sm ${
+                      item.badgeType === "emerald" ? "bg-emerald-600" : "bg-indigo-600"
+                    }`}>
+                      {item.badge}
+                    </span>
+                  )}
+                </div>
+                
+                <span className={
+                  isMobile
+                    ? isActive
+                      ? "ml-1 text-[11px] font-black tracking-tight whitespace-nowrap block"
+                      : "hidden"
+                    : "text-[10px] md:text-sm mt-1 md:mt-0 flex items-center"
+                }>
+                  {isMobile ? item.mobLabel : item.label}
+                  {!isMobile && item.badge !== undefined && item.badge > 0 && (
+                    <span className={`ml-1.5 px-1.5 py-0.5 text-[9px] md:text-[10px] font-black rounded-full min-w-[1.25rem] text-center shadow-sm ${
+                      item.badgeType === "emerald"
+                        ? "bg-emerald-100 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400"
+                        : "bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400"
+                    }`}>
+                      {item.badge}
+                    </span>
+                  )}
+                </span>
+              </>
+            )}
+          </NavLink>
+        ))}
+      </>
+    );
+  };
 
   return (
     <Router>
@@ -560,17 +626,17 @@ const App: React.FC = () => {
         </nav>
 
         {/* Mobile Bottom Navigation Bar */}
-        <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 px-4 py-2 flex items-center justify-around z-50 pb-safe">
-          <NavItems />
+        <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white/95 dark:bg-[#0B1220]/95 backdrop-blur-md border-t border-slate-200/80 dark:border-slate-800/80 px-3 pt-2.5 pb-[calc(10px+env(safe-area-inset-bottom))] flex items-center justify-between z-50 shadow-[0_-4px_24px_-4px_rgba(0,0,0,0.08)]">
+          <NavItems isMobile={true} />
         </nav>
 
         {/* Mobile Floating Action Button (FAB) */}
         <button 
           onClick={() => setShowForm(true)}
-          className="md:hidden fixed bottom-20 right-6 w-14 h-14 bg-indigo-600 text-white rounded-full shadow-2xl flex items-center justify-center z-40 active:scale-90 transition-transform"
+          className="md:hidden fixed bottom-[calc(76px+env(safe-area-inset-bottom))] right-5 w-14 h-14 bg-indigo-600 dark:bg-indigo-500 text-white rounded-full shadow-2xl flex items-center justify-center z-45 active:scale-95 transition-all duration-300 hover:scale-105 border border-white/10"
           aria-label="Add Expense"
         >
-          <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M12 4v16m8-8H4" /></svg>
+          <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M12 4v16m8-8H4" /></svg>
         </button>
 
         {/* Main Content Area */}

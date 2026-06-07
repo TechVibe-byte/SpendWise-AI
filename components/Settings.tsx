@@ -458,105 +458,124 @@ const Settings: React.FC<SettingsProps> = ({
         )}
       </AnimatePresence>
 
-      <div>
-        <h2 className="text-2xl md:text-3xl font-black text-slate-100 tracking-tight">Vault Center</h2>
-        <p className="text-slate-400 text-sm mt-1">Configure physical/virtual bank accounts, rules boundary systems, and backup archives.</p>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 items-start">
+      <div className="bg-gradient-to-b from-[#071224] to-[#0d1e3d] border border-white/[0.05] p-5 md:p-8 rounded-[32px] space-y-6 shadow-2xl relative overflow-hidden">
+        {/* Subtle decorative purple glow background element */}
+        <div className="absolute top-0 right-1/4 w-80 h-80 bg-[#8B5CF6]/5 rounded-full blur-[100px] pointer-events-none" />
         
-        {/* SIDE BAR / MOBILE CATEGORY NAVIGATION SECTION */}
-        <div className="md:col-span-1 flex md:flex-col overflow-x-auto md:overflow-x-visible pb-2 md:pb-0 gap-1 md:gap-1.5 scrollbar-thin scrollbar-thumb-slate-800 scrollbar-track-transparent">
+        <div className="relative z-10 flex items-center justify-between">
+          <div>
+            <h2 className="text-xl md:text-2xl font-black text-white tracking-tight flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-gradient-to-r from-[#7C3AED] to-[#8B5CF6] shadow-[0_0_10px_rgba(139,92,246,0.6)] animate-pulse" />
+              Vault Center
+            </h2>
+            <p className="text-slate-400 text-xs mt-1">Manage accounts, budgets, and backups.</p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 md:gap-6 items-start relative z-10">
           
-          <button
-            onClick={() => setActiveTab('accounts')}
-            className={`w-full shrink-0 md:shrink flex items-center justify-between px-4 py-3 rounded-2xl text-xs font-bold transition-all cursor-pointer ${
-              activeTab === 'accounts' 
-                ? 'bg-gradient-to-r from-violet-650 to-indigo-650 text-white shadow-md shadow-indigo-950/50' 
-                : 'bg-[#0F172A] text-slate-400 hover:text-slate-200 hover:bg-[#111827] border border-white/[0.04]'
-            }`}
-          >
-            <div className="flex items-center space-x-2.5">
-              <CreditCard className="w-4 h-4" />
-              <span>Accounts</span>
-            </div>
-            <span className={`text-[10px] py-0.5 px-1.5 rounded-full ${activeTab === 'accounts' ? 'bg-white/20 text-white' : 'bg-slate-800 text-slate-400'}`}>
-              {accounts.length}
-            </span>
-          </button>
+          {/* SIDE BAR / MOBILE CATEGORY NAVIGATION SECTION */}
+          <div className="md:col-span-1 grid grid-cols-2 sm:grid-cols-3 md:flex md:flex-col gap-2.5 p-2 bg-[#040914]/60 border border-white/[0.03] rounded-[24px]">
+            
+            {/* 1. Accounts Tab */}
+            <button
+              onClick={() => setActiveTab('accounts')}
+              className={`w-full flex items-center justify-between px-4 py-3 rounded-2xl text-xs font-bold transition-all duration-300 transform cursor-pointer ${
+                activeTab === 'accounts' 
+                  ? 'bg-gradient-to-r from-[#7C3AED] to-[#8B5CF6] text-white shadow-[0_4px_20px_-2px_rgba(139,92,246,0.25)] border border-violet-400/20 scale-[1.02]' 
+                  : 'bg-[#0F172A] text-slate-400 hover:text-white hover:bg-[#111c33] hover:border-violet-500/30 border border-white/[0.08] hover:scale-[1.02] hover:shadow-[0_0_15px_rgba(139,92,246,0.12)]'
+              }`}
+            >
+              <div className="flex items-center space-x-2">
+                <CreditCard className={`w-4 h-4 transition-colors ${activeTab === 'accounts' ? 'text-white' : 'text-violet-400'}`} />
+                <span>Accounts</span>
+              </div>
+              <span className={`text-[10px] font-black font-mono py-0.5 px-2 rounded-full border transition-all ${
+                activeTab === 'accounts' 
+                  ? 'bg-white/15 text-white border-white/20' 
+                  : 'bg-white/5 text-slate-400 border-white/5'
+              }`}>
+                {accounts.length}
+              </span>
+            </button>
 
-          <button
-            onClick={() => setActiveTab('budget')}
-            className={`w-full shrink-0 md:shrink flex items-center justify-between px-4 py-3 rounded-2xl text-xs font-bold transition-all cursor-pointer ${
-              activeTab === 'budget' 
-                ? 'bg-gradient-to-r from-violet-650 to-indigo-650 text-white shadow-md shadow-indigo-950/50' 
-                : 'bg-[#0F172A] text-slate-400 hover:text-slate-200 hover:bg-[#111827] border border-white/[0.04]'
-            }`}
-          >
-            <div className="flex items-center space-x-2.5">
-              <Landmark className="w-4 h-4" />
-              <span>Budget limits</span>
-            </div>
-          </button>
+            {/* 2. Budget Rules Tab */}
+            <button
+              onClick={() => setActiveTab('budget')}
+              className={`w-full flex items-center justify-between px-4 py-3 rounded-2xl text-xs font-bold transition-all duration-300 transform cursor-pointer ${
+                activeTab === 'budget' 
+                  ? 'bg-gradient-to-r from-[#7C3AED] to-[#8B5CF6] text-white shadow-[0_4px_20px_-2px_rgba(139,92,246,0.25)] border border-violet-400/20 scale-[1.02]' 
+                  : 'bg-[#0F172A] text-slate-400 hover:text-white hover:bg-[#111c33] hover:border-indigo-500/30 border border-white/[0.08] hover:scale-[1.02] hover:shadow-[0_0_15px_rgba(99,102,241,0.12)]'
+              }`}
+            >
+              <div className="flex items-center space-x-2">
+                <Landmark className={`w-4 h-4 transition-colors ${activeTab === 'budget' ? 'text-white' : 'text-indigo-400'}`} />
+                <span>Budget Rules</span>
+              </div>
+            </button>
 
-          <button
-            onClick={() => setActiveTab('backup')}
-            className={`w-full shrink-0 md:shrink flex items-center justify-between px-4 py-3 rounded-2xl text-xs font-bold transition-all cursor-pointer ${
-              activeTab === 'backup' 
-                ? 'bg-gradient-to-r from-violet-650 to-indigo-650 text-white shadow-md shadow-indigo-950/50' 
-                : 'bg-[#0F172A] text-slate-400 hover:text-slate-200 hover:bg-[#111827] border border-white/[0.04]'
-            }`}
-          >
-            <div className="flex items-center space-x-2.5">
-              <Database className="w-4 h-4" />
-              <span>Backups & CSV</span>
-            </div>
-          </button>
+            {/* 3. Backup & Restore Tab */}
+            <button
+              onClick={() => setActiveTab('backup')}
+              className={`w-full flex items-center justify-between px-4 py-3 rounded-2xl text-xs font-bold transition-all duration-300 transform cursor-pointer ${
+                activeTab === 'backup' 
+                  ? 'bg-gradient-to-r from-[#7C3AED] to-[#8B5CF6] text-white shadow-[0_4px_20px_-2px_rgba(139,92,246,0.25)] border border-violet-400/20 scale-[1.02]' 
+                  : 'bg-[#0F172A] text-slate-400 hover:text-white hover:bg-[#111c33] hover:border-cyan-500/30 border border-white/[0.08] hover:scale-[1.02] hover:shadow-[0_0_15px_rgba(6,182,212,0.12)]'
+              }`}
+            >
+              <div className="flex items-center space-x-2">
+                <Database className={`w-4 h-4 transition-colors ${activeTab === 'backup' ? 'text-white' : 'text-cyan-400'}`} />
+                <span>Backup & Restore</span>
+              </div>
+            </button>
 
-          <button
-            onClick={() => setActiveTab('ai')}
-            className={`w-full shrink-0 md:shrink flex items-center justify-between px-4 py-3 rounded-2xl text-xs font-bold transition-all cursor-pointer ${
-              activeTab === 'ai' 
-                ? 'bg-gradient-to-r from-violet-650 to-indigo-650 text-white shadow-md shadow-indigo-950/50' 
-                : 'bg-[#0F172A] text-slate-400 hover:text-slate-200 hover:bg-[#111827] border border-white/[0.04]'
-            }`}
-          >
-            <div className="flex items-center space-x-2.5">
-              <Sparkles className="w-4 h-4" />
-              <span>AI Assistant</span>
-            </div>
-            {openRouterApiKey && (
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-450 shrink-0" />
-            )}
-          </button>
+            {/* 4. AI Assistant Tab */}
+            <button
+              onClick={() => setActiveTab('ai')}
+              className={`w-full flex items-center justify-between px-4 py-3 rounded-2xl text-xs font-bold transition-all duration-300 transform cursor-pointer ${
+                activeTab === 'ai' 
+                  ? 'bg-gradient-to-r from-[#7C3AED] to-[#8B5CF6] text-white shadow-[0_4px_20px_-2px_rgba(139,92,246,0.25)] border border-violet-400/20 scale-[1.02]' 
+                  : 'bg-[#0F172A] text-slate-400 hover:text-white hover:bg-[#111c33] hover:border-violet-500/30 border border-white/[0.08] hover:scale-[1.02] hover:shadow-[0_0_15px_rgba(139,92,246,0.12)]'
+              }`}
+            >
+              <div className="flex items-center space-x-2">
+                <Sparkles className={`w-4 h-4 transition-colors ${activeTab === 'ai' ? 'text-white' : 'text-violet-400'}`} />
+                <span>AI Assistant</span>
+              </div>
+              {openRouterApiKey && (
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" />
+              )}
+            </button>
 
-          <button
-            onClick={() => setActiveTab('advanced')}
-            className={`w-full shrink-0 md:shrink flex items-center justify-between px-4 py-3 rounded-2xl text-xs font-bold transition-all cursor-pointer ${
-              activeTab === 'advanced' 
-                ? 'bg-gradient-to-r from-violet-650 to-indigo-650 text-white shadow-md shadow-indigo-950/50' 
-                : 'bg-[#0F172A] text-slate-400 hover:text-slate-200 hover:bg-[#111827] border border-white/[0.04]'
-            }`}
-          >
-            <div className="flex items-center space-x-2.5">
-              <Sliders className="w-4 h-4" />
-              <span>Advanced</span>
-            </div>
-          </button>
+            {/* 5. Advanced Tab */}
+            <button
+              onClick={() => setActiveTab('advanced')}
+              className={`w-full flex items-center justify-between px-4 py-3 rounded-2xl text-xs font-bold transition-all duration-300 transform cursor-pointer ${
+                activeTab === 'advanced' 
+                  ? 'bg-gradient-to-r from-[#7C3AED] to-[#8B5CF6] text-white shadow-[0_4px_20px_-2px_rgba(139,92,246,0.25)] border border-violet-400/20 scale-[1.02]' 
+                  : 'bg-[#0F172A] text-slate-400 hover:text-white hover:bg-[#111c33] hover:border-slate-500/30 border border-white/[0.08] hover:scale-[1.02] hover:shadow-[0_0_15px_rgba(148,163,184,0.12)]'
+              }`}
+            >
+              <div className="flex items-center space-x-2">
+                <Sliders className={`w-4 h-4 transition-colors ${activeTab === 'advanced' ? 'text-white' : 'text-slate-400'}`} />
+                <span>Advanced</span>
+              </div>
+            </button>
 
-          <button
-            onClick={() => setActiveTab('danger')}
-            className={`w-full shrink-0 md:shrink flex items-center justify-between px-4 py-3 rounded-2xl text-xs font-bold transition-all cursor-pointer ${
-              activeTab === 'danger' 
-                ? 'bg-red-600 text-white shadow-md shadow-red-950/50' 
-                : 'bg-[#0F172A] text-rose-550 hover:text-rose-450 hover:bg-[#111827] border border-white/[0.04]'
-            }`}
-          >
-            <div className="flex items-center space-x-2.5">
-              <ShieldAlert className="w-4 h-4" />
-              <span>Danger Zone</span>
-            </div>
-          </button>
+            {/* 6. Danger Zone Tab */}
+            <button
+              onClick={() => setActiveTab('danger')}
+              className={`w-full flex items-center justify-between px-4 py-3 rounded-2xl text-xs font-bold transition-all duration-300 transform cursor-pointer ${
+                activeTab === 'danger' 
+                  ? 'bg-gradient-to-r from-red-650 to-rose-650 text-white shadow-[0_4px_20px_-2px_rgba(239,68,68,0.25)] border border-red-500/30 scale-[1.02]' 
+                  : 'bg-[#0F172A] text-rose-500 hover:text-rose-450 hover:bg-[#1c111c] border border-red-500/20 hover:border-red-500/40 hover:scale-[1.02] hover:shadow-[0_0_15px_rgba(239,68,68,0.12)]'
+              }`}
+            >
+              <div className="flex items-center space-x-2">
+                <ShieldAlert className={`w-4 h-4 transition-colors ${activeTab === 'danger' ? 'text-white' : 'text-rose-500'}`} />
+                <span>Danger Zone</span>
+              </div>
+            </button>
 
           {/* Brand Identity Showcase */}
           <div className="hidden md:flex flex-col bg-[#0F172A] border border-white/[0.04] p-5 rounded-3xl mt-6 text-center relative overflow-hidden group">
@@ -682,10 +701,16 @@ const Settings: React.FC<SettingsProps> = ({
                     })}
                   </div>
                 ) : (
-                  <div className="text-center py-10 border border-dashed border-white/[0.08] bg-[#111827]/40 rounded-2xl">
-                    <PiggyBank className="w-10 h-10 text-slate-650 mx-auto mb-3 stroke-[1.2]" />
-                    <p className="text-xs text-slate-400 font-bold mb-1">No bank accounts linked yet</p>
-                    <p className="text-[10px] text-slate-500 max-w-xs mx-auto">Create physical bank positions or virtual credit cards to direct and filter salary inputs.</p>
+                  <div className="text-center py-12 px-6 border border-dashed border-white/[0.08] bg-[#111827]/40 rounded-3xl flex flex-col items-center justify-center">
+                    <PiggyBank className="w-12 h-12 text-slate-550 mb-3 stroke-[1.2]" />
+                    <p className="text-sm text-slate-350 font-bold mb-4">No accounts added yet</p>
+                    <button
+                      onClick={openNewAccountModal}
+                      className="px-5 py-2.5 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-extrabold text-xs rounded-2xl transition-all duration-150 hover:scale-[1.03] active:scale-95 flex items-center justify-center space-x-1.5 shadow-lg border border-white/10 cursor-pointer"
+                    >
+                      <Plus className="w-4 h-4" />
+                      <span>Add Account</span>
+                    </button>
                   </div>
                 )}
               </div>
@@ -848,8 +873,8 @@ const Settings: React.FC<SettingsProps> = ({
                   </div>
 
                   {/* Restore Card */}
-                  <div className="bg-[#111827] border border-white/[0.04] p-5 rounded-2xl text-center flex flex-col justify-between items-center group hover:border-emerald-500/30 transition-all">
-                    <div className="w-10 h-10 bg-emerald-500/10 text-emerald-450 rounded-xl flex items-center justify-center mb-4 shrink-0">
+                  <div className="bg-[#111827] border border-white/[0.04] p-5 rounded-2xl text-center flex flex-col justify-between items-center group hover:border-cyan-500/30 transition-all">
+                    <div className="w-10 h-10 bg-cyan-500/10 text-cyan-400 rounded-xl flex items-center justify-center mb-4 shrink-0">
                       <RefreshCw className="w-5 h-5" />
                     </div>
                     <div>
@@ -866,7 +891,7 @@ const Settings: React.FC<SettingsProps> = ({
                       />
                       <button
                         onClick={() => jsonFileInputRef.current?.click()}
-                        className="w-full h-9 bg-emerald-950/25 hover:bg-emerald-900/35 text-emerald-400 font-bold text-[10px] rounded-xl transition-all active:scale-95 flex items-center justify-center space-x-1 shadow-xs border border-emerald-500/15 cursor-pointer"
+                        className="w-full h-9 bg-cyan-950/25 hover:bg-cyan-900/35 text-cyan-400 font-bold text-[10px] rounded-xl transition-all active:scale-95 flex items-center justify-center space-x-1 shadow-xs border border-cyan-500/15 cursor-pointer"
                       >
                         <Upload className="w-3 h-3" />
                         <span>Restore JSON</span>
@@ -1102,6 +1127,7 @@ const Settings: React.FC<SettingsProps> = ({
           )}
 
         </div>
+      </div>
       </div>
 
       {/* COMPACT MODAL FOR ACCOUNT CREATION & PROFILE EDITS */}
