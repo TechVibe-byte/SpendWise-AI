@@ -3,15 +3,15 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <meta name="theme-color" content="#4f46e5" media="(prefers-color-scheme: light)">
-    <meta name="theme-color" content="#0f172a" media="(prefers-color-scheme: dark)">
+    <meta name="theme-color" content="#8B5CF6" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#071224" media="(prefers-color-scheme: dark)">
     <meta name="description" content="Track your daily expenses, manage recurring payments, and visualize your spending habits offline.">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="SpendWise">
     
     <link rel="manifest" href="./manifest.json">
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%234f46e5' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z'/%3E%3C/svg%3E">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200' fill='none'%3E%3Cpath d='M60 140C60 117.909 77.9086 100 100 100H140V140C140 151.046 131.046 160 120 160H80C68.9543 160 60 151.046 60 140Z' fill='%231e293b'/%3E%3Cpath d='M140 60C140 82.0914 122.091 100 100 100H60V60C60 48.9543 68.9543 40 80 40H120C131.046 40 140 48.9543 140 60Z' fill='%2322c55e'/%3E%3Crect x='60' y='90' width='80' height='20' fill='url(%23g)'/%3E%3Cdefs%3E%3ClinearGradient id='g' x1='60' y1='100' x2='140' y2='100' gradientUnits='userSpaceOnUse'%3E%3Cstop stop-color='%2322c55e'/%3E%3Cstop offset='1' stop-color='%231e293b'/%3E%3C/linearGradient%3E%3C/defs%3E%3C/svg%3E">
     <link rel="apple-touch-icon" href="icon-192.png">
     
     <title>SpendWise</title>
@@ -21,10 +21,68 @@
         darkMode: 'class',
         theme: {
           extend: {
+            colors: {
+              primary: '#8B5CF6',
+              secondary: '#7C3AED',
+              success: '#10B981',
+              danger: '#EF4444',
+              warning: '#F59E0B',
+              surface: '#0F172A',
+              background: '#071224',
+              // Map indigo class styles to use the new Primary & Secondary specs
+              indigo: {
+                50: '#f5f3ff',
+                100: '#ede9fe',
+                200: '#ddd6fe',
+                300: '#c4b5fd',
+                400: '#a78bfa',
+                500: '#8B5CF6', // Primary
+                600: '#7C3AED', // Secondary
+                650: '#6d28d9',
+                700: '#5b21b6',
+                800: '#4c1d95',
+                900: '#2e1065',
+                950: '#1e0a4a',
+              },
+              emerald: {
+                50: '#ecfdf5',
+                100: '#d1fae5',
+                200: '#a7f3d0',
+                300: '#6ee7b7',
+                400: '#34d399',
+                500: '#10B981', // Success
+                600: '#059669',
+                700: '#047857',
+                800: '#065f46',
+                900: '#064e3b',
+                950: '#022c22',
+              },
+              slate: {
+                50: '#f8fafc',
+                100: '#f1f5f9',
+                150: '#e2e8f0',
+                200: '#e2e8f0',
+                250: '#cbd5e1',
+                300: '#cbd5e1',
+                400: '#94a3b8',
+                450: '#64748b',
+                500: '#64748b',
+                600: '#475569',
+                700: '#334155',
+                800: '#1e293b',
+                850: '#1e293b',
+                900: '#0F172A', // Surface
+                905: '#0c1322',
+                950: '#071224', // Background
+              }
+            },
             fontFamily: {
               sans: ['Inter', 'sans-serif'],
             },
             padding: {
+              'safe': 'env(safe-area-inset-bottom)',
+            },
+            margin: {
               'safe': 'env(safe-area-inset-bottom)',
             },
             spacing: {
@@ -62,8 +120,34 @@
 }
 </script>
 </head>
-  <body class="bg-slate-50 dark:bg-slate-950 overscroll-none">
-    <div id="root"></div>
+  <body class="bg-slate-50 dark:bg-[#0B1220] overscroll-none">
+    <div id="root">
+      <!-- Premium Fintech Splash Screen / Loading Animation -->
+      <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; background-color: #0B1220; color: #ffffff; font-family: 'Inter', sans-serif;" id="initial-splash">
+        <div style="position: relative; width: 100px; height: 100px; margin-bottom: 24px; animation: pulse 2s infinite ease-in-out;">
+          <svg viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg" style="width: 100%; height: 100%;">
+            <path d="M60 140C60 117.909 77.9086 100 100 100H140V140C140 151.046 131.046 160 120 160H80C68.9543 160 60 151.046 60 140Z" fill="#1e293b"/>
+            <path d="M140 60C140 82.0914 122.091 100 100 100H60V60C60 48.9543 68.9543 40 80 40H120C131.046 40 140 48.9543 140 60Z" fill="#22c55e"/>
+            <rect x="60" y="90" width="80" height="20" fill="url(#paint0_linear_logo_splash)"/>
+            <defs>
+              <linearGradient id="paint0_linear_logo_splash" x1="60" y1="100" x2="140" y2="100" gradientUnits="userSpaceOnUse">
+                <stop stop-color="#22c55e"/>
+                <stop offset="1" stop-color="#1e293b"/>
+              </linearGradient>
+            </defs>
+          </svg>
+        </div>
+        <h1 style="font-size: 24px; font-weight: 900; letter-spacing: -0.05em; margin: 0; color: #ffffff;">SpendWise</h1>
+        <p style="font-size: 11px; font-weight: 700; color: #22c55e; margin-top: 8px; text-transform: uppercase; letter-spacing: 0.15em;">Secure Financial Platform</p>
+        
+        <style>
+          @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 0.9; }
+            50% { transform: scale(1.08); opacity: 1; filter: drop-shadow(0 0 15px rgba(34, 197, 94, 0.3)); }
+          }
+        </style>
+      </div>
+    </div>
     <script type="module" src="./index.tsx"></script>
   </body>
 </html>

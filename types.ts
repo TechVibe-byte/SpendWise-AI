@@ -56,3 +56,49 @@ export interface SpendingInsight {
   suggestions: string[];
   savingTips: string[];
 }
+
+export interface Income {
+  id: string;
+  amount: number;
+  category: string; // 'Salary' | 'Bonus' | 'Variable Pay' | 'Incentive' | 'Reimbursement' | 'Freelance Income' | 'Investment Income' | 'Refund' | 'Gift Received' | 'Money Received' | 'Other Income'
+  date: string;
+  description: string;
+  bankName: string; // SBI Salary Account, HDFC Savings, ICICI Savings, Cash, Wallet, UPI Account etc.
+  isSalary?: boolean;
+  employerName?: string;
+  salaryMonth?: string; // e.g. "June 2026"
+  bonus?: number;       // Annual Bonus/Performance Bonus
+  receivedFrom?: 'Parents' | 'Spouse' | 'Friend' | 'Relative' | 'Personal Transfer' | 'Other';
+  previousBalance?: number;
+  currentBalance?: number;
+}
+
+export type BudgetRuleType = 'manual' | 'income_100' | 'income_percentage';
+
+export type AccountType = 'savings' | 'salary' | 'current' | 'cash' | 'wallet' | 'upi' | 'credit';
+
+export interface Account {
+  id: string;
+  name: string; // Account unique name, e.g. "HDFC Salary Account"
+  type: AccountType;
+  bankName: string; // e.g. "HDFC Bank", "SBI"
+  initialBalance: number; // Starting balance
+  color: string; // Color code or badge name
+}
+
+export interface Transfer {
+  id: string;
+  fromAccountId: string; // ID of the source account
+  toAccountId: string; // ID of the destination account
+  amount: number;
+  date: string;
+  description: string;
+}
+
+export interface SalaryRule {
+  id: string;
+  employer: string;
+  amount: number;
+  creditDate: number; // Day of month (1 to 31)
+  accountName: string; // Name of receiving account
+}
