@@ -1,11 +1,12 @@
 
-const CACHE_NAME = 'spendwise-v3';
+const CACHE_NAME = 'spendwise-v4';
 
 // Essential files to cache immediately
 const PRECACHE_URLS = [
   './',
   './index.html',
   './manifest.json',
+  './icon.svg',
   './icon-192.png',
   './icon-512.png'
 ];
