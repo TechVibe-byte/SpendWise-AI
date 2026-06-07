@@ -12,6 +12,20 @@ interface ExpenseFormProps {
   onSwitchToAdd?: () => void;
 }
 
+const getOfflineSuggestedCategory = (description: string): string | null => {
+  const norm = description.toLowerCase().trim();
+  if (!norm) return null;
+  if (norm.match(/swiggy|zomato|ubereats|food|restaurant|cafe|coffee|starbucks|mcdonald|burger|kfc|pizza|zostel|baskin|scoop/)) return 'Food & Dining';
+  if (norm.match(/uber|ola|cab|taxi|metro|train|petrol|gas|fuel|diesel|auto|flight|airline|bus|irctc|easemytrip|indigo/)) return 'Transportation';
+  if (norm.match(/amazon|flipkart|shopping|store|myntra|zara|h&m|mall|buy|groceries|bigbasket|blinkit|zepto|supermarket/)) return 'Shopping';
+  if (norm.match(/netflix|spotify|youtube|disney|prime|hulu|movie|cinema|show|playstation|steam|game|pub|club|theater|bookmyshow/)) return 'Entertainment';
+  if (norm.match(/electricity|water|gas bill|broadband|wifi|recharge|rent|utility|bill|maintenance|bsnl|airtel|jio|act/)) return 'Bills & Utilities';
+  if (norm.match(/apollo|pharmacy|cvs|pharma|clinic|gym|fitness|optics|dentist|hospital|doctor|meds|medicine|wellness|cure/)) return 'Health & Wellness';
+  if (norm.match(/emi|loan|installment|hdfc home|car loan|credit card/)) return 'EMI expenses';
+  if (norm.match(/repay|borrow|lend|debt/)) return 'Borrow expenses';
+  return null;
+};
+
 const COMMON_BANKS = [
   "HDFC Bank", "SBI", "ICICI Bank", "Axis Bank", "Kotak Mahindra Bank", 
   "IndusInd Bank", "Yes Bank", "Punjab National Bank", "Bank of Baroda", 
@@ -269,6 +283,30 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({ onAdd, onClose, initialExpens
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
               />
+              {/* Intelligent Category Suggester Inline Banner */}
+              {(() => {
+                const suggested = getOfflineSuggestedCategory(description);
+                if (suggested && suggested !== category && !userHasManuallySetCategory) {
+                  return (
+                    <div className="mt-2 text-xs flex items-center justify-between bg-indigo-50 dark:bg-indigo-900/20 px-3 py-2 rounded-lg border border-indigo-100/50 dark:border-transparent animate-in slide-in-from-top-1">
+                      <span className="text-indigo-600 dark:text-indigo-400 font-semibold flex items-center">
+                        <span className="mr-1">✨</span> Suggested category: <strong className="ml-1 text-indigo-750 dark:text-indigo-300">{suggested}</strong>
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setCategory(suggested);
+                          setUserHasManuallySetCategory(true);
+                        }}
+                        className="bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-[10px] uppercase px-2 py-1 rounded shadow-sm scale-95 transition-all active:scale-90 cursor-pointer"
+                      >
+                        Confirm
+                      </button>
+                    </div>
+                  );
+                }
+                return null;
+              })()}
             </div>
 
             {showBankField && (
