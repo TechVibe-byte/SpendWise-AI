@@ -1133,19 +1133,19 @@ const Dashboard: React.FC<DashboardProps> = ({
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Core Financial analytics plots */}
         <div className="bg-white dark:bg-slate-900 p-5 md:p-6 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col justify-between">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3.5 mb-5">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
             <div>
               <h4 className="text-slate-850 dark:text-slate-200 font-black text-sm md:text-base">Intelligence charts & reports</h4>
               <p className="text-xs text-slate-500">Slice and review structural cashflow datasets</p>
             </div>
 
             {/* Selector tabs */}
-            <div className="flex bg-slate-100 dark:bg-slate-800 p-0.5 rounded-xl border border-slate-200/50 dark:border-slate-700">
+            <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-xl border border-slate-200/50 dark:border-slate-700 shrink-0">
               {(['income_expense', 'savings_trend', 'balance_trend'] as const).map(tab => (
                 <button
                   key={tab}
                   onClick={() => setAnalyticsTab(tab)}
-                  className={`px-3 py-1.5 rounded-lg text-[10px] font-black transition-all ${analyticsTab === tab ? 'bg-white dark:bg-slate-900 text-indigo-700 dark:text-indigo-400 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
+                  className={`px-3 py-1.5 rounded-lg text-[10px] md:text-[11px] font-bold transition-all whitespace-nowrap ${analyticsTab === tab ? 'bg-white dark:bg-slate-900 text-indigo-700 dark:text-indigo-400 shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'}`}
                 >
                   {tab === 'income_expense' ? 'Inc vs Exp' : tab === 'savings_trend' ? 'Savings' : 'Balances'}
                 </button>
@@ -1153,7 +1153,7 @@ const Dashboard: React.FC<DashboardProps> = ({
             </div>
           </div>
 
-          <div className="h-68">
+          <div className="h-[300px] w-full">
             {analyticsTab === 'income_expense' ? (
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={monthlyCashFlowChartData}>

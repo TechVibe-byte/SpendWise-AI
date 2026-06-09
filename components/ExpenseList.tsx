@@ -590,7 +590,7 @@ const ExpenseList: React.FC<ExpenseListProps> = ({ expenses, onDelete, onEdit, c
         </div>
 
         {/* Transactions List View */}
-        <div className="divide-y divide-slate-50 dark:divide-slate-800 max-h-[500px] overflow-y-auto">
+        <div className="divide-y divide-slate-50 dark:divide-slate-800 max-h-[500px] overflow-y-auto pr-1 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-slate-200 dark:[&::-webkit-scrollbar-thumb]:bg-slate-800 [&::-webkit-scrollbar-thumb]:rounded-full">
           {sortedExpenses.length > 0 ? (
             sortedExpenses.map((expense) => {
               const color = getCategoryColor(expense.category);

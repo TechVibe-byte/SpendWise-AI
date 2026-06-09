@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { Bot } from 'lucide-react';
 import { HashRouter as Router, Routes, Route, NavLink } from 'react-router-dom';
 import { Expense, RecurringExpense, RecurringFrequency, CategoryItem, Income, BudgetRuleType, Account, Transfer, SalaryRule } from './types';
 import { DEFAULT_CATEGORIES } from './constants';
@@ -16,6 +17,8 @@ import IncomeManager from './components/IncomeManager';
 import { Logo } from './components/Logo';
 import AIInsights from './components/AIInsights';
 import { ThemeToggle } from './components/ThemeToggle';
+import { ChatBotModal } from './components/ChatBotModal';
+import { ChatBotWidget } from './components/ChatBotWidget';
 
 const App: React.FC = () => {
   const [expenses, setExpenses] = useState<Expense[]>(() => {
@@ -96,6 +99,7 @@ const App: React.FC = () => {
     return window.matchMedia('(prefers-color-scheme: dark)').matches;
   });
 
+  const [isChatBotOpen, setIsChatBotOpen] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
   const [editingRecurring, setEditingRecurring] = useState<RecurringExpense | null>(null);
@@ -591,16 +595,20 @@ const App: React.FC = () => {
         {showOnboarding && <Onboarding onComplete={handleCompleteOnboarding} />}
 
         {/* Mobile Header */}
-        <header className="md:hidden bg-white dark:bg-[#0B1220] border-b border-slate-200 dark:border-slate-800/60 px-6 py-4 flex items-center justify-between sticky top-0 z-40">
-          <div className="flex items-center space-x-3.5">
+        <header className="md:hidden bg-white dark:bg-[#0B1220] border-b border-slate-200 dark:border-slate-800/60 px-6 py-4 flex items-center justify-between sticky top-0 z-40 relative">
+          <div className="flex items-center space-x-3.5 z-10">
             <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 via-violet-650 to-indigo-700 rounded-xl flex items-center justify-center shadow-md shadow-indigo-100/10 dark:shadow-none border border-white/10">
               <Logo className="w-5.5 h-5.5 text-white" />
             </div>
+          </div>
+          
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-0">
             <h1 className="text-xl font-extrabold text-slate-900 dark:text-white tracking-tight">
-              <span className="hidden xs:inline">SpendWise</span>
+              SpendWise
             </h1>
           </div>
-          <div className="flex items-center space-x-3">
+
+          <div className="flex items-center space-x-3 z-10">
             {showInstallBtn && (
               <button
                 onClick={handleInstallClick}
@@ -626,7 +634,7 @@ const App: React.FC = () => {
           <div className="flex-1 space-y-2">
             <NavItems />
             {/* Redesigned Premium Theme Switcher Row */}
-            <div className="flex items-center justify-between px-3 py-2.5 rounded-xl border border-dashed border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/40 mt-4 shadow-sm">
+            <div className="flex items-center justify-between px-3 py-2.5 rounded-xl bg-slate-50/50 dark:bg-slate-900/40 mt-4 shadow-sm">
               <span className="text-xs font-bold text-slate-500 dark:text-slate-400">Theme</span>
               <ThemeToggle isDarkMode={isDarkMode} onChange={setIsDarkMode} />
             </div>
@@ -665,6 +673,15 @@ const App: React.FC = () => {
         <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white/95 dark:bg-[#0B1220]/95 backdrop-blur-md border-t border-slate-200/80 dark:border-slate-800/80 px-3 pt-2.5 pb-[calc(10px+env(safe-area-inset-bottom))] flex items-center justify-between z-50 shadow-[0_-4px_24px_-4px_rgba(0,0,0,0.08)]">
           <NavItems isMobile={true} />
         </nav>
+
+        {/* AI Chat Bot FAB */}
+        <button 
+          onClick={() => setIsChatBotOpen(true)}
+          className="fixed bottom-[calc(146px+env(safe-area-inset-bottom))] lg:bottom-10 right-5 lg:right-10 w-12 h-12 lg:w-16 lg:h-16 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-full shadow-2xl shadow-purple-500/30 flex items-center justify-center z-50 transition-all duration-300 lg:opacity-100 opacity-30 animate-pulse lg:animate-none lg:hover:scale-110 lg:hover:shadow-purple-500/50 active:scale-95 border border-white/20"
+          aria-label="AI Chat Bot"
+        >
+          <Bot className="w-6 h-6 lg:w-7 lg:h-7" />
+        </button>
 
         {/* Mobile Floating Action Button (FAB) */}
         <button 
@@ -706,8 +723,8 @@ const App: React.FC = () => {
                   handleInstallClick={handleInstallClick}
                 />
                 
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
-                  <div className="lg:col-span-2">
+                <div className="flex flex-col space-y-6 md:space-y-8 pb-10">
+                  <div className="w-full">
                     <ExpenseList 
                       expenses={expenses} 
                       onDelete={deleteExpense} 
@@ -715,22 +732,20 @@ const App: React.FC = () => {
                       categories={allCategories}
                     />
                   </div>
-                  <div className="space-y-4">
-                    <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm">
-                      <h4 className="font-bold text-slate-800 dark:text-slate-200 mb-4">Quick Stats</h4>
-                      <div className="space-y-4">
-                        <div className="flex justify-between items-center text-sm">
-                          <span className="text-slate-500 dark:text-slate-400">Avg. Daily Spend</span>
-                          <span className="font-bold text-slate-900 dark:text-white">{formatCurrency(totalSpent / (expenses.length > 0 ? 30 : 1))}</span>
-                        </div>
-                        <div className="flex justify-between items-center text-sm">
-                          <span className="text-slate-500 dark:text-slate-400">Highest Transaction</span>
-                          <span className="font-bold text-slate-900 dark:text-white">{formatCurrency(Math.max(...expenses.map(e=>e.amount), 0))}</span>
-                        </div>
-                        <div className="flex justify-between items-center text-sm">
-                          <span className="text-slate-500 dark:text-slate-400">Active Categories</span>
-                          <span className="font-bold text-slate-900 dark:text-white">{new Set(expenses.map(e=>e.category)).size}</span>
-                        </div>
+                  
+                  <div className="w-full max-w-3xl mx-auto space-y-6 md:space-y-8">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 md:gap-6">
+                      <div className="bg-white dark:bg-slate-900 p-5 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col items-center justify-center text-center">
+                        <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1.5">Avg. Daily Spend</span>
+                        <span className="text-xl font-black text-slate-800 dark:text-white">{formatCurrency(totalSpent / (expenses.length > 0 ? 30 : 1))}</span>
+                      </div>
+                      <div className="bg-white dark:bg-slate-900 p-5 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col items-center justify-center text-center">
+                        <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1.5">Highest Transaction</span>
+                        <span className="text-xl font-black text-slate-800 dark:text-white">{formatCurrency(Math.max(...expenses.map(e=>e.amount), 0))}</span>
+                      </div>
+                      <div className="bg-white dark:bg-slate-900 p-5 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col items-center justify-center text-center">
+                        <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1.5">Active Categories</span>
+                        <span className="text-xl font-black text-slate-800 dark:text-white">{new Set(expenses.map(e=>e.category)).size}</span>
                       </div>
                     </div>
                     <AIInsights expenses={expenses} categories={allCategories} openRouterApiKey={openRouterApiKey} />
@@ -863,6 +878,15 @@ const App: React.FC = () => {
             transfers={transfers}
           />
         )}
+
+        {/* Global Chat Bot Modal */}
+        <ChatBotModal
+          isOpen={isChatBotOpen}
+          onClose={() => setIsChatBotOpen(false)}
+          expenses={expenses}
+          monthlyBudget={monthlyBudget}
+          openRouterApiKey={openRouterApiKey}
+        />
       </div>
     </Router>
   );

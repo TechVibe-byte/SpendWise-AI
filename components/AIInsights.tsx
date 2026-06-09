@@ -23,7 +23,7 @@ interface FinancialGoal {
 
 export const AIInsights: React.FC<AIInsightsProps> = ({ expenses, categories, openRouterApiKey }) => {
   // Global & tab navigation
-  const [activeTab, setActiveTab] = useState<'health' | 'alerts' | 'goals' | 'chat'>('health');
+  const [activeTab, setActiveTab] = useState<'health' | 'alerts' | 'goals'>('health');
   
   // States
   const [isHealthDetailExpanded, setIsHealthDetailExpanded] = useState(false);
@@ -41,14 +41,6 @@ export const AIInsights: React.FC<AIInsightsProps> = ({ expenses, categories, op
   const [newGoalDate, setNewGoalDate] = useState('');
   const [showGoalForm, setShowGoalForm] = useState(false);
 
-  // Chat/Ask Your Data assistant
-  const [chatInput, setChatInput] = useState('');
-  const [chatHistory, setChatHistory] = useState<Array<{ role: 'user' | 'assistant'; content: string }>>([
-    { role: 'assistant', content: 'Hi! I am your SpendWise Assistant. Ask me anything about your current budget, top spending items, or upcoming dues!' }
-  ]);
-  const [chatLoading, setChatLoading] = useState(false);
-  const scrollRef = useRef<HTMLDivElement>(null);
-
   // Auto-save goals
   useEffect(() => {
     localStorage.setItem('spendwise-goals', JSON.stringify(goals));
@@ -59,11 +51,6 @@ export const AIInsights: React.FC<AIInsightsProps> = ({ expenses, categories, op
     const saved = localStorage.getItem('spendwise-budget');
     return saved ? parseFloat(saved) : 50000;
   }, [expenses]);
-
-  // Scroll chat history
-  useEffect(() => {
-    scrollRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [chatHistory, chatLoading]);
 
   // Date and chronological helpers
   const stats = useMemo(() => {
@@ -468,187 +455,25 @@ export const AIInsights: React.FC<AIInsightsProps> = ({ expenses, categories, op
   }, [expenses, monthlyBudget]);
 
   // 9. LOCAL QUERY LEXICAL INTELLIGENCE SEARCH ENGINE & FALLBACK PROMPT RUNNER
-  const handleQueryAssistant = async (customText?: string) => {
-    const queryToCheck = customText || chatInput;
-    if (!queryToCheck.trim()) return;
-
-    // Append user message
-    setChatHistory(prev => [...prev, { role: 'user', content: queryToCheck }]);
-    if (!customText) setChatInput('');
-    setChatLoading(true);
-
-    // Normalize
-    const normalizedQuery = queryToCheck.toLowerCase().trim();
-
-    // Direct lexical checks first for zero-cost immediate answer!
-    const localAnswer = answerQuestionLocally(normalizedQuery);
-    if (localAnswer) {
-      // Simulate micro typing lag for high visual presence
-      setTimeout(() => {
-        setChatHistory(prev => [...prev, { role: 'assistant', content: localAnswer }]);
-        setChatLoading(false);
-      }, 350);
-      return;
-    }
-
-    // Local checks fail, proceed on OpenRouter sequential fallbacks
-    if (!openRouterApiKey) {
-      setTimeout(() => {
-        setChatHistory(prev => [...prev, { 
-          role: 'assistant', 
-          content: '💡 Your query requires deep inference! Please insert an OpenRouter API key inside settings to let the cloud financial model process complex queries.' 
-        }]);
-        setChatLoading(false);
-      }, 400);
-      return;
-    }
-
-    try {
-      const summaryContext = `
-        User local budget is ${formatCurrency(monthlyBudget)}.
-        Spent current month: ${formatCurrency(stats.curMonthSpent)} out of ${formatCurrency(monthlyBudget)}.
-        Total entries: ${expenses.length}.
-        Weekly Spend: ${formatCurrency(weeklySummary.weeklyTotal)}.
-        Active subscriptions counts: ${subscriptionTotals.activeCount} totaling ${formatCurrency(subscriptionTotals.monthlyComm)} monthly.
-        Categories distribution: ${JSON.stringify(stats.curMonthExpenses.reduce((acc, e) => {
-          acc[e.category] = (acc[e.category] || 0) + e.amount;
-          return acc;
-        }, {} as Record<string, number>))}.
-      `;
-
-      // Prompt optimization: restrict token usage forcefully
-      const systemPrompt = `You are a strict, ultra-compact financial AI advisor inside SpendWise.
-      Format: Output EXACTLY 3 bullet points maximum.
-      Limit: Strictly keep response below 90 words.
-      Tone: Absolute professional, highly tactical advice. No words of high encouragement, greeting, or decorative fluff.`;
-
-      const prompt = `Context: ${summaryContext}
-      Question: "${queryToCheck}"
-      Provide a highly focused analytical response satisfying the system limits.`;
-
-      const MODELS_TO_TRY = [
-        'google/gemini-2.5-flash',
-        'google/gemini-2.5-flash:free',
-        'google/gemini-2.5-flash-lite',
-        'google/gemini-2.5-flash-lite:free',
-        'meta-llama/llama-3.3-70b-instruct:free',
-        'deepseek/deepseek-chat'
-      ];
-
-      let responseText = '';
-      let success = false;
-
-      for (const modelId of MODELS_TO_TRY) {
-        try {
-          const apiCall = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${openRouterApiKey}`,
-              'HTTP-Referer': window.location.origin,
-              'X-Title': 'SpendWise',
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              model: modelId,
-              messages: [
-                { role: 'system', content: systemPrompt },
-                { role: 'user', content: prompt }
-              ]
-            })
-          });
-
-          if (apiCall.ok) {
-            const data = await apiCall.json();
-            if (data.choices?.[0]?.message?.content) {
-              responseText = data.choices[0].message.content;
-              success = true;
-              break;
-            }
-          }
-        } catch (_) {}
-      }
-
-      if (success) {
-        setChatHistory(prev => [...prev, { role: 'assistant', content: responseText }]);
-      } else {
-        setChatHistory(prev => [...prev, { role: 'assistant', content: '📡 Financial model is saturated currently. Please retry in a few moments, or ask key quantitative points that I resolve instantly offline.' }]);
-      }
-    } catch (e: any) {
-      setChatHistory(prev => [...prev, { role: 'assistant', content: 'Connection failed. Please check your network context.' }]);
-    } finally {
-      setChatLoading(false);
-    }
-  };
-
-  const answerQuestionLocally = (norm: string): string | null => {
-    // 1. Food query
-    if (norm.includes('food') || norm.includes('dining') || norm.includes('swiggy') || norm.includes('zomato')) {
-      const foodSpent = stats.curMonthExpenses
-        .filter(e => e.category.toLowerCase().includes('food') || e.category.toLowerCase().includes('dining'))
-        .reduce((sum, e) => sum + e.amount, 0);
-      return `📊 **Food Spend Index**: You have laid out **${formatCurrency(foodSpent)}** on Food & Dining so far this month, which represents about **${stats.curMonthSpent > 0 ? Math.round((foodSpent / stats.curMonthSpent) * 100) : 0}%** of this month's spending.`;
-    }
-
-    // 2. Highest expense query
-    if (norm.includes('most money') || norm.includes('highest spend') || norm.includes('top category') || norm.includes('where did i spend the most')) {
-      if (stats.curMonthExpenses.length === 0) {
-        return "You have not recorded any expenditures for this billing cycle yet!";
-      }
-      return `📊 **Sector Cap**: Your highest expenditure sector is **${categoryTrends.highestSpender}**, consuming a total load of **${formatCurrency(stats.curMonthSpent > 0 ? stats.curMonthExpenses.filter(e => e.category === categoryTrends.highestSpender).reduce((s, e) => s + e.amount, 0) : 0)}** this period.`;
-    }
-
-    // 3. Upcoming bills
-    if (norm.includes('upcoming emi') || norm.includes('upcoming bills') || norm.includes('due soon') || norm.includes('recurring') || norm.includes('obligations')) {
-      const savedRulesRaw = localStorage.getItem('spendwise-recurring');
-      const rules: RecurringExpense[] = savedRulesRaw ? JSON.parse(savedRulesRaw) : [];
-      const activeRules = rules.filter(r => r.isActive);
-      if (activeRules.length === 0) {
-        return "You do not have any active recurring obligations configured.";
-      }
-      const entries = activeRules.map(r => `• **${r.description}**: ${formatCurrency(r.amount)} is scheduled next on ${r.nextOccurrenceDate} (${r.frequency})`);
-      return `📅 **Upcoming Obligations Forecast**:\n${entries.join('\n')}`;
-    }
-
-    // 4. Budget progress
-    if (norm.includes('budget') || norm.includes('remaining') || norm.includes('where i stand') || norm.includes('balance') || norm.includes('how much can i spend')) {
-      const rem = monthlyBudget - stats.curMonthSpent;
-      const pct = Math.round((stats.curMonthSpent / (monthlyBudget || 1)) * 100);
-      if (rem < 0) {
-        return `🚨 **Budget Alert**: You have exceeded your budget by **${formatCurrency(Math.abs(rem))}**! You are at **${pct}%** consumption.`;
-      }
-      return `📊 **Budget Progress**: You have **${formatCurrency(rem)}** remaining in your allocation of **${formatCurrency(monthlyBudget)}** (${pct}% used).`;
-    }
-
-    // 5. Comparison
-    if (norm.includes('growth') || norm.includes('increase') || norm.includes('compared to last month') || norm.includes('growing')) {
-      const difference = stats.curMonthSpent - stats.prevMonthSpent;
-      if (stats.prevMonthSpent === 0) {
-        return "Not enough data from last month to form a comparative layout.";
-      }
-      if (difference > 0) {
-        return `📈 **Trend Spike**: You have spent **${formatCurrency(difference)}** (+${Math.round((difference / stats.prevMonthSpent) * 100)}%) more than last month's matching cycle. Consider deferring luxury transactions.`;
-      } else {
-        return `📉 **Trend Curvature**: Splendid! You are spent **${formatCurrency(Math.abs(difference))}** (-${Math.round((Math.abs(difference) / stats.prevMonthSpent) * 100)}%) below previous month's thresholds. Keep it up!`;
-      }
-    }
-
-    return null;
-  };
+  // Moved to ChatBotModal
 
   return (
     <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 md:p-6 shadow-sm border border-slate-100 dark:border-slate-800 flex flex-col h-full min-h-[580px]">
       {/* Title & Refresh */}
-      <div className="flex justify-between items-center pb-4 border-b border-slate-100 dark:border-slate-800 shrink-0">
-        <div className="flex items-center space-x-2.5">
-          <div className="w-9 h-9 bg-purple-50 dark:bg-purple-950/40 rounded-xl flex items-center justify-center text-purple-600 dark:text-purple-400">
-            <Sparkles className="w-5 h-5" />
+      <div className="flex flex-col items-center justify-center pb-4 border-b border-slate-100 dark:border-slate-800 shrink-0 text-center">
+        <div className="flex items-center space-x-2.5 mb-1.5">
+          <div className="w-8 h-8 bg-purple-50 dark:bg-purple-950/40 rounded-lg flex items-center justify-center text-purple-600 dark:text-purple-400 shrink-0">
+            <Sparkles className="w-4 h-4" />
           </div>
-          <div>
-            <h3 className="font-extrabold text-slate-800 dark:text-slate-100 text-base leading-tight">Financial Intelligence</h3>
-            <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">Tactical savings & performance models</p>
-          </div>
+          <h3 className="font-extrabold text-slate-800 dark:text-slate-100 text-lg leading-tight">Financial Intelligence</h3>
         </div>
-        <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-1 bg-purple-50 dark:bg-purple-950/30 text-purple-600 dark:text-purple-400 rounded-lg">Offline Active</span>
+        <div className="flex items-center justify-center space-x-2">
+          <p className="text-[11px] text-slate-400 dark:text-slate-500">Tactical savings & performance models</p>
+          <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-700 hidden sm:block"></span>
+          <span className={`text-[9px] uppercase font-bold tracking-wider hidden sm:block ${openRouterApiKey ? 'text-emerald-600 dark:text-emerald-400' : 'text-purple-600 dark:text-purple-400'}`}>
+            {openRouterApiKey ? 'Cloud Active' : 'Offline Active'}
+          </span>
+        </div>
       </div>
 
       {/* Tabs Navigation */}
@@ -674,16 +499,10 @@ export const AIInsights: React.FC<AIInsightsProps> = ({ expenses, categories, op
         >
           Goals
         </button>
-        <button
-          onClick={() => setActiveTab('chat')}
-          className={`flex-1 text-center py-2 text-xs font-bold rounded-lg transition-all ${activeTab === 'chat' ? 'bg-white dark:bg-slate-800 text-purple-600 dark:text-purple-400 shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700'}`}
-        >
-          Ask Bot
-        </button>
       </div>
 
       {/* Tab Panels with Scroll constraint */}
-      <div className="flex-1 overflow-y-auto max-h-[460px] pr-1 scrollbar-thin scrollbar-thumb-purple-100 dark:scrollbar-thumb-purple-900/40">
+      <div className="flex-1 overflow-y-auto max-h-[460px] pr-2 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-slate-200 dark:[&::-webkit-scrollbar-thumb]:bg-slate-800 [&::-webkit-scrollbar-thumb]:rounded-full">
         
         {/* PANEL A: HEALTH SCORE & STATS */}
         {activeTab === 'health' && (
@@ -1029,119 +848,7 @@ export const AIInsights: React.FC<AIInsightsProps> = ({ expenses, categories, op
           </div>
         )}
 
-        {/* PANEL D: COMPACT "ASK YOUR DATA" AI CHAT ASSISTANT */}
-        {activeTab === 'chat' && (
-          <div className="flex flex-col h-full min-h-[380px] pt-1 animate-in fade-in duration-200">
-            {/* Quick Queries Suggestion chips */}
-            <div className="mb-3 shrink-0">
-              <span className="text-[10px] uppercase font-bold tracking-widest text-slate-400 dark:text-[#CBD5E1] block mb-1.5 pl-1">
-                ⚡ Popular Data Queries
-              </span>
-              <div className="flex flex-wrap gap-1.5 pr-1">
-                <button
-                  type="button"
-                  onClick={() => handleQueryAssistant('Where did I spend the most money?')}
-                  className="px-2.5 py-1 text-[10px] font-bold bg-slate-50 hover:bg-slate-100 dark:bg-slate-950 dark:hover:bg-[#1E293B] border border-slate-200 dark:border-slate-800 text-slate-705 dark:text-[#CBD5E1] rounded-full transition-all cursor-pointer"
-                >
-                  🔍 Where did I spend the most?
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleQueryAssistant('How much did I spend on Food this month?')}
-                  className="px-2.5 py-1 text-[10px] font-bold bg-slate-50 hover:bg-slate-100 dark:bg-slate-950 dark:hover:bg-[#1E293B] border border-slate-200 dark:border-slate-800 text-slate-705 dark:text-[#CBD5E1] rounded-full transition-all cursor-pointer"
-                >
-                  🍔 spent on Food?
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleQueryAssistant('What are my upcoming EMIs?')}
-                  className="px-2.5 py-1 text-[10px] font-bold bg-slate-50 hover:bg-slate-100 dark:bg-slate-950 dark:hover:bg-[#1E293B] border border-slate-200 dark:border-slate-800 text-slate-705 dark:text-[#CBD5E1] rounded-full transition-all cursor-pointer"
-                >
-                  📅 upcoming due dates?
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleQueryAssistant('Which category increased compared to last month?')}
-                  className="px-2.5 py-1 text-[10px] font-bold bg-slate-50 hover:bg-slate-100 dark:bg-slate-950 dark:hover:bg-[#1E293B] border border-slate-200 dark:border-slate-800 text-slate-750 dark:text-[#CBD5E1] rounded-full transition-all cursor-pointer"
-                >
-                  📈 rising trends?
-                </button>
-              </div>
-            </div>
-
-            {/* Chats stream container */}
-            <div className="flex-1 bg-slate-50 dark:bg-[#0B1220] border border-slate-200/60 dark:border-slate-800/80 rounded-2xl p-4 overflow-y-auto max-h-[220px] mb-3 space-y-3 font-medium text-xs shadow-inner">
-              {chatHistory.map((ch, idx) => {
-                const isWelcome = idx === 0 && ch.role === 'assistant';
-                
-                if (isWelcome) {
-                  return (
-                    <div key={idx} className="flex justify-start">
-                      <div className="p-5 rounded-2xl max-w-[95%] bg-slate-100/50 dark:bg-[#1E293B] text-slate-900 dark:text-[#FFFFFF] border border-slate-200/50 dark:border-slate-800 shadow-sm rounded-tl-none">
-                        <div className="flex items-center space-x-2 text-indigo-600 dark:text-purple-400 mb-2 font-black shrink-0">
-                          <Sparkles className="w-4 h-4 shrink-0 text-purple-500" />
-                          <span className="text-[11px] tracking-widest uppercase font-bold">SpendWise Hub</span>
-                        </div>
-                        <p className="whitespace-pre-wrap leading-relaxed text-[14px] font-semibold text-slate-800 dark:text-[#FFFFFF]">
-                          {ch.content}
-                        </p>
-                      </div>
-                    </div>
-                  );
-                }
-
-                return (
-                  <div key={idx} className={`flex ${ch.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                    <div 
-                      className={`p-3.5 md:p-4 rounded-2xl max-w-[85%] shadow-sm border ${
-                        ch.role === 'user' 
-                          ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-semibold rounded-tr-none border-transparent' 
-                          : 'bg-white dark:bg-[#111827] text-slate-900 dark:text-[#FFFFFF] border-slate-200/85 dark:border-slate-800 rounded-tl-none font-medium'
-                      }`}
-                    >
-                      <p className={`whitespace-pre-wrap leading-relaxed text-[13px] ${ch.role === 'user' ? 'text-white' : 'text-slate-800 dark:text-[#CBD5E1]'}`}>
-                        {ch.content}
-                      </p>
-                    </div>
-                  </div>
-                );
-              })}
-              {chatLoading && (
-                <div className="flex justify-start">
-                  <div className="bg-white dark:bg-[#111827] border border-slate-200/85 dark:border-slate-800 p-3 rounded-2xl rounded-tl-none flex items-center space-x-1 shadow-sm">
-                    <span className="w-1.5 h-1.5 bg-purple-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                    <span className="w-1.5 h-1.5 bg-purple-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                    <span className="w-1.5 h-1.5 bg-purple-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
-                  </div>
-                </div>
-              )}
-              <div ref={scrollRef} />
-            </div>
-
-            {/* Input form */}
-            <div className="flex items-center space-x-2 pb-1 shrink-0">
-              <input
-                type="text"
-                placeholder="Ask about spending or forecast trends..."
-                className="flex-1 px-4 py-3 text-xs bg-slate-50 dark:bg-[#111827] rounded-xl border border-slate-200 dark:border-slate-800/80 text-slate-900 dark:text-[#FFFFFF] placeholder-[#94A3B8] placeholder:text-[#94A3B8] caret-purple-600 dark:caret-purple-400 outline-none focus:ring-2 focus:ring-purple-500/30 dark:focus:ring-purple-500/20 focus:border-purple-500 transition-all font-medium"
-                value={chatInput}
-                onChange={(e) => setChatInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') handleQueryAssistant();
-                }}
-              />
-              <button
-                type="button"
-                onClick={() => handleQueryAssistant()}
-                disabled={!chatInput.trim() || chatLoading}
-                className="w-10 h-10 shrink-0 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 disabled:opacity-50 text-white rounded-xl flex items-center justify-center transition-all shadow-sm transform active:scale-95 cursor-pointer"
-                title="Send query"
-              >
-                <Send className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-        )}
+        {/* ChatBot logic extracted to ChatBotModal */}
       </div>
     </div>
   );

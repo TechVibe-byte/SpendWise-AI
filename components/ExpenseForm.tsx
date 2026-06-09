@@ -13,17 +13,56 @@ interface ExpenseFormProps {
   onSwitchToAdd?: () => void;
 }
 
+const INDIAN_MERCHANT_MAP: Record<string, string[]> = {
+  'Transportation': [
+    'uber', 'ola', 'rapido', 'namma yatri', 'blusmart', 'redbus', 'abhibus', 'tsrtc', 'apsrtc', 'irctc', 'indian railways', 'metro', 'mmts', 'bus pass', 'cab', 'taxi', 'auto', 'rickshaw', 'train ticket', 'flight ticket', 'airport taxi', 'fuel', 'petrol', 'diesel', 'indian oil', 'iocl', 'hp petrol', 'hpcl', 'bharat petroleum', 'bpcl', 'shell', 'parking', 'toll', 'fastag'
+  ],
+  'Food & Dining': [
+    'swiggy', 'zomato', 'eatsure', 'dominos', 'pizza hut', 'kfc', 'mcdonalds', 'burger king', 'subway', 'starbucks', 'cafe coffee day', 'ccd', 'barbeque nation', 'paradise', 'bawarchi', 'restaurant', 'hotel food', 'lunch', 'dinner', 'breakfast', 'tea', 'coffee', 'snacks', 'food court', 'juice shop', 'bakery', 'mess', 'tiffin', 'biryani'
+  ],
+  'Shopping': [
+    'amazon pay', 'amazon', 'flipkart', 'myntra', 'ajio', 'meesho', 'nykaa', 'snapdeal', 'reliance digital', 'croma', 'tata cliq', 'jiomart', 'shopsy', 'firstcry', 'pepperfry', 'ikea', 'decathlon', 'vijay sales', 'poorvika', 'sangeetha mobiles', 'pai electronics', 'mall', 'online shopping', 'clothing', 'fashion', 'electronics'
+  ],
+  'Bills & Utilities': [
+    'electricity', 'current bill', 'power bill', 'eb bill', 'water bill', 'gas bill', 'cylinder', 'internet', 'broadband', 'jio fiber', 'airtel fiber', 'act fiber', 'bsnl', 'mobile recharge', 'dth', 'tata play', 'dish tv', 'sun direct'
+  ],
+  'Health & Wellness': [
+    'apollo pharmacy', 'apollo', 'medplus', 'netmeds', 'practo', 'pharmacy', 'hospital', 'clinic', 'doctor', 'medical', 'medicine', 'lab test', 'diagnostic'
+  ],
+  'Entertainment': [
+    'amazon prime', 'prime video', 'netflix', 'disney hotstar', 'hotstar', 'sonyliv', 'zee5', 'spotify', 'youtube premium', 'jiocinema', 'bookmyshow', 'movie', 'cinema', 'gaming', 'steam'
+  ],
+  'EMI expenses': ['emi', 'loan', 'installment', 'hdfc home', 'car loan', 'credit card', 'bajaj finance', 'home credit'],
+  'Borrow expenses': ['repay', 'borrow', 'lend', 'debt']
+};
+
+interface KeywordMapping { keyword: string; category: string; }
+
+const buildMatcher = (): KeywordMapping[] => {
+  const mappings: KeywordMapping[] = [];
+  for (const [category, keywords] of Object.entries(INDIAN_MERCHANT_MAP)) {
+    for (const keyword of keywords) {
+      mappings.push({ keyword, category });
+    }
+  }
+  // Sort by keyword length descending (e.g. "amazon prime" checks before "amazon")
+  return mappings.sort((a, b) => b.keyword.length - a.keyword.length);
+};
+
+const KEYWORD_MAPPINGS = buildMatcher();
+
 const getOfflineSuggestedCategory = (description: string): string | null => {
   const norm = description.toLowerCase().trim();
   if (!norm) return null;
-  if (norm.match(/swiggy|zomato|ubereats|food|restaurant|cafe|coffee|starbucks|mcdonald|burger|kfc|pizza|zostel|baskin|scoop/)) return 'Food & Dining';
-  if (norm.match(/uber|ola|cab|taxi|metro|train|petrol|gas|fuel|diesel|auto|flight|airline|bus|irctc|easemytrip|indigo/)) return 'Transportation';
-  if (norm.match(/amazon|flipkart|shopping|store|myntra|zara|h&m|mall|buy|groceries|bigbasket|blinkit|zepto|supermarket/)) return 'Shopping';
-  if (norm.match(/netflix|spotify|youtube|disney|prime|hulu|movie|cinema|show|playstation|steam|game|pub|club|theater|bookmyshow/)) return 'Entertainment';
-  if (norm.match(/electricity|water|gas bill|broadband|wifi|recharge|rent|utility|bill|maintenance|bsnl|airtel|jio|act/)) return 'Bills & Utilities';
-  if (norm.match(/apollo|pharmacy|cvs|pharma|clinic|gym|fitness|optics|dentist|hospital|doctor|meds|medicine|wellness|cure/)) return 'Health & Wellness';
-  if (norm.match(/emi|loan|installment|hdfc home|car loan|credit card/)) return 'EMI expenses';
-  if (norm.match(/repay|borrow|lend|debt/)) return 'Borrow expenses';
+  
+  // Clean description to help fuzzy match UPI strings like "UPI/SWIGGY-1234"
+  const cleanNorm = norm.replace(/[^a-z0-9\s]/g, ' ');
+
+  for (const { keyword, category } of KEYWORD_MAPPINGS) {
+    if (cleanNorm.includes(keyword) || norm.includes(keyword)) {
+      return category;
+    }
+  }
   return null;
 };
 
