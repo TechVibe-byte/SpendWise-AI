@@ -5,10 +5,10 @@ const CACHE_NAME = 'spendwise-v4';
 const PRECACHE_URLS = [
   './',
   './index.html',
-  './manifest.json',
+  '/manifest.json',
   './icon.svg',
-  './icon-192.png',
-  './icon-512.png'
+  '/icon-192.png',
+  '/icon-512.png'
 ];
 
 const ALLOWED_ORIGINS = [
