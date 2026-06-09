@@ -36,7 +36,12 @@ const IncomeForm: React.FC<IncomeFormProps> = ({
   transfers
 }) => {
   const [amount, setAmount] = useState(initialIncome?.amount.toString() || '');
-  const [category, setCategory] = useState(initialIncome?.category || 'Salary');
+  
+  // If editing an existing income that isn't in our default list, set the mode to Custom...
+  const isInitialCustom = initialIncome && !INCOME_CATEGORIES.includes(initialIncome.category) ? true : false;
+  const [category, setCategory] = useState(isInitialCustom ? 'Custom...' : (initialIncome?.category || 'Salary'));
+  const [customCategoryName, setCustomCategoryName] = useState(isInitialCustom ? initialIncome!.category : '');
+  
   const [date, setDate] = useState(initialIncome?.date || new Date().toISOString().split('T')[0]);
   const [description, setDescription] = useState(initialIncome?.description || '');
   const [bankName, setBankName] = useState(initialIncome?.bankName || (accounts && accounts.length > 0 ? accounts[0].name : ''));
@@ -109,12 +114,14 @@ const IncomeForm: React.FC<IncomeFormProps> = ({
       return;
     }
 
+    const finalCategory = category === 'Custom...' ? (customCategoryName.trim() || 'Other Income') : category;
+
     const payload: Income = {
       id: initialIncome?.id || Math.random().toString(36).substr(2, 9),
       amount: finalAmount,
-      category,
+      category: finalCategory,
       date,
-      description: description || `${category} Credit`,
+      description: description || `${finalCategory} Credit`,
       bankName,
       previousBalance: previousBankBalance,
       currentBalance: previousBankBalance + finalAmount
@@ -194,12 +201,30 @@ const IncomeForm: React.FC<IncomeFormProps> = ({
               <select
                 className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-semibold text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all cursor-pointer"
                 value={category}
-                onChange={(e) => setCategory(e.target.value)}
+                onChange={(e) => {
+                  setCategory(e.target.value);
+                  if (e.target.value !== 'Custom...') {
+                    setCustomCategoryName('');
+                  }
+                }}
               >
-                {INCOME_CATEGORIES.map(cat => (
+                {[...INCOME_CATEGORIES, "Custom..."].map(cat => (
                   <option key={cat} value={cat}>{cat}</option>
                 ))}
               </select>
+              
+              {category === 'Custom...' && (
+                <div className="mt-3 animate-in fade-in slide-in-from-top-2">
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Friend, Side Hustle..."
+                    className="w-full px-4 py-3 bg-emerald-50/50 dark:bg-emerald-900/10 border border-emerald-200/50 dark:border-emerald-500/30 rounded-xl text-sm font-bold text-emerald-800 dark:text-emerald-300 focus:ring-2 focus:ring-emerald-500/30 outline-none transition-all placeholder:text-emerald-600/40 dark:placeholder:text-emerald-500/40"
+                    value={customCategoryName}
+                    onChange={(e) => setCustomCategoryName(e.target.value)}
+                  />
+                </div>
+              )}
             </div>
 
             {/* Date Picker */}
