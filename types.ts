@@ -75,15 +75,40 @@ export interface Income {
 
 export type BudgetRuleType = 'manual' | 'income_100' | 'income_percentage';
 
-export type AccountType = 'savings' | 'salary' | 'current' | 'cash' | 'wallet' | 'upi' | 'credit';
+export type AccountCategory = 'Bank Account' | 'Credit Account' | 'Custom Account';
+
+export type AccountType = 
+  | 'savings' | 'salary' | 'current' | 'cash' | 'wallet' | 'upi' // Bank
+  | 'credit_card' | 'upi_credit' | 'bnpl' | 'personal_credit' // Credit
+  | 'custom'; // Custom
 
 export interface Account {
   id: string;
   name: string; // Account unique name, e.g. "HDFC Salary Account"
   type: AccountType;
-  bankName: string; // e.g. "HDFC Bank", "SBI"
-  initialBalance: number; // Starting balance
+  category?: AccountCategory; // Will be optional for backward compatibility
+  bankName: string; // e.g. "HDFC Bank", "SBI" or "Issuer Name"
+  initialBalance: number; // Starting balance (0 for credit unless they have starting outstanding)
   color: string; // Color code or badge name
+  
+  // Credit Specific
+  isCreditAccount?: boolean;
+  creditLimit?: number;
+  billingDate?: number; // 1-31
+  dueDate?: number; // 1-31
+  issuerName?: string;
+  
+  // Custom
+  customTypeName?: string;
+}
+
+export interface Repayment {
+  id: string;
+  fromAccountId: string; // Usually Bank Account ID or Name
+  toCreditAccountId: string; // Credit Account ID or Name
+  amount: number;
+  date: string;
+  description: string;
 }
 
 export interface Transfer {
