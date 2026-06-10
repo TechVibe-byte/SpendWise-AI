@@ -230,7 +230,6 @@ const Dashboard: React.FC<DashboardProps> = ({
     return 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400';
   }, [budgetUtilization]);
 
-  // 3. Complete Real Account Balance calculation including internal transfers & detailed metrics
   const bankBalancesData = useMemo(() => {
     const bankMap: { [bankName: string]: number } = {};
     accounts.forEach(acc => {
@@ -239,13 +238,23 @@ const Dashboard: React.FC<DashboardProps> = ({
 
     // Handle Income Credits
     incomes.forEach(inc => {
-      bankMap[inc.bankName] = (bankMap[inc.bankName] || 0) + inc.amount;
+      const acc = accounts.find(a => a.name === inc.bankName);
+      if (acc?.isCreditAccount) {
+        bankMap[inc.bankName] = (bankMap[inc.bankName] || 0) - inc.amount;
+      } else {
+        bankMap[inc.bankName] = (bankMap[inc.bankName] || 0) + inc.amount;
+      }
     });
 
     // Handle Expense Debits
     expenses.forEach(exp => {
       if (exp.bankName) {
-        bankMap[exp.bankName] = (bankMap[exp.bankName] || 0) - exp.amount;
+        const acc = accounts.find(a => a.name === exp.bankName);
+        if (acc?.isCreditAccount) {
+          bankMap[exp.bankName] = (bankMap[exp.bankName] || 0) + exp.amount;
+        } else {
+          bankMap[exp.bankName] = (bankMap[exp.bankName] || 0) - exp.amount;
+        }
       }
     });
 
@@ -254,10 +263,18 @@ const Dashboard: React.FC<DashboardProps> = ({
       const fromAcc = accounts.find(a => a.id === tr.fromAccountId);
       const toAcc = accounts.find(a => a.id === tr.toAccountId);
       if (fromAcc) {
-        bankMap[fromAcc.name] = (bankMap[fromAcc.name] || 0) - tr.amount;
+        if (fromAcc.isCreditAccount) {
+          bankMap[fromAcc.name] = (bankMap[fromAcc.name] || 0) + tr.amount;
+        } else {
+          bankMap[fromAcc.name] = (bankMap[fromAcc.name] || 0) - tr.amount;
+        }
       }
       if (toAcc) {
-        bankMap[toAcc.name] = (bankMap[toAcc.name] || 0) + tr.amount;
+        if (toAcc.isCreditAccount) {
+          bankMap[toAcc.name] = (bankMap[toAcc.name] || 0) - tr.amount;
+        } else {
+          bankMap[toAcc.name] = (bankMap[toAcc.name] || 0) + tr.amount;
+        }
       }
     });
 
@@ -283,22 +300,36 @@ const Dashboard: React.FC<DashboardProps> = ({
 
       const monthlyInflow = thisMonthInc + transferInflow;
       const monthlyOutflow = thisMonthExp + transferOutflow;
-      const netChange = monthlyInflow - monthlyOutflow;
+      const netChange = acc.isCreditAccount ? (monthlyOutflow - monthlyInflow) : (monthlyInflow - monthlyOutflow);
+
+      // Prevent negative outstanding if overpaid
+      const outstanding = Math.max(0, currentBal);
+      const availableLimit = acc.isCreditAccount && acc.creditLimit ? acc.creditLimit - outstanding : 0;
+      const utilization = acc.isCreditAccount && acc.creditLimit ? (outstanding / acc.creditLimit) * 100 : 0;
 
       return {
         ...acc,
         balance: currentBal,
+        outstanding,
+        availableLimit,
+        utilization,
         monthlyInflow,
         monthlyOutflow,
         netChange
       };
     });
 
-    const totalBalance = entries.reduce((s, item) => s + item.balance, 0);
+    // Total balance represents absolute net worth (Assets - Liabilities)
+    const totalAssets = entries.filter(a => !a.isCreditAccount).reduce((s, item) => s + item.balance, 0);
+    const totalLiabilities = entries.filter(a => a.isCreditAccount).reduce((s, item) => s + item.outstanding, 0);
+    const totalAvailableCredit = entries.filter(a => a.isCreditAccount).reduce((s, item) => s + item.availableLimit, 0);
 
     return {
       accounts: entries,
-      totalBalance
+      totalBalance: totalAssets - totalLiabilities,
+      totalAssets,
+      totalLiabilities,
+      totalAvailableCredit
     };
   }, [incomes, expenses, accounts, transfers, currentMonthPrefix]);
 
@@ -566,14 +597,28 @@ const Dashboard: React.FC<DashboardProps> = ({
     {
       id: 'available-balance',
       type: 'income',
-      title: 'Total Available Balance',
-      value: formatCurrency(bankBalancesData.totalBalance),
-      change: `${accounts.length} active wealth positions`,
+      title: 'Total Liquid Assets',
+      value: formatCurrency(bankBalancesData.totalAssets),
+      change: `Net Worth: ${formatCurrency(bankBalancesData.totalBalance)}`,
       subtext: 'Combined bank & wallet positions',
       gradient: 'from-emerald-500 via-teal-600 to-green-750',
       icon: (
         <svg className="w-5.5 h-5.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+        </svg>
+      )
+    },
+    {
+      id: 'credit-liabilities',
+      type: 'expenses',
+      title: 'Credit Liabilities',
+      value: formatCurrency(bankBalancesData.totalLiabilities),
+      change: `${formatCurrency(bankBalancesData.totalAvailableCredit)} Available Limit`,
+      subtext: 'Total outstanding across credit accounts',
+      gradient: 'from-rose-600 via-fuchsia-700 to-purple-800',
+      icon: (
+        <svg className="w-5.5 h-5.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 14l9-5-9-5-9 5 9 5zm0 0l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14zm-4 6v-7.5l4-2.222" />
         </svg>
       )
     },
@@ -982,83 +1027,105 @@ const Dashboard: React.FC<DashboardProps> = ({
                       </div>
                     ) : (
                       <form onSubmit={handleExecuteTransfer} className="space-y-6">
-                        <div className="flex justify-between items-start border-b border-slate-200/50 dark:border-slate-800/50 pb-4">
-                          <div>
-                            <h3 className="font-extrabold text-sm text-slate-800 dark:text-slate-200 uppercase tracking-wider">Transfer Between Accounts</h3>
-                            <p className="text-xs text-slate-500 mt-1">Move funds between your linked accounts without affecting income or expense totals.</p>
-                          </div>
-                          <button 
-                            type="button" 
-                            onClick={() => setShowTransferForm(false)} 
-                            className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 font-extrabold cursor-pointer text-xs"
-                          >
-                            ✕ Close
-                          </button>
-                        </div>
+                        {(() => {
+                          const toAcc = bankBalancesData.accounts.find(a => a.id === transferToId);
+                          const fromAcc = bankBalancesData.accounts.find(a => a.id === transferFromId);
+                          const isRepayment = toAcc?.isCreditAccount;
+                          const isCashAdvance = fromAcc?.isCreditAccount && !toAcc?.isCreditAccount;
+                          
+                          let formTitle = "Transfer Between Accounts";
+                          let formDesc = "Move funds between your linked accounts without affecting income or expense totals.";
+                          
+                          if (isRepayment) {
+                            formTitle = "Credit Card Repayment";
+                            formDesc = "Pay off your credit outstanding from a bank account.";
+                          } else if (isCashAdvance) {
+                            formTitle = "Credit Cash Advance";
+                            formDesc = "Transfer funds from your credit line to your bank account.";
+                          }
 
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-6">
-                          <div className="space-y-4">
-                            <label className="block text-xs font-semibold text-[#CBD5E1] tracking-wide">From Account</label>
-                            <select
-                              required
-                              className="w-full p-2.5 rounded-xl bg-[#0F172A] border border-[#334155] text-[#FFFFFF] text-xs font-medium cursor-pointer focus:border-[#8B5CF6] focus:ring-0 focus:outline-none focus:shadow-[0_0_0_3px_rgba(139,92,246,0.25)] transition-all"
-                              value={transferFromId}
-                              onChange={(e) => setTransferFromId(e.target.value)}
-                            >
-                              <option value="">Select Origin</option>
-                              {bankBalancesData.accounts.map(a => (
-                                <option key={a.id} value={a.id}>
-                                  {a.name} ({formatCurrency(a.balance)})
-                                </option>
-                              ))}
-                            </select>
-                            <p className="text-[10px] text-slate-500 mt-1">Select the account to transfer money from.</p>
-                          </div>
+                          return (
+                            <>
+                              <div className="flex justify-between items-start border-b border-slate-200/50 dark:border-slate-800/50 pb-4">
+                                <div>
+                                  <h3 className="font-extrabold text-sm text-slate-800 dark:text-slate-200 uppercase tracking-wider">{formTitle}</h3>
+                                  <p className="text-xs text-slate-500 mt-1">{formDesc}</p>
+                                </div>
+                                <button 
+                                  type="button" 
+                                  onClick={() => setShowTransferForm(false)} 
+                                  className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 font-extrabold cursor-pointer text-xs"
+                                >
+                                  ✕ Close
+                                </button>
+                              </div>
 
-                          <div className="space-y-4">
-                            <label className="block text-xs font-semibold text-[#CBD5E1] tracking-wide">To Account</label>
-                            <select
-                              required
-                              className="w-full p-2.5 rounded-xl bg-[#0F172A] border border-[#334155] text-[#FFFFFF] text-xs font-medium cursor-pointer focus:border-[#8B5CF6] focus:ring-0 focus:outline-none focus:shadow-[0_0_0_3px_rgba(139,92,246,0.25)] transition-all"
-                              value={transferToId}
-                              onChange={(e) => setTransferToId(e.target.value)}
-                            >
-                              <option value="">Select Destination</option>
-                              {bankBalancesData.accounts.map(a => (
-                                <option key={a.id} value={a.id}>
-                                  {a.name} ({formatCurrency(a.balance)})
-                                </option>
-                              ))}
-                            </select>
-                            <p className="text-[10px] text-slate-500 mt-1">Select the destination account.</p>
-                          </div>
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-6">
+                                <div className="space-y-4">
+                                  <label className="block text-xs font-semibold text-[#CBD5E1] tracking-wide">From Account</label>
+                                  <select
+                                    required
+                                    className="w-full p-2.5 rounded-xl bg-[#0F172A] border border-[#334155] text-[#FFFFFF] text-xs font-medium cursor-pointer focus:border-[#8B5CF6] focus:ring-0 focus:outline-none focus:shadow-[0_0_0_3px_rgba(139,92,246,0.25)] transition-all"
+                                    value={transferFromId}
+                                    onChange={(e) => setTransferFromId(e.target.value)}
+                                  >
+                                    <option value="">Select Origin</option>
+                                    {bankBalancesData.accounts.map(a => (
+                                      <option key={a.id} value={a.id}>
+                                        {a.name} ({a.isCreditAccount ? `Available: ${formatCurrency(a.availableLimit)}` : formatCurrency(a.balance)})
+                                      </option>
+                                    ))}
+                                  </select>
+                                  <p className="text-[10px] text-slate-500 mt-1">Select the account to transfer money from.</p>
+                                </div>
 
-                          <div className="space-y-4">
-                            <label className="block text-xs font-semibold text-[#CBD5E1] tracking-wide">Amount (₹)</label>
-                            <input
-                              type="number"
-                              required
-                              step="any"
-                              placeholder="0.00"
-                              className="w-full p-2.5 rounded-xl bg-[#0F172A] border border-[#334155] text-[#FFFFFF] placeholder-[#94A3B8] text-xs font-mono font-semibold focus:border-[#8B5CF6] focus:ring-0 focus:outline-none focus:shadow-[0_0_0_3px_rgba(139,92,246,0.25)] transition-all"
-                              value={transferAmount}
-                              onChange={(e) => setTransferAmount(e.target.value)}
-                            />
-                            <p className="text-[10px] text-slate-500 mt-1">Enter the amount to move.</p>
-                          </div>
+                                <div className="space-y-4">
+                                  <label className="block text-xs font-semibold text-[#CBD5E1] tracking-wide">To Account</label>
+                                  <select
+                                    required
+                                    className="w-full p-2.5 rounded-xl bg-[#0F172A] border border-[#334155] text-[#FFFFFF] text-xs font-medium cursor-pointer focus:border-[#8B5CF6] focus:ring-0 focus:outline-none focus:shadow-[0_0_0_3px_rgba(139,92,246,0.25)] transition-all"
+                                    value={transferToId}
+                                    onChange={(e) => setTransferToId(e.target.value)}
+                                  >
+                                    <option value="">Select Destination</option>
+                                    {bankBalancesData.accounts.map(a => (
+                                      <option key={a.id} value={a.id}>
+                                        {a.name} ({a.isCreditAccount ? `Outstanding: ${formatCurrency(a.outstanding)}` : formatCurrency(a.balance)})
+                                      </option>
+                                    ))}
+                                  </select>
+                                  <p className="text-[10px] text-slate-500 mt-1">Select the destination account.</p>
+                                </div>
 
-                          <div className="space-y-4">
-                            <label className="block text-xs font-semibold text-[#CBD5E1] tracking-wide">Description Note</label>
-                            <input
-                              type="text"
-                              placeholder="Optional note for future reference"
-                              className="w-full p-2.5 rounded-xl bg-[#0F172A] border border-[#334155] text-[#FFFFFF] placeholder-[#94A3B8] text-xs focus:border-[#8B5CF6] focus:ring-0 focus:outline-none focus:shadow-[0_0_0_3px_rgba(139,92,246,0.25)] transition-all"
-                              value={transferDesc}
-                              onChange={(e) => setTransferDesc(e.target.value)}
-                            />
-                            <p className="text-[10px] text-slate-500 mt-1">Optional note for future reference.</p>
-                          </div>
-                        </div>
+                                <div className="space-y-4">
+                                  <label className="block text-xs font-semibold text-[#CBD5E1] tracking-wide">Amount (₹)</label>
+                                  <input
+                                    type="number"
+                                    required
+                                    step="any"
+                                    placeholder="0.00"
+                                    className="w-full p-2.5 rounded-xl bg-[#0F172A] border border-[#334155] text-[#FFFFFF] placeholder-[#94A3B8] text-xs font-mono font-semibold focus:border-[#8B5CF6] focus:ring-0 focus:outline-none focus:shadow-[0_0_0_3px_rgba(139,92,246,0.25)] transition-all"
+                                    value={transferAmount}
+                                    onChange={(e) => setTransferAmount(e.target.value)}
+                                  />
+                                  <p className="text-[10px] text-slate-500 mt-1">Enter the amount to move.</p>
+                                </div>
+
+                                <div className="space-y-4">
+                                  <label className="block text-xs font-semibold text-[#CBD5E1] tracking-wide">Description Note</label>
+                                  <input
+                                    type="text"
+                                    placeholder="Optional note for future reference"
+                                    className="w-full p-2.5 rounded-xl bg-[#0F172A] border border-[#334155] text-[#FFFFFF] placeholder-[#94A3B8] text-xs focus:border-[#8B5CF6] focus:ring-0 focus:outline-none focus:shadow-[0_0_0_3px_rgba(139,92,246,0.25)] transition-all"
+                                    value={transferDesc}
+                                    onChange={(e) => setTransferDesc(e.target.value)}
+                                  />
+                                  <p className="text-[10px] text-slate-500 mt-1">Optional note for future reference.</p>
+                                </div>
+                              </div>
+                            </>
+                          );
+                        })()}
 
                         <div className="flex justify-end space-x-3 pt-4 border-t border-slate-200/50 dark:border-slate-800/50">
                           <button
@@ -1084,6 +1151,56 @@ const Dashboard: React.FC<DashboardProps> = ({
             </>
           )}
         </div>
+
+        {/* Credit Intelligence & Liabilities */}
+        {bankBalancesData.accounts.some(a => a.isCreditAccount) && (
+          <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-5 md:p-6 rounded-3xl shadow-sm mb-6">
+            <div className="flex justify-between items-start mb-4">
+              <div>
+                <h4 className="font-bold text-slate-900 dark:text-white text-sm md:text-base">Credit Intelligence</h4>
+                <p className="text-xs text-slate-400">Live credit utilization and liabilities</p>
+              </div>
+              <span className="text-[9.5px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md bg-rose-50 text-rose-600 dark:bg-rose-950/40 dark:text-rose-400">
+                Liabilities
+              </span>
+            </div>
+
+            <div className="space-y-5">
+              {bankBalancesData.accounts.filter(a => a.isCreditAccount).map(acc => {
+                const util = acc.utilization || 0;
+                let utilLabel = 'Low Usage';
+                let utilColor = 'bg-emerald-500';
+                if (util > 80) { utilLabel = 'High Usage'; utilColor = 'bg-red-500'; }
+                else if (util > 30) { utilLabel = 'Moderate Usage'; utilColor = 'bg-amber-500'; }
+                
+                return (
+                  <div key={acc.id} className="pt-2">
+                    <div className="flex justify-between items-baseline mb-1">
+                      <span className="text-sm font-bold text-slate-800 dark:text-slate-200">{acc.name}</span>
+                      <span className="text-[11px] font-bold text-slate-400 font-mono">
+                        {formatCurrency(acc.outstanding)} / {formatCurrency(acc.creditLimit || 0)}
+                      </span>
+                    </div>
+
+                    <div className="w-full bg-slate-100 dark:bg-slate-800 h-2 rounded-full overflow-hidden mb-1.5">
+                      <div 
+                        className={`h-full rounded-full transition-all duration-500 ${utilColor}`}
+                        style={{ width: `${Math.min(util, 100)}%` }}
+                      />
+                    </div>
+                    
+                    <div className="flex justify-between items-center text-[10px] font-semibold text-slate-500">
+                      <span>{utilLabel} ({util.toFixed(1)}%)</span>
+                      {acc.dueDate && (
+                        <span className="text-indigo-500 dark:text-indigo-400">Due: Day {acc.dueDate}</span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {/* Dynamic Budget configuration summary */}
         <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-5 md:p-6 rounded-3xl shadow-sm">
@@ -1126,6 +1243,22 @@ const Dashboard: React.FC<DashboardProps> = ({
               </div>
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* Quick Stats Block (Moved from App.tsx) */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 md:gap-6 mb-6 md:mb-8">
+        <div className="bg-white dark:bg-slate-900 p-5 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col items-center justify-center text-center">
+          <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1.5">Avg. Daily Spend</span>
+          <span className="text-xl font-black text-slate-800 dark:text-white">{formatCurrency(expenses.reduce((s, e) => s + e.amount, 0) / (expenses.length > 0 ? 30 : 1))}</span>
+        </div>
+        <div className="bg-white dark:bg-slate-900 p-5 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col items-center justify-center text-center">
+          <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1.5">Highest Transaction</span>
+          <span className="text-xl font-black text-slate-800 dark:text-white">{formatCurrency(expenses.length > 0 ? Math.max(...expenses.map(e => e.amount)) : 0)}</span>
+        </div>
+        <div className="bg-white dark:bg-slate-900 p-5 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col items-center justify-center text-center">
+          <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1.5">Active Categories</span>
+          <span className="text-xl font-black text-slate-800 dark:text-white">{new Set(expenses.map(e => e.category)).size}</span>
         </div>
       </div>
 

@@ -50,6 +50,7 @@ const IncomeForm: React.FC<IncomeFormProps> = ({
   const [employerName, setEmployerName] = useState(initialIncome?.employerName || '');
   const [salaryMonth, setSalaryMonth] = useState(initialIncome?.salaryMonth || '');
   const [salaryBonus, setSalaryBonus] = useState(initialIncome?.bonus?.toString() || '');
+  const [salaryAllocation, setSalaryAllocation] = useState<'none' | 'savings' | 'repay' | 'split'>('none');
 
   // Family Support Transferee
   const [receivedFrom, setReceivedFrom] = useState(initialIncome?.receivedFrom || 'Parents');
@@ -327,6 +328,31 @@ const IncomeForm: React.FC<IncomeFormProps> = ({
                   value={salaryBonus}
                   onChange={(e) => setSalaryBonus(e.target.value)}
                 />
+              </div>
+
+              <div className="pt-2 border-t border-slate-200 dark:border-slate-800">
+                <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-2">
+                  Post-Credit Action (Optional Workflow)
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  <label className={`flex items-center p-2 rounded-xl border text-xs cursor-pointer transition-all ${salaryAllocation === 'savings' ? 'bg-emerald-50 border-emerald-500 text-emerald-800 dark:bg-emerald-950/30 dark:border-emerald-500/50 dark:text-emerald-300' : 'bg-white border-slate-200 text-slate-600 dark:bg-slate-900 dark:border-slate-700 dark:text-slate-400'}`}>
+                    <input type="radio" name="allocation" className="hidden" checked={salaryAllocation === 'savings'} onChange={() => setSalaryAllocation('savings')} />
+                    <span className="font-semibold">Allocate to Savings</span>
+                  </label>
+                  <label className={`flex items-center p-2 rounded-xl border text-xs cursor-pointer transition-all ${salaryAllocation === 'repay' ? 'bg-emerald-50 border-emerald-500 text-emerald-800 dark:bg-emerald-950/30 dark:border-emerald-500/50 dark:text-emerald-300' : 'bg-white border-slate-200 text-slate-600 dark:bg-slate-900 dark:border-slate-700 dark:text-slate-400'}`}>
+                    <input type="radio" name="allocation" className="hidden" checked={salaryAllocation === 'repay'} onChange={() => setSalaryAllocation('repay')} />
+                    <span className="font-semibold">Repay Credit</span>
+                  </label>
+                  <label className={`flex items-center p-2 rounded-xl border text-xs cursor-pointer transition-all ${salaryAllocation === 'split' ? 'bg-emerald-50 border-emerald-500 text-emerald-800 dark:bg-emerald-950/30 dark:border-emerald-500/50 dark:text-emerald-300' : 'bg-white border-slate-200 text-slate-600 dark:bg-slate-900 dark:border-slate-700 dark:text-slate-400'}`}>
+                    <input type="radio" name="allocation" className="hidden" checked={salaryAllocation === 'split'} onChange={() => setSalaryAllocation('split')} />
+                    <span className="font-semibold">Split Accounts</span>
+                  </label>
+                </div>
+                {salaryAllocation !== 'none' && (
+                  <p className="text-[10px] text-emerald-600 dark:text-emerald-400 mt-2 font-semibold">
+                    You can manage this action from the Transfer Hub in the Dashboard after recording this income.
+                  </p>
+                )}
               </div>
             </motion.div>
           )}

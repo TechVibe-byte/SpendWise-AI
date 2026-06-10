@@ -734,20 +734,7 @@ const App: React.FC = () => {
                   </div>
                   
                   <div className="w-full max-w-3xl mx-auto space-y-6 md:space-y-8">
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 md:gap-6">
-                      <div className="bg-white dark:bg-slate-900 p-5 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col items-center justify-center text-center">
-                        <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1.5">Avg. Daily Spend</span>
-                        <span className="text-xl font-black text-slate-800 dark:text-white">{formatCurrency(totalSpent / (expenses.length > 0 ? 30 : 1))}</span>
-                      </div>
-                      <div className="bg-white dark:bg-slate-900 p-5 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col items-center justify-center text-center">
-                        <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1.5">Highest Transaction</span>
-                        <span className="text-xl font-black text-slate-800 dark:text-white">{formatCurrency(Math.max(...expenses.map(e=>e.amount), 0))}</span>
-                      </div>
-                      <div className="bg-white dark:bg-slate-900 p-5 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col items-center justify-center text-center">
-                        <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1.5">Active Categories</span>
-                        <span className="text-xl font-black text-slate-800 dark:text-white">{new Set(expenses.map(e=>e.category)).size}</span>
-                      </div>
-                    </div>
+                    {/* Quick Stats moved to Dashboard */}
                     <AIInsights expenses={expenses} categories={allCategories} openRouterApiKey={openRouterApiKey} />
                   </div>
                 </div>

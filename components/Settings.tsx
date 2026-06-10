@@ -61,14 +61,23 @@ interface SettingsProps {
   setShowPwaHelp?: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
-const ACCOUNT_TYPES: { value: AccountType; label: string }[] = [
-  { value: 'savings', label: 'Savings Account' },
-  { value: 'salary', label: 'Salary Account' },
-  { value: 'current', label: 'Current Account' },
-  { value: 'cash', label: 'Cash / Liquid Cash' },
-  { value: 'wallet', label: 'Digital Wallet (e.g. Paytm)' },
-  { value: 'upi', label: 'UPI Linked Account' },
-  { value: 'credit', label: 'Credit Card' }
+const ACCOUNT_TYPES: { value: AccountType; label: string; category: AccountCategory }[] = [
+  // Bank Accounts
+  { value: 'savings', label: 'Savings Account', category: 'Bank Account' },
+  { value: 'salary', label: 'Salary Account', category: 'Bank Account' },
+  { value: 'current', label: 'Current Account', category: 'Bank Account' },
+  { value: 'cash', label: 'Cash Wallet', category: 'Bank Account' },
+  { value: 'wallet', label: 'Digital Wallet', category: 'Bank Account' },
+  { value: 'upi', label: 'UPI Linked Account', category: 'Bank Account' },
+  
+  // Credit Accounts
+  { value: 'credit_card', label: 'Credit Card', category: 'Credit Account' },
+  { value: 'upi_credit', label: 'UPI Credit Line', category: 'Credit Account' },
+  { value: 'bnpl', label: 'Buy Now Pay Later (BNPL)', category: 'Credit Account' },
+  { value: 'personal_credit', label: 'Personal Credit Limit', category: 'Credit Account' },
+  
+  // Custom Account
+  { value: 'custom', label: 'Custom Account', category: 'Custom Account' }
 ];
 
 const ACCOUNT_COLORS = [
@@ -143,6 +152,13 @@ const Settings: React.FC<SettingsProps> = ({
   const [newAccBank, setNewAccBank] = useState('');
   const [newAccBalance, setNewAccBalance] = useState('');
   const [newAccColor, setNewAccColor] = useState('#6366f1');
+  
+  // Credit specific states
+  const [newAccCreditLimit, setNewAccCreditLimit] = useState('');
+  const [newAccBillingDate, setNewAccBillingDate] = useState('1');
+  const [newAccDueDate, setNewAccDueDate] = useState('15');
+  const [newAccIssuer, setNewAccIssuer] = useState('');
+  const [newAccCustomTypeName, setNewAccCustomTypeName] = useState('');
 
   // Delete confirmations
   const [accountDeletionConfirm, setAccountDeletionConfirm] = useState<{ id: string; name: string; isUsed: boolean } | null>(null);
@@ -210,6 +226,11 @@ const Settings: React.FC<SettingsProps> = ({
     setNewAccBalance('');
     setNewAccType('savings');
     setNewAccColor('#6366f1');
+    setNewAccCreditLimit('');
+    setNewAccBillingDate('1');
+    setNewAccDueDate('15');
+    setNewAccIssuer('');
+    setNewAccCustomTypeName('');
     setShowMoreAccountOptions(false);
     setShowAccountModal(true);
   };
@@ -221,6 +242,11 @@ const Settings: React.FC<SettingsProps> = ({
     setNewAccBalance(acc.initialBalance.toString());
     setNewAccType(acc.type);
     setNewAccColor(acc.color || '#6366f1');
+    setNewAccCreditLimit(acc.creditLimit?.toString() || '');
+    setNewAccBillingDate(acc.billingDate?.toString() || '1');
+    setNewAccDueDate(acc.dueDate?.toString() || '15');
+    setNewAccIssuer(acc.issuerName || '');
+    setNewAccCustomTypeName(acc.customTypeName || '');
     setShowMoreAccountOptions(true);
     setShowAccountModal(true);
   };
@@ -232,20 +258,36 @@ const Settings: React.FC<SettingsProps> = ({
       return;
     }
 
+    const isCreditAccount = ACCOUNT_TYPES.find(t => t.value === newAccType)?.category === 'Credit Account';
+    const isCustomAccount = ACCOUNT_TYPES.find(t => t.value === newAccType)?.category === 'Custom Account';
+    
+    if (isCreditAccount && !newAccCreditLimit) {
+      showToast('Please provide a credit limit for credit accounts.', 'error');
+      return;
+    }
+
+    const accountPayload = {
+      name: newAccName.trim(),
+      bankName: newAccBank.trim() || 'Self/Bank',
+      type: newAccType,
+      category: ACCOUNT_TYPES.find(t => t.value === newAccType)?.category || 'Bank Account',
+      initialBalance: parseFloat(newAccBalance) || 0,
+      color: newAccColor,
+      isCreditAccount,
+      creditLimit: isCreditAccount ? parseFloat(newAccCreditLimit) : undefined,
+      billingDate: isCreditAccount ? parseInt(newAccBillingDate) : undefined,
+      dueDate: isCreditAccount ? parseInt(newAccDueDate) : undefined,
+      issuerName: isCreditAccount ? newAccIssuer.trim() : undefined,
+      customTypeName: isCustomAccount ? newAccCustomTypeName.trim() : undefined,
+    };
+
     if (editingAcc) {
       if (accounts.some(a => a.id !== editingAcc.id && a.name.toLowerCase().trim() === newAccName.toLowerCase().trim())) {
         showToast('Account label already registered. Enter a unique name.', 'error');
         return;
       }
 
-      setAccounts(prev => prev.map(a => a.id === editingAcc.id ? {
-        ...a,
-        name: newAccName.trim(),
-        bankName: newAccBank.trim() || 'Self/Bank',
-        type: newAccType,
-        initialBalance: parseFloat(newAccBalance) || 0,
-        color: newAccColor
-      } : a));
+      setAccounts(prev => prev.map(a => a.id === editingAcc.id ? { ...a, ...accountPayload } : a));
       showToast('Account profile modified successfully!', 'success');
     } else {
       if (accounts.some(a => a.name.toLowerCase().trim() === newAccName.toLowerCase().trim())) {
@@ -255,11 +297,7 @@ const Settings: React.FC<SettingsProps> = ({
 
       const freshAcc: Account = {
         id: Math.random().toString(36).substr(2, 9),
-        name: newAccName.trim(),
-        type: newAccType,
-        bankName: newAccBank.trim() || 'Self/Bank',
-        initialBalance: parseFloat(newAccBalance) || 0,
-        color: newAccColor
+        ...accountPayload
       };
       setAccounts(prev => [...prev, freshAcc]);
       showToast(`Account "${newAccName}" launched perfectly!`, 'success');
@@ -706,10 +744,10 @@ const Settings: React.FC<SettingsProps> = ({
                           <div className="flex justify-between items-start space-x-4">
                             <div className="min-w-0">
                               <span className="inline-block bg-slate-200/50 dark:bg-white/[0.04] text-[9px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 px-2 py-0.5 rounded-md mb-2 border border-slate-300/30 dark:border-white/[0.03]">
-                                {getAccountTypeLabel(acc.type)}
+                                {acc.customTypeName || getAccountTypeLabel(acc.type)}
                               </span>
                               <h4 className="font-extrabold text-slate-900 dark:text-slate-100 text-sm truncate">{acc.name}</h4>
-                              <p className="text-[10px] text-slate-500 mt-0.5 font-semibold truncate">Issuer: {acc.bankName || 'Self'}</p>
+                              <p className="text-[10px] text-slate-500 mt-0.5 font-semibold truncate">Issuer: {acc.issuerName || acc.bankName || 'Self'}</p>
                             </div>
 
                             <div className="flex space-x-0.5">
@@ -729,21 +767,46 @@ const Settings: React.FC<SettingsProps> = ({
                           </div>
 
                           <div className="mt-4 flex items-end justify-between border-t border-slate-200 dark:border-white/[0.04] pt-3.5">
-                            <div>
-                              <p className="text-[9px] text-slate-550 dark:text-slate-450 uppercase tracking-widest font-black">Opening Balance</p>
-                              <h5 className="text-base font-black font-mono tracking-tight text-slate-900 dark:text-slate-200 mt-0.5">
-                                {formatCurrency(acc.initialBalance)}
-                              </h5>
-                            </div>
+                            {acc.isCreditAccount ? (
+                              <>
+                                <div>
+                                  <p className="text-[9px] text-slate-550 dark:text-slate-450 uppercase tracking-widest font-black">Limit</p>
+                                  <h5 className="text-sm font-black font-mono tracking-tight text-slate-900 dark:text-slate-200 mt-0.5">
+                                    {formatCurrency(acc.creditLimit || 0)}
+                                  </h5>
+                                </div>
+                                <div className="text-center">
+                                  <p className="text-[9px] text-slate-550 dark:text-slate-450 uppercase tracking-widest font-black">Starting Outst.</p>
+                                  <h5 className="text-sm font-black font-mono tracking-tight text-slate-900 dark:text-slate-200 mt-0.5">
+                                    {formatCurrency(acc.initialBalance)}
+                                  </h5>
+                                </div>
+                                <div className="text-right">
+                                  <p className="text-[9px] text-slate-550 uppercase tracking-widest font-bold">Due Date</p>
+                                  <h5 className="text-xs font-black tracking-tight text-slate-700 dark:text-slate-300 mt-1">
+                                    {acc.dueDate ? `Day ${acc.dueDate}` : 'N/A'}
+                                  </h5>
+                                </div>
+                              </>
+                            ) : (
+                              <>
+                                <div>
+                                  <p className="text-[9px] text-slate-550 dark:text-slate-450 uppercase tracking-widest font-black">Opening Balance</p>
+                                  <h5 className="text-base font-black font-mono tracking-tight text-slate-900 dark:text-slate-200 mt-0.5">
+                                    {formatCurrency(acc.initialBalance)}
+                                  </h5>
+                                </div>
 
-                            <div className="text-right">
-                              <p className="text-[9px] text-slate-550 uppercase tracking-widest font-bold">Monthly Flow</p>
-                              <p className="text-[10px] font-black font-mono mt-0.5">
-                                <span className="text-emerald-500 dark:text-emerald-400">+{formatCurrency(flows.income)}</span>
-                                <span className="text-slate-400 dark:text-slate-500 mx-1">/</span>
-                                <span className="text-rose-500 dark:text-rose-400">-{formatCurrency(flows.spent)}</span>
-                              </p>
-                            </div>
+                                <div className="text-right">
+                                  <p className="text-[9px] text-slate-550 uppercase tracking-widest font-bold">Monthly Flow</p>
+                                  <p className="text-[10px] font-black font-mono mt-0.5">
+                                    <span className="text-emerald-500 dark:text-emerald-400">+{formatCurrency(flows.income)}</span>
+                                    <span className="text-slate-400 dark:text-slate-500 mx-1">/</span>
+                                    <span className="text-rose-500 dark:text-rose-400">-{formatCurrency(flows.spent)}</span>
+                                  </p>
+                                </div>
+                              </>
+                            )}
                           </div>
                         </div>
                       );
@@ -1422,7 +1485,12 @@ const Settings: React.FC<SettingsProps> = ({
                   </div>
 
                   <div className="grid grid-cols-2 gap-3">
-                    <div>
+                    {(() => {
+                      const isCreditAccount = ACCOUNT_TYPES.find(t => t.value === newAccType)?.category === 'Credit Account';
+                      const isCustomAccount = ACCOUNT_TYPES.find(t => t.value === newAccType)?.category === 'Custom Account';
+                      return (
+                        <>
+                          <div>
                       <label className="block text-[9px] font-black text-slate-500 dark:text-slate-404 uppercase tracking-widest mb-1.5">
                         Account Position *
                       </label>
@@ -1439,7 +1507,7 @@ const Settings: React.FC<SettingsProps> = ({
 
                     <div>
                       <label className="block text-[9px] font-black text-slate-500 dark:text-slate-404 uppercase tracking-widest mb-1.5">
-                        Opening Balance (₹) *
+                        {isCreditAccount ? 'Starting Outstanding (₹) *' : 'Opening Balance (₹) *'}
                       </label>
                       <input
                         type="number"
@@ -1450,7 +1518,79 @@ const Settings: React.FC<SettingsProps> = ({
                         onChange={(e) => setNewAccBalance(e.target.value)}
                       />
                     </div>
-                  </div>
+                      {isCustomAccount && (
+                        <div className="col-span-2 mt-2">
+                          <label className="block text-[9px] font-black text-slate-500 dark:text-slate-404 uppercase tracking-widest mb-1.5">
+                            Custom Account Type Name *
+                          </label>
+                          <input
+                            type="text"
+                            required
+                            placeholder="e.g. Amazon Pay Later"
+                            className="w-full h-10 px-4 rounded-xl border border-slate-200 dark:border-white/[0.08] bg-white dark:bg-[#111827] text-slate-900 dark:text-white text-xs font-bold focus:outline-none focus:border-indigo-500 transition-colors"
+                            value={newAccCustomTypeName}
+                            onChange={(e) => setNewAccCustomTypeName(e.target.value)}
+                          />
+                        </div>
+                      )}
+                      
+                      {isCreditAccount && (
+                        <div className="col-span-2 grid grid-cols-2 gap-3 mt-2">
+                          <div>
+                            <label className="block text-[9px] font-black text-slate-500 dark:text-slate-404 uppercase tracking-widest mb-1.5 text-rose-500 dark:text-rose-400">
+                              Credit Limit (₹) *
+                            </label>
+                            <input
+                              type="number"
+                              required
+                              placeholder="100000"
+                              className="w-full h-10 px-4 rounded-xl border border-rose-200 dark:border-rose-500/30 bg-rose-50 dark:bg-rose-950/20 text-rose-700 dark:text-rose-300 text-xs font-bold font-mono focus:outline-none focus:border-rose-500 transition-colors"
+                              value={newAccCreditLimit}
+                              onChange={(e) => setNewAccCreditLimit(e.target.value)}
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-[9px] font-black text-slate-500 dark:text-slate-404 uppercase tracking-widest mb-1.5">
+                              Issuer / Provider
+                            </label>
+                            <input
+                              type="text"
+                              placeholder="e.g. HDFC Bank"
+                              className="w-full h-10 px-4 rounded-xl border border-slate-200 dark:border-white/[0.08] bg-white dark:bg-[#111827] text-slate-900 dark:text-white text-xs font-bold focus:outline-none focus:border-indigo-500 transition-colors"
+                              value={newAccIssuer}
+                              onChange={(e) => setNewAccIssuer(e.target.value)}
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-[9px] font-black text-slate-500 dark:text-slate-404 uppercase tracking-widest mb-1.5">
+                              Billing Date (1-31)
+                            </label>
+                            <input
+                              type="number"
+                              min="1" max="31"
+                              className="w-full h-10 px-4 rounded-xl border border-slate-200 dark:border-white/[0.08] bg-white dark:bg-[#111827] text-slate-900 dark:text-white text-xs font-bold font-mono focus:outline-none focus:border-indigo-500 transition-colors"
+                              value={newAccBillingDate}
+                              onChange={(e) => setNewAccBillingDate(e.target.value)}
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-[9px] font-black text-slate-500 dark:text-slate-404 uppercase tracking-widest mb-1.5">
+                              Due Date (1-31)
+                            </label>
+                            <input
+                              type="number"
+                              min="1" max="31"
+                              className="w-full h-10 px-4 rounded-xl border border-slate-200 dark:border-white/[0.08] bg-white dark:bg-[#111827] text-slate-900 dark:text-white text-xs font-bold font-mono focus:outline-none focus:border-indigo-500 transition-colors"
+                              value={newAccDueDate}
+                              onChange={(e) => setNewAccDueDate(e.target.value)}
+                            />
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  );
+                })()}
+              </div>
 
                   <div className="pt-2">
                     <button

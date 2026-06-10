@@ -25,8 +25,9 @@ Say goodbye to expensive AI API keys and network latency. SpendWise features a c
 ### 💡 Smart Indian Merchant Categorization
 SpendWise automatically categorizes your transactions as you type. It recognizes over 120+ Indian merchants (Swiggy, Zomato, Uber, Namma Yatri, IRCTC, ACT Fibernet) and UPI strings, instantly suggesting the correct category with a beautiful inline confirmation chip.
 
-### 🏦 Multi-Account & Budget Rule Engine
-- **Vault Center**: Manage multiple bank accounts, cash wallets, and credit cards.
+### 🏦 Multi-Account & Credit Intelligence
+- **Vault Center**: Manage multiple bank accounts, cash wallets, credit cards, and UPI credit lines.
+- **Credit Intelligence**: Real-time tracking of credit limits, outstanding liabilities, and smart repayment workflows directly from the Dashboard.
 - **Dynamic Budget Rules**: Set static monthly caps or configure the engine to dynamically adjust your spending limits based on the 50/30/20 rule or your total monthly income.
 
 ![Vault Center](public/screenshot-settings.png)
