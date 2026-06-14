@@ -127,3 +127,13 @@ export interface SalaryRule {
   creditDate: number; // Day of month (1 to 31)
   accountName: string; // Name of receiving account
 }
+
+export interface TelegramBackupSettings {
+  botToken: string;
+  chatId: string;
+  autoBackup: 'None' | 'Daily' | 'Weekly' | 'Monthly';
+  lastBackupTime?: string;
+  nextBackupTime?: string;
+  enabled: boolean;
+  latestBackupFileId?: string;
+}
