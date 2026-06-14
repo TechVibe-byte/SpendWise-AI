@@ -81,6 +81,7 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({ onAdd, onClose, initialExpens
   const [category, setCategory] = useState<Category>(initialExpense?.category || DefaultCategory.OTHER);
   const [bankName, setBankName] = useState(initialExpense?.bankName || (accounts && accounts.length > 0 ? accounts[0].name : ''));
   const [date, setDate] = useState(initialExpense?.date || new Date().toISOString().split('T')[0]);
+  const [note, setNote] = useState(initialExpense?.note || '');
   const [isRecurring, setIsRecurring] = useState(false);
   const [frequency, setFrequency] = useState<RecurringFrequency>(RecurringFrequency.MONTHLY);
   const [showBankSuggestions, setShowBankSuggestions] = useState(false);
@@ -101,6 +102,7 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({ onAdd, onClose, initialExpens
       setCategory(initialExpense.category);
       setBankName(initialExpense.bankName || '');
       setDate(initialExpense.date);
+      setNote(initialExpense.note || '');
       setReceiptImage(initialExpense.receiptImage || null);
       
       if (initialRecurringFrequency) {
@@ -117,6 +119,7 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({ onAdd, onClose, initialExpens
       setCategory(DefaultCategory.OTHER);
       setBankName(accounts && accounts.length > 0 ? accounts[0].name : '');
       setDate(new Date().toISOString().split('T')[0]);
+      setNote('');
       setReceiptImage(null);
       setIsRecurring(false);
       setFrequency(RecurringFrequency.MONTHLY);
@@ -248,6 +251,7 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({ onAdd, onClose, initialExpens
         category,
         date,
         bankName,
+        note: note || undefined,
         receiptImage: receiptImage || undefined
       },
       isRecurring ? { frequency } : undefined
@@ -445,6 +449,42 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({ onAdd, onClose, initialExpens
               </div>
             </div>
 
+            {/* Note Section */}
+            <div>
+              <label className="block text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">
+                Note / Tracking Number
+              </label>
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="Paste tracking number or extra notes..."
+                  className="w-full px-4 py-4 md:py-3 pr-12 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all text-base"
+                  value={note}
+                  onChange={(e) => setNote(e.target.value)}
+                />
+                {note && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigator.clipboard.writeText(note);
+                      const btn = document.getElementById('copy-note-btn');
+                      if (btn) {
+                        btn.innerHTML = '<svg class="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" /></svg>';
+                        setTimeout(() => {
+                          btn.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" /></svg>';
+                        }, 2000);
+                      }
+                    }}
+                    id="copy-note-btn"
+                    className="absolute inset-y-0 right-2 my-auto h-8 w-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition-all cursor-pointer"
+                    title="Copy Note"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" /></svg>
+                  </button>
+                )}
+              </div>
+            </div>
+
             {/* Receipt Section */}
             <div>
               <label className="block text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">
@@ -516,14 +556,21 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({ onAdd, onClose, initialExpens
 
             {!isEditMode && (
               <div className="bg-slate-50 dark:bg-slate-800/40 p-5 rounded-2xl border border-slate-100 dark:border-slate-800/60">
-                <label className="flex items-center cursor-pointer select-none">
-                  <input 
-                    type="checkbox" 
-                    className="w-5 h-5 rounded border-slate-300 dark:border-slate-600 text-indigo-600 focus:ring-indigo-500 transition-all" 
-                    checked={isRecurring}
-                    onChange={(e) => setIsRecurring(e.target.checked)}
-                  />
-                  <span className="ml-3 text-sm font-bold text-slate-700 dark:text-slate-300">Set as recurring payment</span>
+                <label className="flex items-center cursor-pointer select-none group">
+                  <div className="relative flex items-center justify-center w-5 h-5 mr-3">
+                    <input 
+                      type="checkbox" 
+                      className="peer sr-only" 
+                      checked={isRecurring}
+                      onChange={(e) => setIsRecurring(e.target.checked)}
+                    />
+                    <div className="absolute inset-0 border-2 border-slate-300 dark:border-slate-600 rounded flex items-center justify-center transition-all duration-200 bg-white dark:bg-slate-800 peer-checked:bg-indigo-600 peer-checked:border-indigo-600 group-hover:border-indigo-400 dark:group-hover:border-indigo-500 shadow-sm">
+                      <svg className={`w-3.5 h-3.5 text-white transition-transform duration-200 ${isRecurring ? 'scale-100' : 'scale-0'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                      </svg>
+                    </div>
+                  </div>
+                  <span className="text-sm font-bold text-slate-700 dark:text-slate-300 transition-colors group-hover:text-indigo-600 dark:group-hover:text-indigo-400">Set as recurring payment</span>
                 </label>
                 
                 {isRecurring && (

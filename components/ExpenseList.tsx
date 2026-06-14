@@ -612,6 +612,25 @@ const ExpenseList: React.FC<ExpenseListProps> = ({ expenses, onDelete, onEdit, c
                         </svg>
                       )}
                     </h4>
+                    {expense.note && (
+                      <div className="flex items-center text-[10px] md:text-xs text-slate-500 dark:text-slate-400 mt-0.5 mb-0.5">
+                        <span className="font-mono bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded mr-1.5 truncate max-w-[150px] md:max-w-[200px]" title={expense.note}>{expense.note}</span>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigator.clipboard.writeText(expense.note!);
+                            const btn = e.currentTarget;
+                            const originalHTML = btn.innerHTML;
+                            btn.innerHTML = '<svg class="w-3 h-3 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" /></svg>';
+                            setTimeout(() => { btn.innerHTML = originalHTML; }, 2000);
+                          }}
+                          title="Copy Note"
+                          className="hover:text-indigo-600 transition-colors p-1 bg-slate-50 dark:bg-slate-800/50 rounded hover:bg-indigo-50 dark:hover:bg-indigo-900/30"
+                        >
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" /></svg>
+                        </button>
+                      </div>
+                    )}
                     <div className="flex flex-wrap items-center text-[10px] md:text-xs text-slate-400 dark:text-slate-500 mt-0.5 md:mt-1 gap-y-1">
                       <span className="flex items-center">
                         <span className="mr-1 inline-block" style={{ color: color }}>

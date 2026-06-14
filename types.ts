@@ -37,6 +37,7 @@ export interface Expense {
   bankName?: string;
   recurringId?: string;
   receiptImage?: string; // Base64 data URL
+  note?: string; // Used for tracking IDs or extra notes
 }
 
 export interface RecurringExpense {
