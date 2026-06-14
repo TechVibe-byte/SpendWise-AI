@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Bot } from 'lucide-react';
 import { HashRouter as Router, Routes, Route, NavLink } from 'react-router-dom';
-import { Expense, RecurringExpense, RecurringFrequency, CategoryItem, Income, BudgetRuleType, Account, Transfer, SalaryRule } from './types';
+import { Expense, RecurringExpense, RecurringFrequency, CategoryItem, Income, BudgetRuleType, Account, Transfer, SalaryRule, TelegramBackupSettings } from './types';
 import { DEFAULT_CATEGORIES } from './constants';
 import { formatCurrency, parseLocalDate, formatLocalDate } from './utils';
 import Dashboard from './components/Dashboard';
@@ -19,6 +19,7 @@ import AIInsights from './components/AIInsights';
 import { ThemeToggle } from './components/ThemeToggle';
 import { ChatBotModal } from './components/ChatBotModal';
 import { ChatBotWidget } from './components/ChatBotWidget';
+import { sendTelegramDocument } from './services/telegramService';
 
 const App: React.FC = () => {
   const [expenses, setExpenses] = useState<Expense[]>(() => {
@@ -91,6 +92,16 @@ const App: React.FC = () => {
 
   const [openRouterApiKey, setOpenRouterApiKey] = useState<string>(() => {
     return localStorage.getItem('spendwise-openrouter-key') || '';
+  });
+
+  const [telegramBackupSettings, setTelegramBackupSettings] = useState<TelegramBackupSettings>(() => {
+    const saved = localStorage.getItem('spendwise-telegram-backup');
+    return saved ? JSON.parse(saved) : {
+      botToken: '',
+      chatId: '',
+      autoBackup: 'None',
+      enabled: false
+    };
   });
 
   const [isDarkMode, setIsDarkMode] = useState(() => {
@@ -203,6 +214,65 @@ const App: React.FC = () => {
   useEffect(() => {
     localStorage.setItem('spendwise-openrouter-key', openRouterApiKey);
   }, [openRouterApiKey]);
+
+  useEffect(() => {
+    localStorage.setItem('spendwise-telegram-backup', JSON.stringify(telegramBackupSettings));
+  }, [telegramBackupSettings]);
+
+  // Auto Backup Logic
+  useEffect(() => {
+    const checkAutoBackup = async () => {
+      if (!telegramBackupSettings.enabled || telegramBackupSettings.autoBackup === 'None' || !telegramBackupSettings.botToken || !telegramBackupSettings.chatId) return;
+
+      const now = new Date();
+      let shouldBackup = false;
+
+      if (!telegramBackupSettings.lastBackupTime) {
+        shouldBackup = true;
+      } else {
+        const lastBackupDate = new Date(telegramBackupSettings.lastBackupTime);
+        const timeDiff = now.getTime() - lastBackupDate.getTime();
+        const daysDiff = timeDiff / (1000 * 3600 * 24);
+
+        if (telegramBackupSettings.autoBackup === 'Daily' && daysDiff >= 1) shouldBackup = true;
+        if (telegramBackupSettings.autoBackup === 'Weekly' && daysDiff >= 7) shouldBackup = true;
+        if (telegramBackupSettings.autoBackup === 'Monthly' && daysDiff >= 30) shouldBackup = true;
+      }
+
+      if (shouldBackup) {
+        try {
+          const data = {
+            version: 3,
+            timestamp: now.toISOString(),
+            expenses,
+            incomes,
+            recurringExpenses,
+            customCategories,
+            monthlyBudget,
+            budgetRuleType,
+            budgetRulePercentage,
+            accounts,
+            transfers
+          };
+          const filename = `spendwise_backup_auto_${now.toISOString().replace(/[:.]/g, '-').split('T')[0]}_${now.getHours()}${now.getMinutes()}.json`;
+          const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+          
+          const res = await sendTelegramDocument(telegramBackupSettings.botToken, telegramBackupSettings.chatId, blob, filename);
+          
+          if (res.ok && res.result && res.result.document) {
+            setTelegramBackupSettings(prev => ({
+              ...prev,
+              lastBackupTime: now.toISOString(),
+              latestBackupFileId: res.result.document.file_id
+            }));
+          }
+        } catch (error) {
+          console.error("Auto Backup Failed:", error);
+        }
+      }
+    };
+    checkAutoBackup();
+  }, [telegramBackupSettings.enabled, telegramBackupSettings.autoBackup, telegramBackupSettings.lastBackupTime]);
 
   // Theme management
   useEffect(() => {
@@ -822,6 +892,8 @@ const App: React.FC = () => {
                 handleInstallClick={handleInstallClick}
                 showPwaHelp={showPwaHelp}
                 setShowPwaHelp={setShowPwaHelp}
+                telegramBackupSettings={telegramBackupSettings}
+                setTelegramBackupSettings={setTelegramBackupSettings}
               />
             } />
           </Routes>

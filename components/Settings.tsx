@@ -1,8 +1,9 @@
 import React, { useState, useRef, useMemo, useCallback } from 'react';
-import { Expense, RecurringExpense, CategoryItem, Income, BudgetRuleType, Account, AccountType } from '../types';
+import { Expense, RecurringExpense, CategoryItem, Income, BudgetRuleType, Account, AccountType, TelegramBackupSettings } from '../types';
 import { formatCurrency } from '../utils';
 import { Transfer } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
+import { sendTelegramMessage, sendTelegramDocument, downloadTelegramDocument } from '../services/telegramService';
 import { 
   Sparkles, 
   Landmark, 
@@ -59,6 +60,8 @@ interface SettingsProps {
   handleInstallClick?: () => Promise<void>;
   showPwaHelp?: boolean;
   setShowPwaHelp?: React.Dispatch<React.SetStateAction<boolean>>;
+  telegramBackupSettings: TelegramBackupSettings;
+  setTelegramBackupSettings: React.Dispatch<React.SetStateAction<TelegramBackupSettings>>;
 }
 
 const ACCOUNT_TYPES: { value: AccountType; label: string; category: AccountCategory }[] = [
@@ -107,7 +110,9 @@ const Settings: React.FC<SettingsProps> = ({
   isStandalone = false,
   handleInstallClick,
   showPwaHelp = false,
-  setShowPwaHelp
+  setShowPwaHelp,
+  telegramBackupSettings,
+  setTelegramBackupSettings
 }) => {
   // Navigation active tab
   const [activeTab, setActiveTab] = useState<'accounts' | 'budget' | 'backup' | 'ai' | 'install' | 'advanced' | 'danger'>('accounts');
@@ -173,6 +178,12 @@ const Settings: React.FC<SettingsProps> = ({
 
   // File Reference Inputs
   const jsonFileInputRef = useRef<HTMLInputElement>(null);
+
+  // Telegram Backup States
+  const [showTelegramHelp, setShowTelegramHelp] = useState(false);
+  const [telegramRestorePreview, setTelegramRestorePreview] = useState<any>(null);
+  const [isTelegramProcessing, setIsTelegramProcessing] = useState(false);
+  const telegramFileInputRef = useRef<HTMLInputElement>(null);
 
   // Render Account Badge helpers
   const getAccountTypeLabel = (type: AccountType) => {
@@ -353,6 +364,130 @@ const Settings: React.FC<SettingsProps> = ({
     link.click();
     document.body.removeChild(link);
     showToast('Secure JSON vault backup exported!', 'success');
+  };
+
+  const getBackupDataObj = () => {
+    return {
+      version: 3,
+      timestamp: new Date().toISOString(),
+      expenses,
+      incomes,
+      recurringExpenses,
+      customCategories,
+      monthlyBudget,
+      budgetRuleType,
+      budgetRulePercentage,
+      accounts,
+      transfers
+    };
+  };
+
+  const handleTelegramTestConnection = async () => {
+    if (!telegramBackupSettings.botToken || !telegramBackupSettings.chatId) {
+      showToast('Please provide both Bot Token and Chat ID', 'error');
+      return;
+    }
+    setIsTelegramProcessing(true);
+    try {
+      await sendTelegramMessage(telegramBackupSettings.botToken, telegramBackupSettings.chatId, '✅ SpendWise Telegram Backup Connected Successfully!');
+      showToast('Connection successful!', 'success');
+    } catch (error) {
+      showToast('Failed to connect. Verify your Token and Chat ID.', 'error');
+    } finally {
+      setIsTelegramProcessing(false);
+    }
+  };
+
+  const handleTelegramSendBackup = async () => {
+    if (!telegramBackupSettings.botToken || !telegramBackupSettings.chatId) {
+      showToast('Please set up Telegram Backup first', 'error');
+      return;
+    }
+    setIsTelegramProcessing(true);
+    try {
+      const data = getBackupDataObj();
+      const filename = `spendwise_backup_${new Date().toISOString().replace(/[:.]/g, '-').split('T')[0]}_${new Date().getHours()}${new Date().getMinutes()}.json`;
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      
+      const res = await sendTelegramDocument(telegramBackupSettings.botToken, telegramBackupSettings.chatId, blob, filename);
+      
+      if (res.ok && res.result && res.result.document) {
+        setTelegramBackupSettings(prev => ({
+          ...prev,
+          lastBackupTime: new Date().toISOString(),
+          latestBackupFileId: res.result.document.file_id
+        }));
+        showToast('Backup successfully sent to Telegram.', 'success');
+      } else {
+        throw new Error('Invalid response from Telegram');
+      }
+    } catch (error) {
+      showToast('Unable to send backup. Verify Bot Token and Chat ID.', 'error');
+    } finally {
+      setIsTelegramProcessing(false);
+    }
+  };
+
+  const handleTelegramRestoreLatest = async () => {
+    if (!telegramBackupSettings.botToken || !telegramBackupSettings.latestBackupFileId) {
+      showToast('No previous backup found to restore from Telegram.', 'error');
+      return;
+    }
+    setIsTelegramProcessing(true);
+    try {
+      const fileData = await downloadTelegramDocument(telegramBackupSettings.botToken, telegramBackupSettings.latestBackupFileId);
+      const data = JSON.parse(fileData);
+      setTelegramRestorePreview(data);
+    } catch (error) {
+      showToast('Failed to retrieve backup from Telegram. You can manually upload the JSON.', 'error');
+    } finally {
+      setIsTelegramProcessing(false);
+    }
+  };
+
+  const confirmTelegramRestore = () => {
+    if (!telegramRestorePreview) return;
+    try {
+      const data = telegramRestorePreview;
+      let importedExp = 0;
+      let importedInc = 0;
+      
+      if (data.expenses && Array.isArray(data.expenses)) {
+        setExpenses(data.expenses);
+      }
+      if (data.incomes && Array.isArray(data.incomes)) {
+        setIncomes(data.incomes);
+      }
+      if (data.customCategories && Array.isArray(data.customCategories)) {
+        setCustomCategories(data.customCategories);
+      }
+      if (data.recurringExpenses && Array.isArray(data.recurringExpenses)) {
+        setRecurringExpenses(data.recurringExpenses);
+      }
+      if (data.accounts && Array.isArray(data.accounts)) {
+        setAccounts(data.accounts);
+      }
+      if (data.transfers && Array.isArray(data.transfers)) {
+        setTransfers(data.transfers);
+      }
+      if (data.monthlyBudget && typeof data.monthlyBudget === 'number') {
+        setMonthlyBudget(data.monthlyBudget);
+        setBudgetInput(data.monthlyBudget.toString());
+      }
+      if (data.budgetRuleType) {
+        setBudgetRuleType(data.budgetRuleType);
+        setLocalRuleType(data.budgetRuleType);
+      }
+      if (typeof data.budgetRulePercentage === 'number') {
+        setBudgetRulePercentage(data.budgetRulePercentage);
+        setLocalRulePercentage(data.budgetRulePercentage);
+      }
+      
+      setTelegramRestorePreview(null);
+      showToast('Successfully restored vault from Telegram Backup!', 'success');
+    } catch (err) {
+      showToast('Vault restore failed: Invalid data structure.', 'error');
+    }
   };
 
   const exportCSV = () => {
@@ -1011,6 +1146,234 @@ const Settings: React.FC<SettingsProps> = ({
                     </div>
                   </div>
 
+                </div>
+
+                {/* Telegram Backup Section */}
+                <div className="mt-8 pt-6 border-t border-slate-200 dark:border-white/[0.06]">
+                  <div className="flex justify-between items-start mb-6">
+                    <div>
+                      <h3 className="text-lg font-black text-slate-900 dark:text-white flex items-center gap-2">
+                        <span className="w-4 h-4 text-[#0088cc] flex items-center justify-center">
+                          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221l-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.446 1.394c-.14.18-.357.295-.6.295-.002 0-.003 0-.005 0l.213-3.054 5.56-5.022c.24-.213-.054-.334-.373-.121l-6.869 4.326-2.96-.924c-.64-.203-.658-.64.135-.954l11.566-4.458c.538-.196 1.006.128.832.94z"/></svg>
+                        </span>
+                        Telegram Backup
+                      </h3>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Connect your own Telegram Bot to securely backup and restore your financial data.</p>
+                    </div>
+                    
+                    <div className="flex items-center space-x-2 bg-slate-100 dark:bg-[#111827] px-3 py-1.5 rounded-full border border-slate-200 dark:border-white/[0.05]">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                        {telegramBackupSettings.enabled ? 'Enabled' : 'Disabled'}
+                      </span>
+                      <button
+                        onClick={() => setTelegramBackupSettings(prev => ({...prev, enabled: !prev.enabled}))}
+                        className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none ${telegramBackupSettings.enabled ? 'bg-[#0088cc]' : 'bg-slate-350 dark:bg-slate-800'}`}
+                      >
+                        <span className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ${telegramBackupSettings.enabled ? 'translate-x-4' : 'translate-x-0'}`} />
+                      </button>
+                    </div>
+                  </div>
+
+                  <AnimatePresence>
+                    {telegramBackupSettings.enabled && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                        className="space-y-6 overflow-hidden"
+                      >
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <label className="block text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest">
+                              Bot Token
+                            </label>
+                            <div className="relative">
+                              <input
+                                type="password"
+                                placeholder="1234567890:ABCdefGHIjklMNOpqrsTUVwxyz..."
+                                className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-white/[0.08] bg-slate-50 dark:bg-[#111827] text-slate-900 dark:text-slate-100 font-bold font-mono text-xs focus:outline-none focus:border-[#0088cc] transition-all placeholder:text-slate-400"
+                                value={telegramBackupSettings.botToken}
+                                onChange={(e) => setTelegramBackupSettings(prev => ({...prev, botToken: e.target.value}))}
+                              />
+                            </div>
+                          </div>
+                          
+                          <div className="space-y-2">
+                            <label className="block text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest">
+                              Chat ID
+                            </label>
+                            <div className="relative">
+                              <input
+                                type="text"
+                                placeholder="e.g. 123456789"
+                                className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-white/[0.08] bg-slate-50 dark:bg-[#111827] text-slate-900 dark:text-slate-100 font-bold font-mono text-xs focus:outline-none focus:border-[#0088cc] transition-all placeholder:text-slate-400"
+                                value={telegramBackupSettings.chatId}
+                                onChange={(e) => setTelegramBackupSettings(prev => ({...prev, chatId: e.target.value}))}
+                              />
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                          <button
+                            onClick={handleTelegramTestConnection}
+                            disabled={isTelegramProcessing}
+                            className="h-10 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold text-xs rounded-xl transition-all cursor-pointer flex items-center justify-center space-x-1 border border-slate-200 dark:border-white/[0.05] disabled:opacity-50"
+                          >
+                            <RefreshCw className={`w-3.5 h-3.5 ${isTelegramProcessing ? 'animate-spin' : ''}`} />
+                            <span>Test Connection</span>
+                          </button>
+                          
+                          <button
+                            onClick={handleTelegramSendBackup}
+                            disabled={isTelegramProcessing}
+                            className="h-10 bg-[#0088cc]/10 hover:bg-[#0088cc]/20 text-[#0088cc] dark:text-[#33a8e5] font-bold text-xs rounded-xl transition-all cursor-pointer flex items-center justify-center space-x-1 border border-[#0088cc]/20 disabled:opacity-50"
+                          >
+                            <Upload className="w-3.5 h-3.5" />
+                            <span>Send Backup Now</span>
+                          </button>
+                          
+                          <button
+                            onClick={handleTelegramRestoreLatest}
+                            disabled={isTelegramProcessing}
+                            className="h-10 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-900/30 dark:hover:bg-indigo-800/40 text-indigo-600 dark:text-indigo-400 font-bold text-xs rounded-xl transition-all cursor-pointer flex items-center justify-center space-x-1 border border-indigo-200 dark:border-indigo-500/20 disabled:opacity-50"
+                          >
+                            <Download className="w-3.5 h-3.5" />
+                            <span>Restore From Backup</span>
+                          </button>
+                        </div>
+
+                        {/* Restore Preview Area */}
+                        <AnimatePresence>
+                          {telegramRestorePreview && (
+                            <motion.div
+                              initial={{ opacity: 0, y: 10 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              exit={{ opacity: 0, y: -10 }}
+                              className="p-5 bg-cyan-50 dark:bg-cyan-950/20 rounded-2xl border border-cyan-200 dark:border-cyan-500/20 text-sm mt-4"
+                            >
+                              <h4 className="font-bold text-cyan-800 dark:text-cyan-300 mb-3 flex items-center space-x-2">
+                                <Database className="w-4 h-4" />
+                                <span>Preview Telegram Backup</span>
+                              </h4>
+                              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-4">
+                                <div>
+                                  <p className="text-[10px] text-cyan-600 dark:text-cyan-400 uppercase font-black">Date</p>
+                                  <p className="font-bold text-cyan-900 dark:text-cyan-100 truncate">{telegramRestorePreview.timestamp ? new Date(telegramRestorePreview.timestamp).toLocaleDateString() : 'N/A'}</p>
+                                </div>
+                                <div>
+                                  <p className="text-[10px] text-cyan-600 dark:text-cyan-400 uppercase font-black">Transactions</p>
+                                  <p className="font-bold text-cyan-900 dark:text-cyan-100">{(telegramRestorePreview.expenses?.length || 0) + (telegramRestorePreview.incomes?.length || 0)}</p>
+                                </div>
+                                <div>
+                                  <p className="text-[10px] text-cyan-600 dark:text-cyan-400 uppercase font-black">Accounts</p>
+                                  <p className="font-bold text-cyan-900 dark:text-cyan-100">{telegramRestorePreview.accounts?.length || 0}</p>
+                                </div>
+                                <div>
+                                  <p className="text-[10px] text-cyan-600 dark:text-cyan-400 uppercase font-black">Categories</p>
+                                  <p className="font-bold text-cyan-900 dark:text-cyan-100">{telegramRestorePreview.customCategories?.length || 0}</p>
+                                </div>
+                              </div>
+                              <div className="flex space-x-3">
+                                <button
+                                  onClick={confirmTelegramRestore}
+                                  className="px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-white text-xs font-bold rounded-lg cursor-pointer transition-all"
+                                >
+                                  Confirm Restore & Overwrite
+                                </button>
+                                <button
+                                  onClick={() => setTelegramRestorePreview(null)}
+                                  className="px-4 py-2 bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-bold rounded-lg cursor-pointer transition-all hover:bg-slate-300 dark:hover:bg-slate-700"
+                                >
+                                  Cancel
+                                </button>
+                              </div>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+
+                        <div className="pt-4 border-t border-slate-200 dark:border-white/[0.05] flex items-center justify-between">
+                          <div className="flex items-center space-x-3">
+                            <label className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest">
+                              Auto Backup
+                            </label>
+                            <select
+                              className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-white/[0.08] bg-white dark:bg-[#111827] text-slate-900 dark:text-slate-100 text-xs font-bold focus:outline-none focus:border-[#0088cc] cursor-pointer"
+                              value={telegramBackupSettings.autoBackup}
+                              onChange={(e) => setTelegramBackupSettings(prev => ({...prev, autoBackup: e.target.value as any}))}
+                            >
+                              <option value="None">Disabled</option>
+                              <option value="Daily">Daily</option>
+                              <option value="Weekly">Weekly</option>
+                              <option value="Monthly">Monthly</option>
+                            </select>
+                          </div>
+                          
+                          {telegramBackupSettings.lastBackupTime && (
+                            <div className="text-[10px] text-slate-500 dark:text-slate-400 text-right">
+                              <span className="block font-bold mb-0.5">Last Backup:</span>
+                              {new Date(telegramBackupSettings.lastBackupTime).toLocaleString()}
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Collapsible Help Section */}
+                        <div className="mt-4 bg-slate-50 dark:bg-[#111827]/50 rounded-2xl border border-slate-200 dark:border-white/[0.04] overflow-hidden">
+                          <button
+                            onClick={() => setShowTelegramHelp(!showTelegramHelp)}
+                            className="w-full px-5 py-3.5 flex items-center justify-between text-left cursor-pointer hover:bg-slate-100 dark:hover:bg-white/[0.02] transition-colors"
+                          >
+                            <div className="flex items-center space-x-2">
+                              <HelpCircle className="w-4 h-4 text-slate-400" />
+                              <span className="text-xs font-bold text-slate-700 dark:text-slate-300">How to Setup Telegram Backup</span>
+                            </div>
+                            <ChevronRight className={`w-4 h-4 text-slate-400 transition-transform duration-300 ${showTelegramHelp ? 'rotate-90' : ''}`} />
+                          </button>
+                          
+                          <AnimatePresence>
+                            {showTelegramHelp && (
+                              <motion.div
+                                initial={{ height: 0, opacity: 0 }}
+                                animate={{ height: 'auto', opacity: 1 }}
+                                exit={{ height: 0, opacity: 0 }}
+                                className="px-5 pb-5 pt-1 text-xs text-slate-600 dark:text-slate-400 space-y-4"
+                              >
+                                <div>
+                                  <h5 className="font-extrabold text-slate-800 dark:text-slate-200 mb-2">Part 1: Create a Bot</h5>
+                                  <ol className="list-decimal list-inside space-y-1.5 ml-1">
+                                    <li>Open Telegram app</li>
+                                    <li>Search for <strong>@BotFather</strong></li>
+                                    <li>Send command: <code className="bg-slate-200 dark:bg-slate-800 px-1 py-0.5 rounded text-[10px]">/newbot</code></li>
+                                    <li>Follow instructions to name your bot</li>
+                                    <li>Copy the <strong>HTTP API Token</strong> provided and paste it in the "Bot Token" field above</li>
+                                  </ol>
+                                </div>
+                                
+                                <div>
+                                  <h5 className="font-extrabold text-slate-800 dark:text-slate-200 mb-2">Part 2: Get your Chat ID</h5>
+                                  <ol className="list-decimal list-inside space-y-1.5 ml-1">
+                                    <li>Search for your newly created bot in Telegram</li>
+                                    <li>Press <strong>Start</strong> and send any random message</li>
+                                    <li>Open your browser and visit:<br/>
+                                      <code className="block mt-1 p-2 bg-slate-200 dark:bg-slate-800 rounded break-all text-[10px]">
+                                        https://api.telegram.org/bot&lt;YOUR_BOT_TOKEN&gt;/getUpdates
+                                      </code>
+                                    </li>
+                                    <li>Find the <code>"chat": {"{"} "id": 123456789 {"}"}</code> block in the result</li>
+                                    <li>Copy that ID number and paste it in the "Chat ID" field above</li>
+                                  </ol>
+                                </div>
+
+                                <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-200 dark:border-blue-800/30 text-[11px] text-blue-800 dark:text-blue-300 font-medium">
+                                  <strong>Security Note:</strong> Your Token and Chat ID are stored locally on your device only. Backups are sent directly to the Telegram API.
+                                </div>
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
 
               </div>
