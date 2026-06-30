@@ -97,7 +97,12 @@ export const ChatBotWidget: React.FC<ChatBotWidgetProps> = ({ expenses, monthlyB
     // Run offline NLP engine
     setTimeout(() => {
       const localAnswer = processChatQuery(queryToCheck, expenses, monthlyBudget);
-      setChatHistory(prev => [...prev, { role: 'assistant', content: localAnswer }]);
+      setChatHistory(prev => [...prev, { 
+        role: 'assistant', 
+        content: localAnswer.text,
+        ui: localAnswer.ui,
+        data: localAnswer.data
+      }]);
       setChatLoading(false);
     }, 400); // Simulate brief thought process for UX
   };

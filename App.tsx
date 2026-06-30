@@ -94,6 +94,11 @@ const App: React.FC = () => {
     return localStorage.getItem('spendwise-openrouter-key') || '';
   });
 
+  const [showRunningBalance, setShowRunningBalance] = useState<boolean>(() => {
+    const saved = localStorage.getItem('spendwise-show-running-balance');
+    return saved ? JSON.parse(saved) : true;
+  });
+
   const [telegramBackupSettings, setTelegramBackupSettings] = useState<TelegramBackupSettings>(() => {
     const saved = localStorage.getItem('spendwise-telegram-backup');
     return saved ? JSON.parse(saved) : {
@@ -214,6 +219,10 @@ const App: React.FC = () => {
   useEffect(() => {
     localStorage.setItem('spendwise-openrouter-key', openRouterApiKey);
   }, [openRouterApiKey]);
+
+  useEffect(() => {
+    localStorage.setItem('spendwise-show-running-balance', JSON.stringify(showRunningBalance));
+  }, [showRunningBalance]);
 
   useEffect(() => {
     localStorage.setItem('spendwise-telegram-backup', JSON.stringify(telegramBackupSettings));
@@ -800,6 +809,10 @@ const App: React.FC = () => {
                       onDelete={deleteExpense} 
                       onEdit={handleEditExpense} 
                       categories={allCategories}
+                      incomes={incomes}
+                      accounts={accounts}
+                      transfers={transfers}
+                      showRunningBalance={showRunningBalance}
                     />
                   </div>
                   
@@ -839,6 +852,10 @@ const App: React.FC = () => {
                   onDelete={deleteExpense} 
                   onEdit={handleEditExpense} 
                   categories={allCategories}
+                  incomes={incomes}
+                  accounts={accounts}
+                  transfers={transfers}
+                  showRunningBalance={showRunningBalance}
                 />
               </div>
             } />
@@ -886,6 +903,8 @@ const App: React.FC = () => {
                 setTransfers={setTransfers}
                 openRouterApiKey={openRouterApiKey}
                 setOpenRouterApiKey={setOpenRouterApiKey}
+                showRunningBalance={showRunningBalance}
+                setShowRunningBalance={setShowRunningBalance}
                 deferredPrompt={deferredPrompt}
                 showInstallBtn={showInstallBtn}
                 isStandalone={isStandalone}

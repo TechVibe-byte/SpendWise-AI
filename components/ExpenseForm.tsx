@@ -89,6 +89,8 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({ onAdd, onClose, initialExpens
   const [isProcessingImage, setIsProcessingImage] = useState(false);
   const [userHasManuallySetCategory, setUserHasManuallySetCategory] = useState(false);
   const [isCategorizing, setIsCategorizing] = useState(false);
+  const [isAccountDropdownOpen, setIsAccountDropdownOpen] = useState(false);
+  const [isCategoryDropdownOpen, setIsCategoryDropdownOpen] = useState(false);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -258,9 +260,13 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({ onAdd, onClose, initialExpens
     );
   };
 
-  const handleCategoryChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setCategory(e.target.value as Category);
+  const changeCategory = (val: Category) => {
+    setCategory(val);
     setUserHasManuallySetCategory(true);
+  };
+
+  const handleCategoryChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    changeCategory(e.target.value as Category);
   };
 
   const handleClearCategory = () => {
@@ -361,22 +367,101 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({ onAdd, onClose, initialExpens
               </label>
               {accounts && accounts.length > 0 ? (
                 <div className="relative">
+                  {/* Visually hidden select for browser validation */}
                   <select
                     required
-                    className="w-full px-4 py-4 md:py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all appearance-none cursor-pointer text-base font-medium"
+                    tabIndex={-1}
+                    className="sr-only"
                     value={bankName}
                     onChange={(e) => setBankName(e.target.value)}
                   >
                     <option value="">Choose Account</option>
                     {accounts.map(acc => (
                       <option key={acc.id} value={acc.name}>
-                        {acc.name} ({acc.bankName !== acc.name ? acc.bankName : ''})
+                        {acc.name}
                       </option>
                     ))}
                   </select>
-                  <div className="absolute inset-y-0 right-4 flex items-center pointer-events-none text-slate-400">
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
-                  </div>
+
+                  {/* Custom Styled Select Trigger */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsAccountDropdownOpen(!isAccountDropdownOpen);
+                      setIsCategoryDropdownOpen(false);
+                    }}
+                    className="w-full px-4 py-4 md:py-3 rounded-xl border border-slate-205 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all flex items-center justify-between cursor-pointer text-base font-semibold"
+                  >
+                    <span className="truncate">
+                      {bankName ? (
+                        accounts.find(acc => acc.name === bankName) ? (
+                          `${bankName} ${
+                            (() => {
+                              const acc = accounts.find(a => a.name === bankName);
+                              return acc && acc.bankName !== acc.name ? `(${acc.bankName})` : '';
+                            })()
+                          }`
+                        ) : bankName
+                      ) : (
+                        <span className="text-slate-400 dark:text-slate-500">Choose Account</span>
+                      )}
+                    </span>
+                    <svg 
+                      className={`w-5 h-5 text-slate-400 transition-transform duration-200 ${isAccountDropdownOpen ? 'rotate-180' : ''}`} 
+                      fill="none" 
+                      stroke="currentColor" 
+                      viewBox="0 0 24 24"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </button>
+
+                  {/* Backdrop for click outside */}
+                  {isAccountDropdownOpen && (
+                    <div 
+                      className="fixed inset-0 z-40 cursor-default" 
+                      onClick={() => setIsAccountDropdownOpen(false)} 
+                    />
+                  )}
+
+                  {/* Dropdown Options List */}
+                  {isAccountDropdownOpen && (
+                    <div className="absolute left-0 right-0 mt-2 bg-white dark:bg-[#0F172A] border border-slate-200 dark:border-white/[0.08] rounded-2xl shadow-xl z-50 max-h-60 overflow-y-auto py-1">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setBankName('');
+                          setIsAccountDropdownOpen(false);
+                        }}
+                        className={`w-full text-left px-4 py-3 text-sm font-semibold hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors ${!bankName ? 'text-indigo-500 bg-slate-50/50 dark:bg-slate-800/40' : 'text-slate-700 dark:text-slate-300'}`}
+                      >
+                        Choose Account
+                      </button>
+                      {accounts.map(acc => {
+                        const isSelected = bankName === acc.name;
+                        return (
+                          <button
+                            key={acc.id}
+                            type="button"
+                            onClick={() => {
+                              setBankName(acc.name);
+                              setIsAccountDropdownOpen(false);
+                            }}
+                            className={`w-full text-left px-4 py-3 text-sm font-semibold hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors flex items-center justify-between ${isSelected ? 'text-indigo-500 bg-slate-50/50 dark:bg-slate-800/40 font-black' : 'text-slate-700 dark:text-slate-300'}`}
+                          >
+                            <span>
+                              {acc.name} {acc.bankName !== acc.name ? `(${acc.bankName})` : ''}
+                            </span>
+                            {isSelected && (
+                              <svg className="w-4 h-4 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                              </svg>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div className="text-sm text-amber-650 bg-amber-50 dark:bg-amber-950/20 dark:text-amber-400 p-4 rounded-xl border border-amber-100 dark:border-transparent flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
@@ -434,18 +519,72 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({ onAdd, onClose, initialExpens
                 )}
               </div>
               <div className="relative">
+                {/* Visually hidden select for validation */}
                 <select
-                  className="w-full px-4 py-4 md:py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all appearance-none cursor-pointer text-base font-medium"
+                  tabIndex={-1}
+                  className="sr-only"
                   value={category}
-                  onChange={handleCategoryChange}
+                  onChange={(e) => changeCategory(e.target.value as Category)}
                 >
                   {categories.map(cat => (
                     <option key={cat.id} value={cat.name}>{cat.name}</option>
                   ))}
                 </select>
-                <div className="absolute inset-y-0 right-4 flex items-center pointer-events-none text-slate-400">
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
-                </div>
+
+                {/* Custom Styled Select Trigger */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsCategoryDropdownOpen(!isCategoryDropdownOpen);
+                    setIsAccountDropdownOpen(false);
+                  }}
+                  className="w-full px-4 py-4 md:py-3 rounded-xl border border-slate-205 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all flex items-center justify-between cursor-pointer text-base font-semibold"
+                >
+                  <span>{category}</span>
+                  <svg 
+                    className={`w-5 h-5 text-slate-400 transition-transform duration-200 ${isCategoryDropdownOpen ? 'rotate-180' : ''}`} 
+                    fill="none" 
+                    stroke="currentColor" 
+                    viewBox="0 0 24 24"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+
+                {/* Backdrop for click outside */}
+                {isCategoryDropdownOpen && (
+                  <div 
+                    className="fixed inset-0 z-40 cursor-default" 
+                    onClick={() => setIsCategoryDropdownOpen(false)} 
+                  />
+                )}
+
+                {/* Dropdown Options List */}
+                {isCategoryDropdownOpen && (
+                  <div className="absolute left-0 right-0 mt-2 bg-white dark:bg-[#0F172A] border border-slate-200 dark:border-white/[0.08] rounded-2xl shadow-xl z-50 max-h-60 overflow-y-auto py-1">
+                    {categories.map(cat => {
+                      const isSelected = category === cat.name;
+                      return (
+                        <button
+                          key={cat.id}
+                          type="button"
+                          onClick={() => {
+                            changeCategory(cat.name as Category);
+                            setIsCategoryDropdownOpen(false);
+                          }}
+                          className={`w-full text-left px-4 py-3 text-sm font-semibold hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors flex items-center justify-between ${isSelected ? 'text-indigo-500 bg-slate-50/50 dark:bg-slate-800/40 font-black' : 'text-slate-700 dark:text-slate-300'}`}
+                        >
+                          <span>{cat.name}</span>
+                          {isSelected && (
+                            <svg className="w-4 h-4 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                            </svg>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             </div>
 

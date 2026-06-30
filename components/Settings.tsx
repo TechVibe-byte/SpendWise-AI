@@ -1,5 +1,5 @@
 import React, { useState, useRef, useMemo, useCallback } from 'react';
-import { Expense, RecurringExpense, CategoryItem, Income, BudgetRuleType, Account, AccountType, TelegramBackupSettings } from '../types';
+import { Expense, RecurringExpense, CategoryItem, Income, BudgetRuleType, Account, AccountType, TelegramBackupSettings, AccountCategory } from '../types';
 import { formatCurrency } from '../utils';
 import { Transfer } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
@@ -62,6 +62,8 @@ interface SettingsProps {
   setShowPwaHelp?: React.Dispatch<React.SetStateAction<boolean>>;
   telegramBackupSettings: TelegramBackupSettings;
   setTelegramBackupSettings: React.Dispatch<React.SetStateAction<TelegramBackupSettings>>;
+  showRunningBalance?: boolean;
+  setShowRunningBalance?: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
 const ACCOUNT_TYPES: { value: AccountType; label: string; category: AccountCategory }[] = [
@@ -112,7 +114,9 @@ const Settings: React.FC<SettingsProps> = ({
   showPwaHelp = false,
   setShowPwaHelp,
   telegramBackupSettings,
-  setTelegramBackupSettings
+  setTelegramBackupSettings,
+  showRunningBalance = true,
+  setShowRunningBalance
 }) => {
   // Navigation active tab
   const [activeTab, setActiveTab] = useState<'accounts' | 'budget' | 'backup' | 'ai' | 'install' | 'advanced' | 'danger'>('accounts');
@@ -1540,6 +1544,31 @@ const Settings: React.FC<SettingsProps> = ({
                       ) : (
                         <p className="text-[10px] text-slate-500 dark:text-slate-550 italic font-medium">No custom categories established yet. Create one above!</p>
                       )}
+                    </div>
+                  </div>
+
+                  {/* Interface Preferences */}
+                  <div className="bg-slate-50 dark:bg-[#111827] border border-slate-200 dark:border-white/[0.04] p-5 rounded-2xl mt-6">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <h4 className="text-xs font-black text-slate-800 dark:text-slate-300 uppercase tracking-wider mb-1 flex items-center gap-2">
+                          <Sliders className="w-3.5 h-3.5 text-indigo-500 dark:text-indigo-400" />
+                          Interface Preferences
+                        </h4>
+                        <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-tight">Toggle specific visual indicators like running balances in transaction list viewports.</p>
+                      </div>
+                      
+                      <div className="flex items-center space-x-2 bg-slate-100 dark:bg-[#111827] px-3 py-1.5 rounded-full border border-slate-200 dark:border-white/[0.05]">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                          {showRunningBalance ? 'Show' : 'Hide'}
+                        </span>
+                        <button
+                          onClick={() => setShowRunningBalance && setShowRunningBalance(prev => !prev)}
+                          className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none ${showRunningBalance ? 'bg-indigo-650' : 'bg-slate-350 dark:bg-slate-800'}`}
+                        >
+                          <span className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ${showRunningBalance ? 'translate-x-4' : 'translate-x-0'}`} />
+                        </button>
+                      </div>
                     </div>
                   </div>
 

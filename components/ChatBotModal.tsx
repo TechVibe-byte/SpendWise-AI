@@ -9,6 +9,7 @@ interface ChatBotModalProps {
   onClose: () => void;
   expenses: Expense[];
   monthlyBudget: number;
+  openRouterApiKey?: string;
 }
 
 interface ChatMessage {

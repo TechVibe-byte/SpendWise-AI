@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Expense, CategoryItem } from '../types';
+import { Expense, CategoryItem, Income, Account, Transfer } from '../types';
 import { getCategoryIcon } from '../constants';
 import { formatCurrency, parseLocalDate } from '../utils';
 
@@ -8,6 +8,10 @@ interface ExpenseListProps {
   onDelete: (id: string) => void;
   onEdit: (expense: Expense) => void;
   categories: CategoryItem[];
+  incomes?: Income[];
+  accounts?: Account[];
+  transfers?: Transfer[];
+  showRunningBalance?: boolean;
 }
 
 const MONTHS = [
@@ -25,7 +29,16 @@ const MONTHS = [
   { value: "11", label: "December" },
 ];
 
-const ExpenseList: React.FC<ExpenseListProps> = ({ expenses, onDelete, onEdit, categories }) => {
+const ExpenseList: React.FC<ExpenseListProps> = ({ 
+  expenses, 
+  onDelete, 
+  onEdit, 
+  categories,
+  incomes = [],
+  accounts = [],
+  transfers = [],
+  showRunningBalance = true
+}) => {
   // Load persistent parameters from localStorage with dynamic fallback
   const [searchQuery, setSearchQuery] = useState(() => localStorage.getItem('spendwise_filter_searchQuery') || '');
   const [selectedBank, setSelectedBank] = useState(() => localStorage.getItem('spendwise_filter_selectedBank') || '');
@@ -97,6 +110,144 @@ const ExpenseList: React.FC<ExpenseListProps> = ({ expenses, onDelete, onEdit, c
     years.add(String(currentYear));
     years.add(String(currentYear - 1));
     return Array.from(years).sort((a, b) => b.localeCompare(a));
+  }, [expenses]);
+
+  // Calculate running balances for all expenses globally
+  const runningBalances = useMemo(() => {
+    if (!accounts.length) return {};
+
+    const accountMap = new Map<string, Account>();
+    accounts.forEach(acc => {
+      accountMap.set(acc.id, acc);
+    });
+
+    interface LedgerEntry {
+      type: 'income' | 'expense' | 'transfer_out' | 'transfer_in';
+      id: string;
+      amount: number;
+      date: string;
+      bankName: string;
+    }
+
+    const entries: LedgerEntry[] = [];
+
+    // Add incomes
+    incomes.forEach(inc => {
+      if (inc.bankName) {
+        entries.push({
+          type: 'income',
+          id: inc.id,
+          amount: inc.amount,
+          date: inc.date,
+          bankName: inc.bankName
+        });
+      }
+    });
+
+    // Add expenses
+    expenses.forEach(exp => {
+      if (exp.bankName) {
+        entries.push({
+          type: 'expense',
+          id: exp.id,
+          amount: exp.amount,
+          date: exp.date,
+          bankName: exp.bankName
+        });
+      }
+    });
+
+    // Add transfers
+    transfers.forEach(tr => {
+      const fromAcc = accountMap.get(tr.fromAccountId);
+      const toAcc = accountMap.get(tr.toAccountId);
+      if (fromAcc) {
+        entries.push({
+          type: 'transfer_out',
+          id: tr.id,
+          amount: tr.amount,
+          date: tr.date,
+          bankName: fromAcc.name
+        });
+      }
+      if (toAcc) {
+        entries.push({
+          type: 'transfer_in',
+          id: tr.id,
+          amount: tr.amount,
+          date: tr.date,
+          bankName: toAcc.name
+        });
+      }
+    });
+
+    // Sort chronologically. If dates match, sort by type: income -> transfer_in -> transfer_out -> expense
+    const typeOrder = {
+      'income': 0,
+      'transfer_in': 1,
+      'transfer_out': 2,
+      'expense': 3
+    };
+
+    entries.sort((a, b) => {
+      if (a.date !== b.date) {
+        return a.date.localeCompare(b.date);
+      }
+      return typeOrder[a.type] - typeOrder[b.type];
+    });
+
+    const balances: { [bankName: string]: number } = {};
+    accounts.forEach(acc => {
+      balances[acc.name] = acc.initialBalance;
+    });
+
+    const expenseBalMap: { [expenseId: string]: number } = {};
+
+    entries.forEach(entry => {
+      const acc = accounts.find(a => a.name === entry.bankName);
+      const isCredit = acc?.isCreditAccount ?? false;
+
+      if (entry.type === 'income' || entry.type === 'transfer_in') {
+        if (isCredit) {
+          balances[entry.bankName] -= entry.amount;
+        } else {
+          balances[entry.bankName] += entry.amount;
+        }
+      } else { // expense or transfer_out
+        if (isCredit) {
+          balances[entry.bankName] += entry.amount;
+        } else {
+          balances[entry.bankName] -= entry.amount;
+        }
+      }
+
+      if (entry.type === 'expense') {
+        expenseBalMap[entry.id] = balances[entry.bankName];
+      }
+    });
+
+    return expenseBalMap;
+  }, [accounts, expenses, incomes, transfers]);
+
+  // Find the globally latest transaction ID for each bank account
+  const latestTransactionIdsByBank = useMemo(() => {
+    const map: { [bankName: string]: string } = {};
+    // Sort by date descending. If dates are equal, the one that appears first in the expenses array is the newest.
+    const sortedAll = [...expenses].sort((a, b) => {
+      if (a.date !== b.date) {
+        return b.date.localeCompare(a.date);
+      }
+      const idxA = expenses.indexOf(a);
+      const idxB = expenses.indexOf(b);
+      return idxA - idxB;
+    });
+    
+    sortedAll.forEach(exp => {
+      if (exp.bankName && !map[exp.bankName]) {
+        map[exp.bankName] = exp.id;
+      }
+    });
+    return new Set(Object.values(map));
   }, [expenses]);
 
   // Combined Filtering Pipeline
@@ -650,6 +801,11 @@ const ExpenseList: React.FC<ExpenseListProps> = ({ expenses, onDelete, onEdit, c
                   </div>
                   <div className="text-right shrink-0 flex flex-col items-end pl-2">
                     <p className="font-bold text-slate-900 dark:text-white text-sm md:text-base">-{formatCurrency(expense.amount)}</p>
+                    {showRunningBalance && expense.bankName && latestTransactionIdsByBank.has(expense.id) && runningBalances[expense.id] !== undefined && (
+                      <span className="text-[10px] text-slate-400 dark:text-slate-500 font-semibold mt-0.5 block font-mono">
+                        Bal: {formatCurrency(runningBalances[expense.id])}
+                      </span>
+                    )}
                     {/* Actions: Visible on Mobile, Hover on Desktop */}
                     <div className="flex items-center space-x-2 mt-1.5 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
                       <button 
