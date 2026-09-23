@@ -115,6 +115,14 @@ const App: React.FC = () => {
     return window.matchMedia('(prefers-color-scheme: dark)').matches;
   });
 
+  const [isPremium, setIsPremium] = useState(() => {
+    return localStorage.getItem('spendwise-premium-mode') === 'true';
+  });
+
+  useEffect(() => {
+    localStorage.setItem('spendwise-premium-mode', JSON.stringify(isPremium));
+  }, [isPremium]);
+
   const [isChatBotOpen, setIsChatBotOpen] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
@@ -468,19 +476,22 @@ const App: React.FC = () => {
   };
 
   // Category Management Handlers
-  const addCustomCategory = (name: string, color: string) => {
+  const addCustomCategory = (name: string, color: string, icon?: string): CategoryItem | undefined => {
     // Prevent duplicates
-    if (allCategories.some(c => c.name.toLowerCase() === name.toLowerCase())) {
+    const existing = allCategories.find(c => c.name.toLowerCase() === name.toLowerCase());
+    if (existing) {
       alert('Category already exists!');
-      return;
+      return existing;
     }
     const newCat: CategoryItem = {
       id: `custom_${Date.now()}`,
       name,
       color,
+      icon,
       isCustom: true
     };
     setCustomCategories(prev => [...prev, newCat]);
+    return newCat;
   };
 
   const deleteCustomCategory = (id: string) => {
@@ -679,6 +690,18 @@ const App: React.FC = () => {
             <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 via-violet-650 to-indigo-700 rounded-xl flex items-center justify-center shadow-md shadow-indigo-100/10 dark:shadow-none border border-white/10">
               <Logo className="w-5.5 h-5.5 text-white" />
             </div>
+            {/* Premium/Free mode badge */}
+            <button
+              onClick={() => setIsPremium(p => !p)}
+              title={isPremium ? 'Switch to Free mode' : 'Upgrade to Premium'}
+              className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black tracking-wide border transition-all duration-300 ${
+                isPremium
+                  ? 'bg-gradient-to-r from-amber-400 to-yellow-300 text-amber-900 border-amber-300/60 shadow-sm shadow-amber-200/40'
+                  : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:border-amber-300'
+              }`}
+            >
+              {isPremium ? '⭐ Premium' : 'Free'}
+            </button>
           </div>
           
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-0">
@@ -707,7 +730,21 @@ const App: React.FC = () => {
             <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 via-violet-650 to-indigo-700 rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-200/20 dark:shadow-none border border-white/20">
               <Logo className="w-7 h-7 text-white" />
             </div>
-            <h1 className="text-xl font-black text-slate-900 dark:text-white tracking-tight"> SpendWise </h1>
+            <div>
+              <h1 className="text-xl font-black text-slate-900 dark:text-white tracking-tight"> SpendWise </h1>
+              {/* Premium/Free badge */}
+              <button
+                onClick={() => setIsPremium(p => !p)}
+                title={isPremium ? 'Switch to Free mode' : 'Upgrade to Premium'}
+                className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black tracking-wide border transition-all duration-300 mt-0.5 ${
+                  isPremium
+                    ? 'bg-gradient-to-r from-amber-400 to-yellow-300 text-amber-900 border-amber-300/60 shadow-sm shadow-amber-200/40'
+                    : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:border-amber-300'
+                }`}
+              >
+                {isPremium ? '⭐ Premium' : 'Free'}
+              </button>
+            </div>
           </div>
 
           <div className="flex-1 space-y-2">
@@ -753,14 +790,16 @@ const App: React.FC = () => {
           <NavItems isMobile={true} />
         </nav>
 
-        {/* AI Chat Bot FAB */}
-        <button 
-          onClick={() => setIsChatBotOpen(true)}
-          className="fixed bottom-[calc(146px+env(safe-area-inset-bottom))] lg:bottom-10 right-5 lg:right-10 w-12 h-12 lg:w-16 lg:h-16 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-full shadow-2xl shadow-purple-500/30 flex items-center justify-center z-50 transition-all duration-300 lg:opacity-100 opacity-30 animate-pulse lg:animate-none lg:hover:scale-110 lg:hover:shadow-purple-500/50 active:scale-95 border border-white/20"
-          aria-label="AI Chat Bot"
-        >
-          <Bot className="w-6 h-6 lg:w-7 lg:h-7" />
-        </button>
+        {/* AI Chat Bot FAB — Premium only */}
+        {isPremium && (
+          <button 
+            onClick={() => setIsChatBotOpen(true)}
+            className="fixed bottom-[calc(146px+env(safe-area-inset-bottom))] lg:bottom-10 right-5 lg:right-10 w-12 h-12 lg:w-16 lg:h-16 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-full shadow-2xl shadow-purple-500/30 flex items-center justify-center z-50 transition-all duration-300 lg:opacity-100 opacity-30 animate-pulse lg:animate-none lg:hover:scale-110 lg:hover:shadow-purple-500/50 active:scale-95 border border-white/20"
+            aria-label="AI Chat Bot"
+          >
+            <Bot className="w-6 h-6 lg:w-7 lg:h-7" />
+          </button>
+        )}
 
         {/* Mobile Floating Action Button (FAB) */}
         <button 
@@ -793,9 +832,9 @@ const App: React.FC = () => {
                   monthlyBudget={monthlyBudget} 
                   budgetRuleType={budgetRuleType}
                   budgetRulePercentage={budgetRulePercentage}
-                  accounts={accounts}
+                  accounts={isPremium ? accounts : []}
                   setAccounts={setAccounts}
-                  transfers={transfers}
+                  transfers={isPremium ? transfers : []}
                   setTransfers={setTransfers}
                   showInstallBtn={showInstallBtn}
                   isStandalone={isStandalone}
@@ -810,15 +849,17 @@ const App: React.FC = () => {
                       onEdit={handleEditExpense} 
                       categories={allCategories}
                       incomes={incomes}
-                      accounts={accounts}
-                      transfers={transfers}
-                      showRunningBalance={showRunningBalance}
+                      accounts={isPremium ? accounts : []}
+                      transfers={isPremium ? transfers : []}
+                      showRunningBalance={isPremium ? showRunningBalance : false}
                     />
                   </div>
                   
                   <div className="w-full max-w-3xl mx-auto space-y-6 md:space-y-8">
                     {/* Quick Stats moved to Dashboard */}
-                    <AIInsights expenses={expenses} categories={allCategories} openRouterApiKey={openRouterApiKey} />
+                    {isPremium && (
+                      <AIInsights expenses={expenses} categories={allCategories} openRouterApiKey={openRouterApiKey} />
+                    )}
                   </div>
                 </div>
               </div>
@@ -828,8 +869,8 @@ const App: React.FC = () => {
                 <IncomeManager 
                   incomes={incomes}
                   expenses={expenses}
-                  accounts={accounts}
-                  transfers={transfers}
+                  accounts={isPremium ? accounts : []}
+                  transfers={isPremium ? transfers : []}
                   onAddIncome={handleSaveIncome}
                   onDeleteIncome={deleteIncome}
                   onEditIncome={handleEditIncome}
@@ -837,10 +878,10 @@ const App: React.FC = () => {
                     setEditingIncome(null);
                     setShowIncomeForm(true);
                   }}
-                  salaryRules={salaryRules}
-                  setSalaryRules={setSalaryRules}
-                  skippedSalaries={skippedSalaries}
-                  setSkippedSalaries={setSkippedSalaries}
+                  salaryRules={isPremium ? salaryRules : []}
+                  setSalaryRules={isPremium ? setSalaryRules : undefined}
+                  skippedSalaries={isPremium ? skippedSalaries : []}
+                  setSkippedSalaries={isPremium ? setSkippedSalaries : undefined}
                 />
               </div>
             } />
@@ -853,9 +894,9 @@ const App: React.FC = () => {
                   onEdit={handleEditExpense} 
                   categories={allCategories}
                   incomes={incomes}
-                  accounts={accounts}
-                  transfers={transfers}
-                  showRunningBalance={showRunningBalance}
+                  accounts={isPremium ? accounts : []}
+                  transfers={isPremium ? transfers : []}
+                  showRunningBalance={isPremium ? showRunningBalance : false}
                 />
               </div>
             } />
@@ -933,7 +974,8 @@ const App: React.FC = () => {
             } : undefined)}
             initialRecurringFrequency={editingRecurring?.frequency}
             categories={allCategories}
-            accounts={accounts}
+            onAddCategory={addCustomCategory}
+            accounts={isPremium ? accounts : []}
             onSwitchToAdd={() => {
               setEditingExpense(null);
               setEditingRecurring(null);
@@ -952,19 +994,21 @@ const App: React.FC = () => {
             initialIncome={editingIncome || undefined}
             expenses={expenses}
             incomes={incomes}
-            accounts={accounts}
-            transfers={transfers}
+            accounts={isPremium ? accounts : []}
+            transfers={isPremium ? transfers : []}
           />
         )}
 
-        {/* Global Chat Bot Modal */}
-        <ChatBotModal
-          isOpen={isChatBotOpen}
-          onClose={() => setIsChatBotOpen(false)}
-          expenses={expenses}
-          monthlyBudget={monthlyBudget}
-          openRouterApiKey={openRouterApiKey}
-        />
+        {/* Global Chat Bot Modal — Premium only */}
+        {isPremium && (
+          <ChatBotModal
+            isOpen={isChatBotOpen}
+            onClose={() => setIsChatBotOpen(false)}
+            expenses={expenses}
+            monthlyBudget={monthlyBudget}
+            openRouterApiKey={openRouterApiKey}
+          />
+        )}
       </div>
     </Router>
   );

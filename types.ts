@@ -18,6 +18,7 @@ export interface CategoryItem {
   id: string;
   name: string;
   color: string; // Hex code
+  icon?: string; // Custom icon identifier or emoji
   isCustom: boolean;
 }
 

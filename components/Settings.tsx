@@ -64,6 +64,8 @@ interface SettingsProps {
   setTelegramBackupSettings: React.Dispatch<React.SetStateAction<TelegramBackupSettings>>;
   showRunningBalance?: boolean;
   setShowRunningBalance?: React.Dispatch<React.SetStateAction<boolean>>;
+  isPremium?: boolean;
+  setIsPremium?: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
 const ACCOUNT_TYPES: { value: AccountType; label: string; category: AccountCategory }[] = [
@@ -116,7 +118,9 @@ const Settings: React.FC<SettingsProps> = ({
   telegramBackupSettings,
   setTelegramBackupSettings,
   showRunningBalance = true,
-  setShowRunningBalance
+  setShowRunningBalance,
+  isPremium = false,
+  setIsPremium
 }) => {
   // Navigation active tab
   const [activeTab, setActiveTab] = useState<'accounts' | 'budget' | 'backup' | 'ai' | 'install' | 'advanced' | 'danger'>('accounts');
@@ -682,42 +686,46 @@ const Settings: React.FC<SettingsProps> = ({
           {/* SIDE BAR / MOBILE CATEGORY NAVIGATION SECTION */}
           <div className="md:col-span-1 grid grid-cols-2 sm:grid-cols-3 md:flex md:flex-col gap-2.5 p-2 bg-slate-50 dark:bg-[#040914]/60 border border-slate-200 dark:border-white/[0.03] rounded-[24px]">
             
-            {/* 1. Accounts Tab */}
-            <button
-              onClick={() => setActiveTab('accounts')}
-              className={`w-full flex items-center justify-between px-4 py-3 rounded-2xl text-xs font-bold transition-all duration-300 transform cursor-pointer ${
-                activeTab === 'accounts' 
-                  ? 'bg-gradient-to-r from-[#7C3AED] to-[#8B5CF6] text-white shadow-[0_4px_20px_-2px_rgba(139,92,246,0.25)] border border-violet-400/20 scale-[1.02]' 
-                  : 'bg-slate-100 hover:bg-slate-100 text-slate-600 border border-slate-200 hover:text-slate-900 dark:bg-[#0F172A] dark:text-slate-400 dark:hover:text-white dark:hover:bg-[#111c33] dark:hover:border-violet-500/30 dark:border-white/[0.08] hover:scale-[1.02] hover:shadow-[0_0_15px_rgba(139,92,246,0.12)]'
-              }`}
-            >
-              <div className="flex items-center space-x-2">
-                <CreditCard className={`w-4 h-4 transition-colors ${activeTab === 'accounts' ? 'text-white' : 'text-violet-550 dark:text-violet-400'}`} />
-                <span>Accounts</span>
-              </div>
-              <span className={`text-[10px] font-black font-mono py-0.5 px-2 rounded-full border transition-all ${
-                activeTab === 'accounts' 
-                  ? 'bg-white/15 text-white border-white/20' 
-                  : 'bg-slate-200 text-slate-500 dark:bg-white/5 dark:text-slate-400 border-slate-300 dark:border-white/5'
-              }`}>
-                {accounts.length}
-              </span>
-            </button>
+            {/* 1. Accounts Tab — Premium only */}
+            {isPremium && (
+              <button
+                onClick={() => setActiveTab('accounts')}
+                className={`w-full flex items-center justify-between px-4 py-3 rounded-2xl text-xs font-bold transition-all duration-300 transform cursor-pointer ${
+                  activeTab === 'accounts' 
+                    ? 'bg-gradient-to-r from-[#7C3AED] to-[#8B5CF6] text-white shadow-[0_4px_20px_-2px_rgba(139,92,246,0.25)] border border-violet-400/20 scale-[1.02]' 
+                    : 'bg-slate-100 hover:bg-slate-100 text-slate-600 border border-slate-200 hover:text-slate-900 dark:bg-[#0F172A] dark:text-slate-400 dark:hover:text-white dark:hover:bg-[#111c33] dark:hover:border-violet-500/30 dark:border-white/[0.08] hover:scale-[1.02] hover:shadow-[0_0_15px_rgba(139,92,246,0.12)]'
+                }`}
+              >
+                <div className="flex items-center space-x-2">
+                  <CreditCard className={`w-4 h-4 transition-colors ${activeTab === 'accounts' ? 'text-white' : 'text-violet-550 dark:text-violet-400'}`} />
+                  <span>Accounts</span>
+                </div>
+                <span className={`text-[10px] font-black font-mono py-0.5 px-2 rounded-full border transition-all ${
+                  activeTab === 'accounts' 
+                    ? 'bg-white/15 text-white border-white/20' 
+                    : 'bg-slate-200 text-slate-500 dark:bg-white/5 dark:text-slate-400 border-slate-300 dark:border-white/5'
+                }`}>
+                  {accounts.length}
+                </span>
+              </button>
+            )}
 
-            {/* 2. Budget Rules Tab */}
-            <button
-              onClick={() => setActiveTab('budget')}
-              className={`w-full flex items-center justify-between px-4 py-3 rounded-2xl text-xs font-bold transition-all duration-300 transform cursor-pointer ${
-                activeTab === 'budget' 
-                  ? 'bg-gradient-to-r from-[#7C3AED] to-[#8B5CF6] text-white shadow-[0_4px_20px_-2px_rgba(139,92,246,0.25)] border border-violet-400/20 scale-[1.02]' 
-                  : 'bg-slate-100 hover:bg-slate-100 text-slate-600 border border-slate-200 hover:text-slate-900 dark:bg-[#0F172A] dark:text-slate-400 dark:hover:text-white dark:hover:bg-[#111c33] dark:hover:border-indigo-500/30 dark:border-white/[0.08] hover:scale-[1.02] hover:shadow-[0_0_15px_rgba(99,102,241,0.12)]'
-              }`}
-            >
-              <div className="flex items-center space-x-2">
-                <Landmark className={`w-4 h-4 transition-colors ${activeTab === 'budget' ? 'text-white' : 'text-indigo-500 dark:text-indigo-400'}`} />
-                <span>Budget Rules</span>
-              </div>
-            </button>
+            {/* 2. Budget Rules Tab — Premium only */}
+            {isPremium && (
+              <button
+                onClick={() => setActiveTab('budget')}
+                className={`w-full flex items-center justify-between px-4 py-3 rounded-2xl text-xs font-bold transition-all duration-300 transform cursor-pointer ${
+                  activeTab === 'budget' 
+                    ? 'bg-gradient-to-r from-[#7C3AED] to-[#8B5CF6] text-white shadow-[0_4px_20px_-2px_rgba(139,92,246,0.25)] border border-violet-400/20 scale-[1.02]' 
+                    : 'bg-slate-100 hover:bg-slate-100 text-slate-600 border border-slate-200 hover:text-slate-900 dark:bg-[#0F172A] dark:text-slate-400 dark:hover:text-white dark:hover:bg-[#111c33] dark:hover:border-indigo-500/30 dark:border-white/[0.08] hover:scale-[1.02] hover:shadow-[0_0_15px_rgba(99,102,241,0.12)]'
+                }`}
+              >
+                <div className="flex items-center space-x-2">
+                  <Landmark className={`w-4 h-4 transition-colors ${activeTab === 'budget' ? 'text-white' : 'text-indigo-500 dark:text-indigo-400'}`} />
+                  <span>Budget Rules</span>
+                </div>
+              </button>
+            )}
 
             {/* 3. Backup & Restore Tab */}
             <button
@@ -803,7 +811,7 @@ const Settings: React.FC<SettingsProps> = ({
               </div>
             </button>
 
-          {/* Brand Identity Showcase */}
+          {/* Brand Identity Showcase + Mode Toggle */}
           <div className="hidden md:flex flex-col bg-slate-100 dark:bg-[#0F172A] border border-slate-200 dark:border-white/[0.04] p-5 rounded-3xl mt-6 text-center relative overflow-hidden group">
             <div className="absolute top-0 right-0 w-24 h-24 bg-indigo-500/5 rounded-full blur-xl pointer-events-none transition-all group-hover:scale-125" />
             
@@ -825,6 +833,20 @@ const Settings: React.FC<SettingsProps> = ({
             
             <h3 className="text-xs font-black text-slate-800 dark:text-white tracking-widest uppercase">SpendWise</h3>
             <p className="text-[10px] text-slate-500 font-bold mt-1">Platform Version 2.4.0</p>
+
+            {/* Premium Mode Toggle */}
+            {setIsPremium && (
+              <button
+                onClick={() => setIsPremium(p => !p)}
+                className={`mt-4 w-full flex items-center justify-center gap-2 px-3 py-2 rounded-2xl text-xs font-black tracking-wide border transition-all duration-300 ${
+                  isPremium
+                    ? 'bg-gradient-to-r from-amber-400 to-yellow-300 text-amber-900 border-amber-300/60 shadow-md shadow-amber-200/30'
+                    : 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-300 dark:border-slate-700 hover:border-amber-400'
+                }`}
+              >
+                <span>{isPremium ? '⭐ Premium Active' : '🔓 Free Mode'}</span>
+              </button>
+            )}
             
             <div className="mt-4 pt-3 border-t border-slate-200 dark:border-white/[0.04] flex flex-col gap-1 text-[10px] text-left">
               <div className="flex justify-between">
@@ -1547,30 +1569,32 @@ const Settings: React.FC<SettingsProps> = ({
                     </div>
                   </div>
 
-                  {/* Interface Preferences */}
-                  <div className="bg-slate-50 dark:bg-[#111827] border border-slate-200 dark:border-white/[0.04] p-5 rounded-2xl mt-6">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <h4 className="text-xs font-black text-slate-800 dark:text-slate-300 uppercase tracking-wider mb-1 flex items-center gap-2">
-                          <Sliders className="w-3.5 h-3.5 text-indigo-500 dark:text-indigo-400" />
-                          Interface Preferences
-                        </h4>
-                        <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-tight">Toggle specific visual indicators like running balances in transaction list viewports.</p>
-                      </div>
-                      
-                      <div className="flex items-center space-x-2 bg-slate-100 dark:bg-[#111827] px-3 py-1.5 rounded-full border border-slate-200 dark:border-white/[0.05]">
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                          {showRunningBalance ? 'Show' : 'Hide'}
-                        </span>
-                        <button
-                          onClick={() => setShowRunningBalance && setShowRunningBalance(prev => !prev)}
-                          className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none ${showRunningBalance ? 'bg-indigo-650' : 'bg-slate-350 dark:bg-slate-800'}`}
-                        >
-                          <span className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ${showRunningBalance ? 'translate-x-4' : 'translate-x-0'}`} />
-                        </button>
+                  {/* Interface Preferences — Premium only */}
+                  {isPremium && (
+                    <div className="bg-slate-50 dark:bg-[#111827] border border-slate-200 dark:border-white/[0.04] p-5 rounded-2xl mt-6">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <h4 className="text-xs font-black text-slate-800 dark:text-slate-300 uppercase tracking-wider mb-1 flex items-center gap-2">
+                            <Sliders className="w-3.5 h-3.5 text-indigo-500 dark:text-indigo-400" />
+                            Interface Preferences
+                          </h4>
+                          <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-tight">Toggle specific visual indicators like running balances in transaction list viewports.</p>
+                        </div>
+                        
+                        <div className="flex items-center space-x-2 bg-slate-100 dark:bg-[#111827] px-3 py-1.5 rounded-full border border-slate-200 dark:border-white/[0.05]">
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                            {showRunningBalance ? 'Show' : 'Hide'}
+                          </span>
+                          <button
+                            onClick={() => setShowRunningBalance && setShowRunningBalance(prev => !prev)}
+                            className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none ${showRunningBalance ? 'bg-indigo-650' : 'bg-slate-350 dark:bg-slate-800'}`}
+                          >
+                            <span className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ${showRunningBalance ? 'translate-x-4' : 'translate-x-0'}`} />
+                          </button>
+                        </div>
                       </div>
                     </div>
-                  </div>
+                  )}
 
                 </div>
               </div>

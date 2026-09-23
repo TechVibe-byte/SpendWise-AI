@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Expense, Category, RecurringFrequency, CategoryItem, DefaultCategory, Account } from '../types';
 import { getCategoryIcon } from '../constants';
+import { IconPickerModal } from './IconPickerModal';
 
 interface ExpenseFormProps {
   onAdd: (expense: Omit<Expense, 'id'>, recurringInfo?: { frequency: RecurringFrequency }) => void;
@@ -11,6 +12,7 @@ interface ExpenseFormProps {
   categories: CategoryItem[];
   accounts?: Account[];
   onSwitchToAdd?: () => void;
+  onAddCategory?: (name: string, color: string, icon?: string) => CategoryItem | undefined | void;
 }
 
 const INDIAN_MERCHANT_MAP: Record<string, string[]> = {
@@ -75,7 +77,7 @@ const COMMON_BANKS = [
   "Flipkart Pay Later", "Lazypay", "ZestMoney", "Simpl", "mPokket", "Cashe"
 ];
 
-const ExpenseForm: React.FC<ExpenseFormProps> = ({ onAdd, onClose, initialExpense, initialRecurringFrequency, categories, accounts, onSwitchToAdd }) => {
+const ExpenseForm: React.FC<ExpenseFormProps> = ({ onAdd, onClose, initialExpense, initialRecurringFrequency, categories, accounts, onSwitchToAdd, onAddCategory }) => {
   const [description, setDescription] = useState(initialExpense?.description || '');
   const [amount, setAmount] = useState(initialExpense?.amount.toString() || '');
   const [category, setCategory] = useState<Category>(initialExpense?.category || DefaultCategory.OTHER);
@@ -91,6 +93,13 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({ onAdd, onClose, initialExpens
   const [isCategorizing, setIsCategorizing] = useState(false);
   const [isAccountDropdownOpen, setIsAccountDropdownOpen] = useState(false);
   const [isCategoryDropdownOpen, setIsCategoryDropdownOpen] = useState(false);
+
+  // Custom Category Creation States
+  const [isCreatingCategory, setIsCreatingCategory] = useState(false);
+  const [newCatName, setNewCatName] = useState('');
+  const [newCatColor, setNewCatColor] = useState('#8B5CF6');
+  const [newCatIcon, setNewCatIcon] = useState('');
+  const [isIconPickerOpen, setIsIconPickerOpen] = useState(false);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -241,7 +250,8 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({ onAdd, onClose, initialExpens
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!description || !amount) return;
-    if (!bankName) {
+    // Only require bank account if accounts are available (Premium mode)
+    if (accounts && accounts.length > 0 && !bankName) {
       alert("Please select a payment account first.");
       return;
     }
@@ -252,7 +262,7 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({ onAdd, onClose, initialExpens
         amount: parseFloat(amount),
         category,
         date,
-        bankName,
+        bankName: bankName || undefined,
         note: note || undefined,
         receiptImage: receiptImage || undefined
       },
@@ -308,7 +318,7 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({ onAdd, onClose, initialExpens
           </button>
         </div>
         
-        <form onSubmit={handleSubmit} className="p-6 space-y-6 overflow-y-auto pb-10 md:pb-6">
+        <form onSubmit={handleSubmit} className="p-6 pr-4 md:pr-5 space-y-6 overflow-y-auto pb-10 md:pb-6">
           <div className="space-y-4">
             <div>
               <div className="flex justify-between items-center mb-2">
@@ -361,10 +371,12 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({ onAdd, onClose, initialExpens
               })()}
             </div>
 
-            <div>
-              <label className="block text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">
-                Paid From Account <span className="text-red-500">*</span>
-              </label>
+            {/* Paid From Account — only shown in Premium mode (when accounts exist) */}
+            {accounts && accounts.length > 0 && (
+              <div>
+                <label className="block text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">
+                  Paid From Account <span className="text-red-500">*</span>
+                </label>
               {accounts && accounts.length > 0 ? (
                 <div className="relative">
                   {/* Visually hidden select for browser validation */}
@@ -472,6 +484,7 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({ onAdd, onClose, initialExpens
                 </div>
               )}
             </div>
+            )}
 
             <div className="grid grid-cols-2 gap-4">
               <div>
@@ -538,9 +551,14 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({ onAdd, onClose, initialExpens
                     setIsCategoryDropdownOpen(!isCategoryDropdownOpen);
                     setIsAccountDropdownOpen(false);
                   }}
-                  className="w-full px-4 py-4 md:py-3 rounded-xl border border-slate-205 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all flex items-center justify-between cursor-pointer text-base font-semibold"
+                  className="w-full px-4 py-4 md:py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all flex items-center justify-between cursor-pointer text-base font-semibold"
                 >
-                  <span>{category}</span>
+                  <div className="flex items-center gap-2.5">
+                    <span className="w-7 h-7 rounded-lg bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 flex items-center justify-center text-sm">
+                      {getCategoryIcon(category, categories.find(c => c.name === category)?.icon)}
+                    </span>
+                    <span>{category}</span>
+                  </div>
                   <svg 
                     className={`w-5 h-5 text-slate-400 transition-transform duration-200 ${isCategoryDropdownOpen ? 'rotate-180' : ''}`} 
                     fill="none" 
@@ -561,7 +579,24 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({ onAdd, onClose, initialExpens
 
                 {/* Dropdown Options List */}
                 {isCategoryDropdownOpen && (
-                  <div className="absolute left-0 right-0 mt-2 bg-white dark:bg-[#0F172A] border border-slate-200 dark:border-white/[0.08] rounded-2xl shadow-xl z-50 max-h-60 overflow-y-auto py-1">
+                  <div className="absolute left-0 right-0 mt-2 bg-white dark:bg-[#0F172A] border border-slate-200 dark:border-white/[0.08] rounded-2xl shadow-xl z-50 max-h-64 overflow-y-auto py-1">
+                    
+                    {/* Quick Add New Category Action */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsCreatingCategory(true);
+                        setIsCategoryDropdownOpen(false);
+                      }}
+                      className="w-full text-left px-4 py-3 text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 border-b border-slate-100 dark:border-slate-800/80 transition-colors flex items-center justify-between group cursor-pointer"
+                    >
+                      <span className="flex items-center gap-2">
+                        <span className="w-5 h-5 rounded-full bg-indigo-100 dark:bg-indigo-900/50 flex items-center justify-center text-xs font-bold text-indigo-600 dark:text-indigo-400 group-hover:scale-110 transition-transform">+</span>
+                        <span>Create New Category...</span>
+                      </span>
+                      <span className="text-[10px] text-slate-400 font-normal">100+ Symbols</span>
+                    </button>
+
                     {categories.map(cat => {
                       const isSelected = category === cat.name;
                       return (
@@ -572,9 +607,14 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({ onAdd, onClose, initialExpens
                             changeCategory(cat.name as Category);
                             setIsCategoryDropdownOpen(false);
                           }}
-                          className={`w-full text-left px-4 py-3 text-sm font-semibold hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors flex items-center justify-between ${isSelected ? 'text-indigo-500 bg-slate-50/50 dark:bg-slate-800/40 font-black' : 'text-slate-700 dark:text-slate-300'}`}
+                          className={`w-full text-left px-4 py-2.5 text-sm font-semibold hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors flex items-center justify-between ${isSelected ? 'text-indigo-500 bg-slate-50/50 dark:bg-slate-800/40 font-black' : 'text-slate-700 dark:text-slate-300'}`}
                         >
-                          <span>{cat.name}</span>
+                          <div className="flex items-center gap-2.5">
+                            <span className="w-6 h-6 rounded-lg flex items-center justify-center text-sm" style={{ backgroundColor: `${cat.color}20`, color: cat.color }}>
+                              {getCategoryIcon(cat.name, cat.icon)}
+                            </span>
+                            <span>{cat.name}</span>
+                          </div>
                           {isSelected && (
                             <svg className="w-4 h-4 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
@@ -743,6 +783,114 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({ onAdd, onClose, initialExpens
           </button>
         </form>
       </div>
+
+      {/* Mini Modal for Quick Category Creation */}
+      {isCreatingCategory && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[150] flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl w-full max-w-sm p-6 border border-slate-200 dark:border-slate-800 space-y-4 animate-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+              <h3 className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                <span>✨</span> Create New Category
+              </h3>
+              <button 
+                type="button" 
+                onClick={() => setIsCreatingCategory(false)}
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 font-bold"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-400 uppercase mb-1">Category Name</label>
+              <div className="flex gap-2 items-center">
+                {/* Symbol button */}
+                <button
+                  type="button"
+                  onClick={() => setIsIconPickerOpen(true)}
+                  className="w-12 h-12 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 flex items-center justify-center text-xl hover:border-indigo-500 shrink-0 cursor-pointer shadow-inner relative"
+                  title="Click to pick symbol"
+                >
+                  {getCategoryIcon(newCatName || 'Other', newCatIcon)}
+                  <span className="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-indigo-600 text-white text-[8px] rounded-full flex items-center justify-center font-bold">
+                    +
+                  </span>
+                </button>
+
+                <input
+                  type="text"
+                  autoFocus
+                  placeholder="e.g. Pet, Dog Food, Gaming..."
+                  value={newCatName}
+                  onChange={(e) => setNewCatName(e.target.value)}
+                  className="w-full px-3.5 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+                />
+              </div>
+              <p className="text-[10px] text-slate-400 mt-1">
+                Auto-matches symbol (e.g. typing "Pet" displays 🐾) or click symbol to pick from 100+ icons!
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-400 uppercase mb-1">Theme Color</label>
+              <div className="flex gap-2 items-center">
+                {['#8B5CF6', '#EC4899', '#10B981', '#F59E0B', '#3B82F6', '#6366F1', '#14B8A6', '#64748B'].map(c => (
+                  <button
+                    key={c}
+                    type="button"
+                    onClick={() => setNewCatColor(c)}
+                    className={`w-6 h-6 rounded-full border-2 transition-transform ${newCatColor === c ? 'scale-125 border-slate-900 dark:border-white shadow-md' : 'border-transparent hover:scale-110'}`}
+                    style={{ backgroundColor: c }}
+                  />
+                ))}
+                <input
+                  type="color"
+                  value={newCatColor}
+                  onChange={(e) => setNewCatColor(e.target.value)}
+                  className="w-6 h-6 rounded-full border-0 bg-transparent cursor-pointer ml-auto"
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setIsCreatingCategory(false)}
+                className="flex-1 py-2.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold rounded-xl text-xs hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (!newCatName.trim()) return;
+                  if (onAddCategory) {
+                    const created = onAddCategory(newCatName.trim(), newCatColor, newCatIcon || undefined);
+                    const nameToSet = created ? created.name : newCatName.trim();
+                    changeCategory(nameToSet as Category);
+                  } else {
+                    changeCategory(newCatName.trim() as Category);
+                  }
+                  setNewCatName('');
+                  setNewCatIcon('');
+                  setIsCreatingCategory(false);
+                }}
+                disabled={!newCatName.trim()}
+                className="flex-1 py-2.5 bg-indigo-600 disabled:opacity-50 text-white font-bold rounded-xl text-xs hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-500/20"
+              >
+                Save Category
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <IconPickerModal
+        isOpen={isIconPickerOpen}
+        onClose={() => setIsIconPickerOpen(false)}
+        onSelectIcon={(emoji) => setNewCatIcon(emoji)}
+        selectedIcon={newCatIcon}
+      />
     </div>
   );
 };

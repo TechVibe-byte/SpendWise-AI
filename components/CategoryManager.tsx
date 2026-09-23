@@ -2,24 +2,28 @@
 import React, { useState } from 'react';
 import { CategoryItem } from '../types';
 import { getCategoryIcon } from '../constants';
+import { IconPickerModal } from './IconPickerModal';
 
 interface CategoryManagerProps {
   categories: CategoryItem[];
-  onAddCategory: (name: string, color: string) => void;
+  onAddCategory: (name: string, color: string, icon?: string) => void;
   onDeleteCategory: (id: string) => void;
 }
 
 const CategoryManager: React.FC<CategoryManagerProps> = ({ categories, onAddCategory, onDeleteCategory }) => {
   const [newCategoryName, setNewCategoryName] = useState('');
   const [newCategoryColor, setNewCategoryColor] = useState('#6366f1'); // Default Indigo
+  const [selectedIcon, setSelectedIcon] = useState<string>('');
+  const [isIconPickerOpen, setIsIconPickerOpen] = useState(false);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (newCategoryName.trim()) {
-      onAddCategory(newCategoryName.trim(), newCategoryColor);
+      onAddCategory(newCategoryName.trim(), newCategoryColor, selectedIcon || undefined);
       setNewCategoryName('');
       setNewCategoryColor('#6366f1');
+      setSelectedIcon('');
     }
   };
 
@@ -28,8 +32,32 @@ const CategoryManager: React.FC<CategoryManagerProps> = ({ categories, onAddCate
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
       <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 md:p-8 shadow-sm border border-slate-100 dark:border-slate-800">
-        <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-6">Create New Category</h2>
+        <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-6 flex items-center justify-between">
+          <span>Create New Category</span>
+          <span className="text-xs text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/50 px-3 py-1 rounded-full font-bold">
+            100+ Icons Supported
+          </span>
+        </h2>
         <form onSubmit={handleSubmit} className="flex flex-col md:flex-row gap-4 items-end">
+          
+          {/* Symbol Preview & Picker */}
+          <div>
+            <label className="block text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">
+              Symbol
+            </label>
+            <button
+              type="button"
+              onClick={() => setIsIconPickerOpen(true)}
+              className="w-[50px] h-[50px] rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 flex items-center justify-center text-2xl hover:border-indigo-500 dark:hover:border-indigo-400 transition-all cursor-pointer shadow-inner relative group"
+              title="Click to select symbol"
+            >
+              {getCategoryIcon(newCategoryName || 'Other', selectedIcon)}
+              <span className="absolute -bottom-1 -right-1 w-4 h-4 bg-indigo-600 text-white text-[9px] rounded-full flex items-center justify-center font-bold">
+                +
+              </span>
+            </button>
+          </div>
+
           <div className="flex-1 w-full">
             <label className="block text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">
               Category Name
@@ -37,12 +65,13 @@ const CategoryManager: React.FC<CategoryManagerProps> = ({ categories, onAddCate
             <input
               type="text"
               required
-              placeholder="e.g., Pets, Gym, Subscriptions"
+              placeholder="e.g., Pet, Gym, Subscriptions, Coffee..."
               className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
               value={newCategoryName}
               onChange={(e) => setNewCategoryName(e.target.value)}
             />
           </div>
+
           <div>
             <label className="block text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">
               Color
@@ -57,14 +86,22 @@ const CategoryManager: React.FC<CategoryManagerProps> = ({ categories, onAddCate
               <span className="text-sm font-mono text-slate-500 dark:text-slate-400 uppercase w-16">{newCategoryColor}</span>
             </div>
           </div>
+
           <button
             type="submit"
             className="w-full md:w-auto px-8 py-3.5 bg-indigo-600 text-white font-bold rounded-xl shadow-lg shadow-indigo-100 dark:shadow-none hover:bg-indigo-700 transition-all h-[50px]"
           >
-            Create
+            Create Category
           </button>
         </form>
       </div>
+
+      <IconPickerModal
+        isOpen={isIconPickerOpen}
+        onClose={() => setIsIconPickerOpen(false)}
+        onSelectIcon={(emoji) => setSelectedIcon(emoji)}
+        selectedIcon={selectedIcon}
+      />
 
       <div className="space-y-4">
         <h3 className="text-lg font-bold text-slate-800 dark:text-slate-200 px-2">Your Categories</h3>
@@ -79,7 +116,7 @@ const CategoryManager: React.FC<CategoryManagerProps> = ({ categories, onAddCate
                   className="w-10 h-10 rounded-xl flex items-center justify-center text-white shadow-sm"
                   style={{ backgroundColor: cat.color }}
                 >
-                  {getCategoryIcon(cat.name)}
+                  {getCategoryIcon(cat.name, cat.icon)}
                 </div>
                 <div>
                   <h4 className="font-semibold text-slate-900 dark:text-white">{cat.name}</h4>

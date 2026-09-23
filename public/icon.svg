@@ -1,11 +1,21 @@
-<svg width="200" height="200" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <path d="M60 140C60 117.909 77.9086 100 100 100H140V140C140 151.046 131.046 160 120 160H80C68.9543 160 60 151.046 60 140Z" fill="#0f172a"/>
-  <path d="M140 60C140 82.0914 122.091 100 100 100H60V60C60 48.9543 68.9543 40 80 40H120C131.046 40 140 48.9543 140 60Z" fill="#22c55e"/>
-  <rect x="60" y="90" width="80" height="20" fill="url(#paint0_linear_logo)"/>
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background: purple gradient matching the app header icon -->
+  <rect width="512" height="512" rx="120" fill="url(#bg_grad)"/>
+  <!-- Top Loop: vibrant green matching app logo -->
+  <path d="M153.6 358.4C153.6 301.806 199.206 256 255.8 256H358.4V358.4C358.4 386.906 335.306 410 306.8 410H204.8C176.294 410 153.6 386.906 153.6 358.4Z" fill="white" opacity="0.92"/>
+  <!-- Bottom Loop: green -->
+  <path d="M358.4 153.6C358.4 210.194 312.794 256 256.2 256H153.6V153.6C153.6 125.094 176.694 102 205.2 102H307.2C335.706 102 358.4 125.094 358.4 153.6Z" fill="#22c55e"/>
+  <!-- Middle Transition -->
+  <rect x="153.6" y="230.4" width="204.8" height="51.2" fill="url(#mid_grad)" opacity="0.9"/>
   <defs>
-    <linearGradient id="paint0_linear_logo" x1="60" y1="100" x2="140" y2="100" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#22c55e"/>
-      <stop offset="1" stop-color="#0f172a"/>
+    <linearGradient id="bg_grad" x1="0" y1="0" x2="512" y2="512" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#8B5CF6"/>
+      <stop offset="50%" stop-color="#7C3AED"/>
+      <stop offset="100%" stop-color="#5b21b6"/>
+    </linearGradient>
+    <linearGradient id="mid_grad" x1="153.6" y1="256" x2="358.4" y2="256" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#22c55e"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0.85"/>
     </linearGradient>
   </defs>
 </svg>
