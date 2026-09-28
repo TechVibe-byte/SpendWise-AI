@@ -23,6 +23,7 @@ interface DashboardProps {
   showInstallBtn?: boolean;
   isStandalone?: boolean;
   handleInstallClick?: () => Promise<void>;
+  isPremium?: boolean;
 }
 
 const Dashboard: React.FC<DashboardProps> = ({ 
@@ -38,7 +39,8 @@ const Dashboard: React.FC<DashboardProps> = ({
   setTransfers,
   showInstallBtn = false,
   isStandalone = false,
-  handleInstallClick
+  handleInstallClick,
+  isPremium = false
 }) => {
   const isDark = window.document.documentElement.classList.contains('dark');
   const [distView, setDistView] = useState<'monthly' | 'yearly' | 'overall'>('monthly');
@@ -136,6 +138,49 @@ const Dashboard: React.FC<DashboardProps> = ({
       .reduce((sum, e) => sum + e.amount, 0);
   }, [expenses, currentMonthPrefix]);
 
+  // Daily and monthly spending helpers for overview cards
+  const todayDate = useMemo(() => {
+    const d = new Date();
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }, []);
+
+  const todaySpent = useMemo(() => {
+    return expenses
+      .filter(e => e.date === todayDate)
+      .reduce((sum, e) => sum + e.amount, 0);
+  }, [expenses, todayDate]);
+
+  const todayExpenseCount = useMemo(() => {
+    return expenses.filter(e => e.date === todayDate).length;
+  }, [expenses, todayDate]);
+
+  const yesterdayDate = useMemo(() => {
+    const d = new Date();
+    d.setDate(d.getDate() - 1);
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }, []);
+
+  const yesterdaySpent = useMemo(() => {
+    return expenses
+      .filter(e => e.date === yesterdayDate)
+      .reduce((sum, e) => sum + e.amount, 0);
+  }, [expenses, yesterdayDate]);
+
+  const currentMonthExpenseCount = useMemo(() => {
+    return expenses.filter(e => e.date.startsWith(currentMonthPrefix)).length;
+  }, [expenses, currentMonthPrefix]);
+
+  const currentMonthAvgDailySpend = useMemo(() => {
+    const todayNum = new Date().getDate();
+    return currentMonthSpent / (todayNum > 0 ? todayNum : 1);
+  }, [currentMonthSpent]);
+
   // Total overall metrics
   const totalIncome = useMemo(() => incomes.reduce((s, i) => s + i.amount, 0), [incomes]);
   const totalSpent = useMemo(() => expenses.reduce((s, e) => s + e.amount, 0), [expenses]);
@@ -170,6 +215,11 @@ const Dashboard: React.FC<DashboardProps> = ({
     if (lastMonthIncome === 0) return null;
     return ((currentMonthIncome - lastMonthIncome) / lastMonthIncome) * 100;
   }, [currentMonthIncome, lastMonthIncome]);
+
+  const monthOverMonthSpentPercent = useMemo(() => {
+    if (lastMonthSpent === 0) return null;
+    return ((currentMonthSpent - lastMonthSpent) / lastMonthSpent) * 100;
+  }, [currentMonthSpent, lastMonthSpent]);
 
   const highestSpendingCategoryData = useMemo(() => {
     const currentMonthExpenses = expenses.filter(e => e.date.startsWith(currentMonthPrefix));
@@ -715,210 +765,305 @@ const Dashboard: React.FC<DashboardProps> = ({
         </motion.div>
       )}
 
-      {/* 1. Dashboard Improvements: Swipeable Carousel summaries (Mobile) & Classic Grid metrics (Desktop) */}
-      
-      {/* MOBILE INTERACTIVE SWIPEABLE STATISTICS CARD */}
-      <div className="block md:hidden pb-1">
-        <div className="relative overflow-hidden w-full rounded-3xl" style={{ touchAction: 'pan-y' }}>
-          <AnimatePresence initial={false} mode="wait" custom={slideDirection}>
-            <motion.div
-              key={activeSlideIndex}
-              custom={slideDirection}
-              variants={{
-                enter: (dir: number) => ({
-                  x: dir > 0 ? '100%' : '-100%',
-                  opacity: 0,
-                  scale: 0.95
-                }),
-                center: {
-                  x: '0%',
-                  opacity: 1,
-                  scale: 1
-                },
-                exit: (dir: number) => ({
-                  x: dir < 0 ? '100%' : '-100%',
-                  opacity: 0,
-                  scale: 0.95
-                })
-              }}
-              initial="enter"
-              animate="center"
-              exit="exit"
-              transition={{
-                x: { type: "spring", stiffness: 350, damping: 32 },
-                opacity: { duration: 0.2 }
-              }}
-              drag="x"
-              dragConstraints={{ left: 0, right: 0 }}
-              dragElastic={0.6}
-              onDragEnd={(e, info) => {
-                const swipeThreshold = 50;
-                if (info.offset.x < -swipeThreshold) {
-                  handleNextSlide();
-                } else if (info.offset.x > swipeThreshold) {
-                  handlePrevSlide();
-                }
-              }}
-              className={`w-full bg-gradient-to-br ${metricsCards[activeSlideIndex].gradient} p-6 pb-7 rounded-3xl text-white shadow-lg flex flex-col justify-between cursor-grab active:cursor-grabbing relative overflow-hidden select-none min-h-[175px]`}
-            >
-              {/* Back backing decorative glowing backdrop blur sphere */}
-              <div className="absolute -top-16 -right-16 w-36 h-36 bg-white/10 rounded-full blur-2xl pointer-events-none" />
-              <div className="absolute -bottom-16 -left-16 w-36 h-36 bg-black/10 rounded-full blur-2xl pointer-events-none" />
-
-              {/* Layout Content */}
-              <div className="space-y-4 relative z-10 w-full">
-                {/* Carousel Header */}
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-black uppercase tracking-widest text-white/80">
-                    {metricsCards[activeSlideIndex].title}
-                  </span>
-                  <div className="w-8 h-8 rounded-xl bg-white/10 flex items-center justify-center shrink-0">
-                    {metricsCards[activeSlideIndex].icon}
+      {/* 1. Overview Cards: Focused Daily & Monthly Spend in Free version; Full Carousel & Stats Grid in Premium */}
+      {!isPremium ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6">
+          {/* Daily Spend Card */}
+          <div className="bg-white dark:bg-slate-900 border border-slate-150/10 dark:border-slate-800 p-5 md:p-6 rounded-3xl shadow-sm flex flex-col justify-between relative overflow-hidden group hover:border-violet-500/30 transition-all">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-violet-500/5 dark:bg-violet-500/10 rounded-full blur-2xl pointer-events-none" />
+            <div>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 rounded-2xl bg-violet-50 dark:bg-violet-950/40 text-violet-600 dark:text-violet-400 flex items-center justify-center font-bold shadow-xs">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <span className="text-[11px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 block">Daily Spend</span>
+                    <span className="text-xs font-semibold text-slate-400 dark:text-slate-500">Today ({new Date().toLocaleDateString(undefined, { month: 'short', day: 'numeric' })})</span>
                   </div>
                 </div>
-
-                {/* Primary Card Value text */}
-                <div>
-                  <h3 className="text-3xl font-black font-mono tracking-tight text-white drop-shadow-xs leading-none">
-                    {metricsCards[activeSlideIndex].value}
-                  </h3>
-                  
-                  {/* Metric Sub-tag change indicator */}
-                  <div className="mt-2 text-xs font-black flex items-center gap-1">
-                    <span className="bg-white/20 text-white px-2.5 py-0.5 rounded-full border border-white/10 text-[11px] uppercase tracking-wide">
-                      {metricsCards[activeSlideIndex].change}
-                    </span>
-                  </div>
-                </div>
+                <span className="text-[10px] font-extrabold px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+                  {todayExpenseCount} {todayExpenseCount === 1 ? 'expense' : 'expenses'}
+                </span>
               </div>
 
-              {/* Lower description details */}
-              <div className="mt-4 text-[11px] font-medium text-white/90 leading-tight border-t border-white/10 pt-3 flex items-center space-x-1.5 relative z-10">
-                <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
-                <span className="truncate">{metricsCards[activeSlideIndex].subtext}</span>
-              </div>
-            </motion.div>
-          </AnimatePresence>
-
-          {/* Steer Chevrons for swipe fallback */}
-          <button
-            onClick={handlePrevSlide}
-            className="absolute left-2.5 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/15 hover:bg-black/35 text-white flex items-center justify-center backdrop-blur-xs transition-colors z-20 cursor-pointer active:scale-95"
-            aria-label="Previous slide"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
-            </svg>
-          </button>
-          <button
-            onClick={handleNextSlide}
-            className="absolute right-2.5 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/15 hover:bg-black/35 text-white flex items-center justify-center backdrop-blur-xs transition-colors z-20 cursor-pointer active:scale-95"
-            aria-label="Next slide"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
-            </svg>
-          </button>
-        </div>
-
-        {/* Page dot indicators below the card */}
-        <div className="flex justify-center items-center gap-2 mt-3.5">
-          {metricsCards.map((card, idx) => (
-            <button
-              key={card.id}
-              onClick={() => handleSelectSlide(idx)}
-              className={`h-2 rounded-full transition-all duration-300 cursor-pointer ${
-                activeSlideIndex === idx 
-                  ? 'w-6 bg-indigo-600 dark:bg-indigo-400 shadow-xs' 
-                  : 'w-2 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600'
-              }`}
-              aria-label={`Go to slide ${idx + 1}`}
-            />
-          ))}
-        </div>
-      </div>
-
-      {/* DESKTOP FULL SCANNABLE STATS GRID */}
-      <div className="hidden md:grid grid-cols-1 md:grid-cols-4 gap-4">
-        {/* Income Card */}
-        <div className="bg-white dark:bg-slate-900 border border-slate-150/10 dark:border-slate-800 p-5 rounded-3xl shadow-sm flex flex-col justify-between">
-          <div>
-            <div className="flex items-center justify-between text-slate-500 dark:text-slate-400">
-              <span className="text-xs font-bold uppercase tracking-wider">This Month Income</span>
-              <div className="w-6.5 h-6.5 rounded-lg bg-emerald-500/10 text-emerald-600 dark:bg-emerald-900/30 flex items-center justify-center">
-                ↓
+              <div className="mt-5">
+                <h3 className="text-3xl md:text-4xl font-black font-mono tracking-tight text-slate-900 dark:text-white">
+                  {formatCurrency(todaySpent)}
+                </h3>
               </div>
             </div>
-            <h3 className="text-2xl font-black text-slate-900 dark:text-white mt-2.5 font-mono">
-              {formatCurrency(currentMonthIncome)}
-            </h3>
-          </div>
-          <p className="text-[10px] text-slate-400 mt-3 font-semibold">
-            All salary credits, bonuses, support funds
-          </p>
-        </div>
 
-        {/* Expenses Card */}
-        <div className="bg-white dark:bg-slate-900 border border-slate-150/10 dark:border-slate-800 p-5 rounded-3xl shadow-sm flex flex-col justify-between">
-          <div>
-            <div className="flex items-center justify-between text-slate-500 dark:text-slate-400">
-              <span className="text-xs font-bold uppercase tracking-wider">This Month Spent</span>
-              <div className="w-6.5 h-6.5 rounded-lg bg-red-500/10 text-red-600 dark:bg-red-900/30 flex items-center justify-center">
-                ↑
-              </div>
-            </div>
-            <h3 className="text-2xl font-black text-slate-900 dark:text-white mt-2.5 font-mono">
-              {formatCurrency(currentMonthSpent)}
-            </h3>
-          </div>
-          <p className="text-[10px] text-slate-400 mt-3 font-semibold">
-            Active debit spending matches
-          </p>
-        </div>
-
-        {/* Monthly Net Savings & Savings Rate */}
-        <div className="bg-white dark:bg-slate-900 border border-slate-150/10 dark:border-slate-800 p-5 rounded-3xl shadow-sm flex flex-col justify-between">
-          <div>
-            <div className="flex items-center justify-between text-slate-500 dark:text-slate-400">
-              <span className="text-xs font-bold uppercase tracking-wider">Monthly Cash Flow</span>
-              <span className="text-[10px] bg-indigo-50 dark:bg-indigo-950 px-1.5 py-0.5 rounded font-black text-indigo-600 dark:text-indigo-400">
-                SR: {currentMonthSavingsRate.toFixed(1)}%
+            <div className="mt-5 pt-3.5 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-xs text-slate-400">
+              <span className="font-medium">
+                {yesterdaySpent > 0 ? (
+                  <span>Yesterday: <strong className="font-mono text-slate-700 dark:text-slate-300">{formatCurrency(yesterdaySpent)}</strong></span>
+                ) : (
+                  <span>Daily Avg: <strong className="font-mono text-slate-700 dark:text-slate-300">{formatCurrency(currentMonthAvgDailySpend)}</strong></span>
+                )}
+              </span>
+              <span className="text-[11px] font-bold text-violet-600 dark:text-violet-400">
+                {todaySpent === 0 ? 'No spend yet today' : 'Logged today'}
               </span>
             </div>
-            <h3 className={`text-2xl font-black mt-2.5 font-mono ${currentMonthSavings >= 0 ? 'text-emerald-600' : 'text-rose-500'}`}>
-              {currentMonthSavings >= 0 ? '+' : ''}{formatCurrency(currentMonthSavings)}
-            </h3>
           </div>
-          <p className="text-[10px] text-slate-400 mt-3 font-semibold">
-            Net savings retained in accounts
-          </p>
-        </div>
 
-        {/* Intelligence Score Card */}
-        <div className="bg-gradient-to-br from-indigo-900 to-slate-950 p-5 rounded-3xl text-white flex flex-col justify-between shadow-md">
-          <div className="flex justify-between items-start">
+          {/* Monthly Spend Card */}
+          <div className="bg-white dark:bg-slate-900 border border-slate-150/10 dark:border-slate-800 p-5 md:p-6 rounded-3xl shadow-sm flex flex-col justify-between relative overflow-hidden group hover:border-rose-500/30 transition-all">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-rose-500/5 dark:bg-rose-500/10 rounded-full blur-2xl pointer-events-none" />
             <div>
-              <span className="text-[10px] font-black uppercase tracking-widest text-indigo-300">Financial Health Score</span>
-              <h3 className="text-3xl font-black mt-1 font-mono tracking-tight">{financialHealthScore}<span className="text-xs text-indigo-400 font-bold">/100</span></h3>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 rounded-2xl bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 flex items-center justify-center font-bold shadow-xs">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <span className="text-[11px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 block">Monthly Spend</span>
+                    <span className="text-xs font-semibold text-slate-400 dark:text-slate-500">{new Date().toLocaleString(undefined, { month: 'long', year: 'numeric' })}</span>
+                  </div>
+                </div>
+                <span className="text-[10px] font-extrabold px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+                  {currentMonthExpenseCount} {currentMonthExpenseCount === 1 ? 'expense' : 'expenses'}
+                </span>
+              </div>
+
+              <div className="mt-5">
+                <h3 className="text-3xl md:text-4xl font-black font-mono tracking-tight text-slate-900 dark:text-white">
+                  {formatCurrency(currentMonthSpent)}
+                </h3>
+              </div>
             </div>
-            <div className="text-xs font-black bg-indigo-500/20 text-indigo-300 px-2.5 py-1 rounded-xl border border-indigo-500/20">
-              {financialHealthScore >= 80 ? 'Perfect' : financialHealthScore >= 60 ? 'Healthy' : 'Caution'}
+
+            <div className="mt-5 pt-3.5 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-xs text-slate-400">
+              <span className="font-medium">
+                {monthOverMonthSpentPercent !== null ? (
+                  <span>
+                    vs Last Month:{' '}
+                    <strong className={`font-mono ${monthOverMonthSpentPercent > 0 ? 'text-rose-500' : 'text-emerald-500'}`}>
+                      {monthOverMonthSpentPercent > 0 ? '+' : ''}{monthOverMonthSpentPercent.toFixed(1)}%
+                    </strong>
+                  </span>
+                ) : (
+                  <span>Daily Avg: <strong className="font-mono text-slate-700 dark:text-slate-300">{formatCurrency(currentMonthAvgDailySpend)}/day</strong></span>
+                )}
+              </span>
+              <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400">
+                {highestSpendingCategoryData.name !== 'None' ? `Top: ${highestSpendingCategoryData.name}` : 'Active cycle'}
+              </span>
             </div>
-          </div>
-          <div className="text-[10px] text-indigo-200 mt-3 flex items-center leading-normal">
-            <svg className="w-3.5 h-3.5 mr-1.5 text-indigo-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <span>
-              {financialHealthScore >= 80 ? 'Exceptional savings rate and budget control.' : 'Try limiting non-essential bills to bolster buffer.'}
-            </span>
           </div>
         </div>
-      </div>
+      ) : (
+        <>
+          {/* MOBILE INTERACTIVE SWIPEABLE STATISTICS CARD */}
+          <div className="block md:hidden pb-1">
+            <div className="relative overflow-hidden w-full rounded-3xl" style={{ touchAction: 'pan-y' }}>
+              <AnimatePresence initial={false} mode="wait" custom={slideDirection}>
+                <motion.div
+                  key={activeSlideIndex}
+                  custom={slideDirection}
+                  variants={{
+                    enter: (dir: number) => ({
+                      x: dir > 0 ? '100%' : '-100%',
+                      opacity: 0,
+                      scale: 0.95
+                    }),
+                    center: {
+                      x: '0%',
+                      opacity: 1,
+                      scale: 1
+                    },
+                    exit: (dir: number) => ({
+                      x: dir < 0 ? '100%' : '-100%',
+                      opacity: 0,
+                      scale: 0.95
+                    })
+                  }}
+                  initial="enter"
+                  animate="center"
+                  exit="exit"
+                  transition={{
+                    x: { type: "spring", stiffness: 350, damping: 32 },
+                    opacity: { duration: 0.2 }
+                  }}
+                  drag="x"
+                  dragConstraints={{ left: 0, right: 0 }}
+                  dragElastic={0.6}
+                  onDragEnd={(e, info) => {
+                    const swipeThreshold = 50;
+                    if (info.offset.x < -swipeThreshold) {
+                      handleNextSlide();
+                    } else if (info.offset.x > swipeThreshold) {
+                      handlePrevSlide();
+                    }
+                  }}
+                  className={`w-full bg-gradient-to-br ${metricsCards[activeSlideIndex].gradient} p-6 pb-7 rounded-3xl text-white shadow-lg flex flex-col justify-between cursor-grab active:cursor-grabbing relative overflow-hidden select-none min-h-[175px]`}
+                >
+                  {/* Back backing decorative glowing backdrop blur sphere */}
+                  <div className="absolute -top-16 -right-16 w-36 h-36 bg-white/10 rounded-full blur-2xl pointer-events-none" />
+                  <div className="absolute -bottom-16 -left-16 w-36 h-36 bg-black/10 rounded-full blur-2xl pointer-events-none" />
 
-      {/* 2. Account Balance Dashboard (Section 11) + Monthly Budget Rules (Section 6 & 13) */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Account statement balances */}
+                  {/* Layout Content */}
+                  <div className="space-y-4 relative z-10 w-full">
+                    {/* Carousel Header */}
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-black uppercase tracking-widest text-white/80">
+                        {metricsCards[activeSlideIndex].title}
+                      </span>
+                      <div className="w-8 h-8 rounded-xl bg-white/10 flex items-center justify-center shrink-0">
+                        {metricsCards[activeSlideIndex].icon}
+                      </div>
+                    </div>
+
+                    {/* Primary Card Value text */}
+                    <div>
+                      <h3 className="text-3xl font-black font-mono tracking-tight text-white drop-shadow-xs leading-none">
+                        {metricsCards[activeSlideIndex].value}
+                      </h3>
+                      
+                      {/* Metric Sub-tag change indicator */}
+                      <div className="mt-2 text-xs font-black flex items-center gap-1">
+                        <span className="bg-white/20 text-white px-2.5 py-0.5 rounded-full border border-white/10 text-[11px] uppercase tracking-wide">
+                          {metricsCards[activeSlideIndex].change}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Lower description details */}
+                  <div className="mt-4 text-[11px] font-medium text-white/90 leading-tight border-t border-white/10 pt-3 flex items-center space-x-1.5 relative z-10">
+                    <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+                    <span className="truncate">{metricsCards[activeSlideIndex].subtext}</span>
+                  </div>
+                </motion.div>
+              </AnimatePresence>
+
+              {/* Steer Chevrons for swipe fallback */}
+              <button
+                onClick={handlePrevSlide}
+                className="absolute left-2.5 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/15 hover:bg-black/35 text-white flex items-center justify-center backdrop-blur-xs transition-colors z-20 cursor-pointer active:scale-95"
+                aria-label="Previous slide"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
+                </svg>
+              </button>
+              <button
+                onClick={handleNextSlide}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/15 hover:bg-black/35 text-white flex items-center justify-center backdrop-blur-xs transition-colors z-20 cursor-pointer active:scale-95"
+                aria-label="Next slide"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Page dot indicators below the card */}
+            <div className="flex justify-center items-center gap-2 mt-3.5">
+              {metricsCards.map((card, idx) => (
+                <button
+                  key={card.id}
+                  onClick={() => handleSelectSlide(idx)}
+                  className={`h-2 rounded-full transition-all duration-300 cursor-pointer ${
+                    activeSlideIndex === idx 
+                      ? 'w-6 bg-indigo-600 dark:bg-indigo-400 shadow-xs' 
+                      : 'w-2 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600'
+                  }`}
+                  aria-label={`Go to slide ${idx + 1}`}
+                />
+              ))}
+            </div>
+          </div>
+
+          {/* DESKTOP FULL SCANNABLE STATS GRID */}
+          <div className="hidden md:grid grid-cols-1 md:grid-cols-4 gap-4">
+            {/* Income Card */}
+            <div className="bg-white dark:bg-slate-900 border border-slate-150/10 dark:border-slate-800 p-5 rounded-3xl shadow-sm flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between text-slate-500 dark:text-slate-400">
+                  <span className="text-xs font-bold uppercase tracking-wider">This Month Income</span>
+                  <div className="w-6.5 h-6.5 rounded-lg bg-emerald-500/10 text-emerald-600 dark:bg-emerald-900/30 flex items-center justify-center">
+                    ↓
+                  </div>
+                </div>
+                <h3 className="text-2xl font-black text-slate-900 dark:text-white mt-2.5 font-mono">
+                  {formatCurrency(currentMonthIncome)}
+                </h3>
+              </div>
+              <p className="text-[10px] text-slate-400 mt-3 font-semibold">
+                All salary credits, bonuses, support funds
+              </p>
+            </div>
+
+            {/* Expenses Card */}
+            <div className="bg-white dark:bg-slate-900 border border-slate-150/10 dark:border-slate-800 p-5 rounded-3xl shadow-sm flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between text-slate-500 dark:text-slate-400">
+                  <span className="text-xs font-bold uppercase tracking-wider">This Month Spent</span>
+                  <div className="w-6.5 h-6.5 rounded-lg bg-red-500/10 text-red-600 dark:bg-red-900/30 flex items-center justify-center">
+                    ↑
+                  </div>
+                </div>
+                <h3 className="text-2xl font-black text-slate-900 dark:text-white mt-2.5 font-mono">
+                  {formatCurrency(currentMonthSpent)}
+                </h3>
+              </div>
+              <p className="text-[10px] text-slate-400 mt-3 font-semibold">
+                Active debit spending matches
+              </p>
+            </div>
+
+            {/* Monthly Net Savings & Savings Rate */}
+            <div className="bg-white dark:bg-slate-900 border border-slate-150/10 dark:border-slate-800 p-5 rounded-3xl shadow-sm flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between text-slate-500 dark:text-slate-400">
+                  <span className="text-xs font-bold uppercase tracking-wider">Monthly Cash Flow</span>
+                  <span className="text-[10px] bg-indigo-50 dark:bg-indigo-950 px-1.5 py-0.5 rounded font-black text-indigo-600 dark:text-indigo-400">
+                    SR: {currentMonthSavingsRate.toFixed(1)}%
+                  </span>
+                </div>
+                <h3 className={`text-2xl font-black mt-2.5 font-mono ${currentMonthSavings >= 0 ? 'text-emerald-600' : 'text-rose-500'}`}>
+                  {currentMonthSavings >= 0 ? '+' : ''}{formatCurrency(currentMonthSavings)}
+                </h3>
+              </div>
+              <p className="text-[10px] text-slate-400 mt-3 font-semibold">
+                Net savings retained in accounts
+              </p>
+            </div>
+
+            {/* Intelligence Score Card */}
+            <div className="bg-gradient-to-br from-indigo-900 to-slate-950 p-5 rounded-3xl text-white flex flex-col justify-between shadow-md">
+              <div className="flex justify-between items-start">
+                <div>
+                  <span className="text-[10px] font-black uppercase tracking-widest text-indigo-300">Financial Health Score</span>
+                  <h3 className="text-3xl font-black mt-1 font-mono tracking-tight">{financialHealthScore}<span className="text-xs text-indigo-400 font-bold">/100</span></h3>
+                </div>
+                <div className="text-xs font-black bg-indigo-500/20 text-indigo-300 px-2.5 py-1 rounded-xl border border-indigo-500/20">
+                  {financialHealthScore >= 80 ? 'Perfect' : financialHealthScore >= 60 ? 'Healthy' : 'Caution'}
+                </div>
+              </div>
+              <div className="text-[10px] text-indigo-200 mt-3 flex items-center leading-normal">
+                <svg className="w-3.5 h-3.5 mr-1.5 text-indigo-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span>
+                  {financialHealthScore >= 80 ? 'Exceptional savings rate and budget control.' : 'Try limiting non-essential bills to bolster buffer.'}
+                </span>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* 2. Account Balance Dashboard (Section 11) + Monthly Budget Rules (Section 6 & 13) - Premium Feature */}
+      {isPremium && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Account statement balances */}
         <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-5 md:p-6 rounded-3xl shadow-sm lg:col-span-2 space-y-5">
           <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3">
             <div>
@@ -1245,6 +1390,7 @@ const Dashboard: React.FC<DashboardProps> = ({
           </div>
         </div>
       </div>
+      )}
 
       {/* Quick Stats Block (Moved from App.tsx) */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 md:gap-6 mb-6 md:mb-8">
