@@ -54,6 +54,12 @@ interface SettingsProps {
   setTransfers: React.Dispatch<React.SetStateAction<Transfer[]>>;
   openRouterApiKey: string;
   setOpenRouterApiKey: React.Dispatch<React.SetStateAction<string>>;
+  geminiApiKey?: string;
+  setGeminiApiKey?: React.Dispatch<React.SetStateAction<string>>;
+  aiProvider?: 'gemini' | 'openrouter';
+  setAiProvider?: React.Dispatch<React.SetStateAction<'gemini' | 'openrouter'>>;
+  openRouterModel?: string;
+  setOpenRouterModel?: React.Dispatch<React.SetStateAction<string>>;
   deferredPrompt?: any;
   showInstallBtn?: boolean;
   isStandalone?: boolean;
@@ -109,6 +115,9 @@ const Settings: React.FC<SettingsProps> = ({
   accounts, setAccounts,
   transfers, setTransfers,
   openRouterApiKey, setOpenRouterApiKey,
+  geminiApiKey = '', setGeminiApiKey,
+  aiProvider = 'gemini', setAiProvider,
+  openRouterModel = 'google/gemini-2.0-flash-lite-001', setOpenRouterModel,
   deferredPrompt,
   showInstallBtn = false,
   isStandalone = false,
@@ -1441,32 +1450,108 @@ const Settings: React.FC<SettingsProps> = ({
                       exit={{ opacity: 0, y: -10 }}
                       className="space-y-5"
                     >
-                      <div className="bg-slate-50 dark:bg-[#111827]/50 rounded-2xl p-4 border border-slate-200 dark:border-white/[0.04]">
-                        <label className="block text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-2.5">
-                          Optional OpenRouter API Key
+                      {/* AI Provider Selector */}
+                      <div className="bg-slate-50 dark:bg-[#111827]/50 rounded-2xl p-4 border border-slate-200 dark:border-white/[0.04] space-y-3">
+                        <label className="block text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest">
+                          Active AI Engine Provider
                         </label>
+                        <div className="grid grid-cols-2 gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setAiProvider && setAiProvider('gemini')}
+                            className={`py-2 px-3 rounded-xl font-bold text-xs border text-left flex items-center justify-between transition-all ${
+                              aiProvider === 'gemini'
+                                ? 'bg-violet-50 dark:bg-violet-950/40 border-violet-500 text-violet-700 dark:text-violet-300'
+                                : 'bg-white dark:bg-[#111827] border-slate-200 dark:border-white/[0.08] text-slate-600 dark:text-slate-400'
+                            }`}
+                          >
+                            <span>Google Gemini</span>
+                            {aiProvider === 'gemini' && <Check className="w-3.5 h-3.5" />}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setAiProvider && setAiProvider('openrouter')}
+                            className={`py-2 px-3 rounded-xl font-bold text-xs border text-left flex items-center justify-between transition-all ${
+                              aiProvider === 'openrouter'
+                                ? 'bg-indigo-50 dark:bg-indigo-950/40 border-indigo-500 text-indigo-700 dark:text-indigo-300'
+                                : 'bg-white dark:bg-[#111827] border-slate-200 dark:border-white/[0.08] text-slate-600 dark:text-slate-400'
+                            }`}
+                          >
+                            <span>OpenRouter (Claude/Free)</span>
+                            {aiProvider === 'openrouter' && <Check className="w-3.5 h-3.5" />}
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Google Gemini Key */}
+                      <div className="bg-slate-50 dark:bg-[#111827]/50 rounded-2xl p-4 border border-slate-200 dark:border-white/[0.04]">
+                        <div className="flex justify-between items-center mb-2">
+                          <label className="block text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest">
+                            Google Gemini API Key
+                          </label>
+                          <span className="text-[9px] font-bold text-emerald-600 dark:text-emerald-400">Gemini 3.1 Flash Lite</span>
+                        </div>
                         <div className="relative">
                           <input
                             type="password"
-                            placeholder="sk-or-v1-..."
-                            className="w-full px-4 py-2.5 pr-10 rounded-xl border border-slate-200 dark:border-white/[0.08] bg-white dark:bg-[#111827] text-slate-900 dark:text-slate-100 font-bold font-mono text-xs focus:outline-none focus:border-indigo-500 transition-all placeholder:text-slate-400 dark:placeholder:text-slate-650"
-                            value={openRouterApiKey}
-                            onChange={(e) => setOpenRouterApiKey(e.target.value)}
+                            placeholder="AIzaSy..."
+                            className="w-full px-4 py-2.5 pr-10 rounded-xl border border-slate-200 dark:border-white/[0.08] bg-white dark:bg-[#111827] text-slate-900 dark:text-slate-100 font-bold font-mono text-xs focus:outline-none focus:border-violet-500 transition-all placeholder:text-slate-400 dark:placeholder:text-slate-650"
+                            value={geminiApiKey}
+                            onChange={(e) => setGeminiApiKey && setGeminiApiKey(e.target.value)}
                           />
                           <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-slate-450 dark:text-slate-500">
                             <Key className="w-3.5 h-3.5" />
                           </div>
                         </div>
-                        <p className="text-[9px] text-slate-500 mt-2.5 leading-normal">
-                          Required only for advanced AI conversations. Secure keys are stored exclusively localized inside your browser space.
+                        <p className="text-[9px] text-slate-500 mt-2 leading-normal">
+                          Fast, low token consumption model. Token budget is strictly capped to prevent waste.
                         </p>
                       </div>
 
-                      <div className="p-4 bg-violet-50 dark:bg-violet-950/20 rounded-2xl border border-violet-100 dark:border-violet-500/10 flex items-start space-x-3 text-violet-750 dark:text-violet-200">
-                        <AlertTriangle className="w-4 h-4 text-violet-500 dark:text-violet-400 shrink-0 mt-0.5" />
+                      {/* OpenRouter Key & Model */}
+                      <div className="bg-slate-50 dark:bg-[#111827]/50 rounded-2xl p-4 border border-slate-200 dark:border-white/[0.04] space-y-3">
+                        <div>
+                          <label className="block text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-2">
+                            OpenRouter API Key (Optional)
+                          </label>
+                          <div className="relative">
+                            <input
+                              type="password"
+                              placeholder="sk-or-v1-..."
+                              className="w-full px-4 py-2.5 pr-10 rounded-xl border border-slate-200 dark:border-white/[0.08] bg-white dark:bg-[#111827] text-slate-900 dark:text-slate-100 font-bold font-mono text-xs focus:outline-none focus:border-indigo-500 transition-all placeholder:text-slate-400 dark:placeholder:text-slate-650"
+                              value={openRouterApiKey}
+                              onChange={(e) => setOpenRouterApiKey(e.target.value)}
+                            />
+                            <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-slate-450 dark:text-slate-500">
+                              <Key className="w-3.5 h-3.5" />
+                            </div>
+                          </div>
+                        </div>
+
+                        <div>
+                          <label className="block text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1.5">
+                            OpenRouter Model Selection
+                          </label>
+                          <select
+                            value={openRouterModel}
+                            onChange={(e) => setOpenRouterModel && setOpenRouterModel(e.target.value)}
+                            className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-white/[0.08] bg-white dark:bg-[#111827] text-slate-900 dark:text-slate-100 font-semibold text-xs outline-none focus:border-indigo-500"
+                          >
+                            <option value="google/gemini-2.0-flash-lite-001">Gemini 2.0 Flash Lite (Free & Low Token)</option>
+                            <option value="anthropic/claude-3.5-haiku">Claude 3.5 Haiku (Fast & Precise)</option>
+                            <option value="anthropic/claude-3-haiku">Claude 3 Haiku (Economical)</option>
+                            <option value="meta-llama/llama-3.2-3b-instruct:free">Llama 3.2 3B (Free Tier)</option>
+                            <option value="deepseek/deepseek-r1:free">DeepSeek R1 (Free Tier)</option>
+                            <option value="qwen/qwen-2.5-7b-instruct:free">Qwen 2.5 7B (Free Tier)</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      <div className="p-4 bg-emerald-50 dark:bg-emerald-950/20 rounded-2xl border border-emerald-100 dark:border-emerald-500/10 flex items-start space-x-3 text-emerald-800 dark:text-emerald-200">
+                        <Check className="w-4 h-4 text-emerald-500 dark:text-emerald-400 shrink-0 mt-0.5" />
                         <div className="text-[10px] leading-normal font-semibold">
-                          <span className="font-extrabold block mb-0.5">Need a key?</span>
-                          Generate free or pay-as-you-go developer keys securely over OpenRouter portal to activate premium budget recommendation models.
+                          <span className="font-extrabold block mb-0.5">Ultra-Low Token Consumption</span>
+                          SpendWise generates compact financial snapshots (under 150 tokens) and restricts output to concise answers, preserving your API quota. If no keys are added, an offline rule-engine answers with 0 tokens used!
                         </div>
                       </div>
                     </motion.div>

@@ -139,3 +139,66 @@ export interface TelegramBackupSettings {
   enabled: boolean;
   latestBackupFileId?: string;
 }
+
+export interface EMITrackerItem {
+  id: string;
+  title: string;
+  lender: string;
+  emiAmount: number;
+  totalTenureMonths: number;
+  paidTenureMonths: number;
+  dueDayOfMonth: number;
+  startDate: string;
+  totalLoanAmount?: number;
+  status: 'active' | 'completed';
+  notes?: string;
+}
+
+export interface SalaryTrackerItem {
+  id: string;
+  month: string; // e.g. "September 2026"
+  creditDate: string; // YYYY-MM-DD
+  employerName: string;
+  baseSalary: number;
+  bonus?: number;
+  deductions?: number;
+  netCredited: number;
+  paymentMethod?: string;
+  status: 'credited' | 'pending';
+  payslipSnippet?: string; // Base64
+  notes?: string;
+}
+
+export interface BorrowMoneyItem {
+  id: string;
+  lenderName: string; // Person / relative / friend I borrowed from
+  relationship?: string;
+  amount: number;
+  borrowDate: string;
+  repaymentDueDate?: string;
+  repaidAmount: number;
+  status: 'pending' | 'partially_repaid' | 'settled';
+  snippetImage?: string; // Base64 image
+  notes?: string;
+}
+
+export interface LendMoneyItem {
+  id: string;
+  borrowerName: string; // Friend or relative given money to
+  relationship: 'Friend' | 'Relative' | 'Colleague' | 'Family' | 'Other';
+  amount: number;
+  dateGiven: string;
+  promisedReturnDate?: string;
+  returnedAmount: number;
+  status: 'pending' | 'partially_returned' | 'returned';
+  snippetImage?: string; // Snippet / transfer screenshot Base64
+  phone?: string;
+  notes?: string;
+}
+
+export interface AISettings {
+  provider: 'gemini' | 'openrouter';
+  geminiApiKey: string;
+  openRouterApiKey: string;
+  openRouterModel: string;
+}

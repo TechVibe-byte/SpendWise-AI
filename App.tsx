@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Bot } from 'lucide-react';
 import { HashRouter as Router, Routes, Route, NavLink } from 'react-router-dom';
-import { Expense, RecurringExpense, RecurringFrequency, CategoryItem, Income, BudgetRuleType, Account, Transfer, SalaryRule, TelegramBackupSettings } from './types';
+import { Expense, RecurringExpense, RecurringFrequency, CategoryItem, Income, BudgetRuleType, Account, Transfer, SalaryRule, TelegramBackupSettings, EMITrackerItem, SalaryTrackerItem, BorrowMoneyItem, LendMoneyItem } from './types';
 import { DEFAULT_CATEGORIES } from './constants';
 import { formatCurrency, parseLocalDate, formatLocalDate } from './utils';
 import Dashboard from './components/Dashboard';
@@ -14,6 +14,9 @@ import Settings from './components/Settings';
 import Onboarding from './components/Onboarding';
 import IncomeForm from './components/IncomeForm';
 import IncomeManager from './components/IncomeManager';
+import EMITracker from './components/EMITracker';
+import SalaryTracker from './components/SalaryTracker';
+import BorrowLendTracker from './components/BorrowLendTracker';
 import { Logo } from './components/Logo';
 import AIInsights from './components/AIInsights';
 import { ThemeToggle } from './components/ThemeToggle';
@@ -93,6 +96,70 @@ const App: React.FC = () => {
   const [openRouterApiKey, setOpenRouterApiKey] = useState<string>(() => {
     return localStorage.getItem('spendwise-openrouter-key') || '';
   });
+
+  const [geminiApiKey, setGeminiApiKey] = useState<string>(() => {
+    return localStorage.getItem('spendwise-gemini-key') || '';
+  });
+
+  const [aiProvider, setAiProvider] = useState<'gemini' | 'openrouter'>(() => {
+    return (localStorage.getItem('spendwise-ai-provider') as 'gemini' | 'openrouter') || 'gemini';
+  });
+
+  const [openRouterModel, setOpenRouterModel] = useState<string>(() => {
+    return localStorage.getItem('spendwise-openrouter-model') || 'google/gemini-2.0-flash-lite-001';
+  });
+
+  // EMI Tracker State
+  const [emis, setEmis] = useState<EMITrackerItem[]>(() => {
+    const saved = localStorage.getItem('spendwise-emis');
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  // Salary Tracker State
+  const [salaries, setSalaries] = useState<SalaryTrackerItem[]>(() => {
+    const saved = localStorage.getItem('spendwise-salaries');
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  // Borrow Money State
+  const [borrowedList, setBorrowedList] = useState<BorrowMoneyItem[]>(() => {
+    const saved = localStorage.getItem('spendwise-borrowed');
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  // Lend Money (Friends / Relatives) State
+  const [lentList, setLentList] = useState<LendMoneyItem[]>(() => {
+    const saved = localStorage.getItem('spendwise-lent');
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  useEffect(() => {
+    localStorage.setItem('spendwise-emis', JSON.stringify(emis));
+  }, [emis]);
+
+  useEffect(() => {
+    localStorage.setItem('spendwise-salaries', JSON.stringify(salaries));
+  }, [salaries]);
+
+  useEffect(() => {
+    localStorage.setItem('spendwise-borrowed', JSON.stringify(borrowedList));
+  }, [borrowedList]);
+
+  useEffect(() => {
+    localStorage.setItem('spendwise-lent', JSON.stringify(lentList));
+  }, [lentList]);
+
+  useEffect(() => {
+    localStorage.setItem('spendwise-gemini-key', geminiApiKey);
+  }, [geminiApiKey]);
+
+  useEffect(() => {
+    localStorage.setItem('spendwise-ai-provider', aiProvider);
+  }, [aiProvider]);
+
+  useEffect(() => {
+    localStorage.setItem('spendwise-openrouter-model', openRouterModel);
+  }, [openRouterModel]);
 
   const [showRunningBalance, setShowRunningBalance] = useState<boolean>(() => {
     const saved = localStorage.getItem('spendwise-show-running-balance');
@@ -549,6 +616,106 @@ const App: React.FC = () => {
     setEditingRecurring(null);
   };
 
+  // Tracker CRUD Operations
+  const handleAddEmi = (item: Omit<EMITrackerItem, 'id'>) => {
+    const newEmi: EMITrackerItem = { ...item, id: Math.random().toString(36).substr(2, 9) };
+    setEmis(prev => [newEmi, ...prev]);
+  };
+
+  const handleEditEmi = (id: string, item: Partial<EMITrackerItem>) => {
+    setEmis(prev => prev.map(e => e.id === id ? { ...e, ...item } : e));
+  };
+
+  const handleDeleteEmi = (id: string) => {
+    setEmis(prev => prev.filter(e => e.id !== id));
+  };
+
+  const handleRecordEmiPayment = (id: string) => {
+    const emi = emis.find(e => e.id === id);
+    if (!emi) return;
+    const nextPaid = emi.paidTenureMonths + 1;
+    const isCompleted = nextPaid >= emi.totalTenureMonths;
+    setEmis(prev => prev.map(e => e.id === id ? {
+      ...e,
+      paidTenureMonths: nextPaid,
+      status: isCompleted ? 'completed' : 'active'
+    } : e));
+    const newExpense: Expense = {
+      id: Math.random().toString(36).substr(2, 9),
+      amount: emi.emiAmount,
+      description: `EMI Payment: ${emi.title} (${nextPaid}/${emi.totalTenureMonths})`,
+      category: 'EMI expenses',
+      date: new Date().toISOString().split('T')[0],
+      note: `Lender: ${emi.lender}`
+    };
+    setExpenses(prev => [newExpense, ...prev]);
+  };
+
+  const handleAddSalary = (item: Omit<SalaryTrackerItem, 'id'>) => {
+    const newSalary: SalaryTrackerItem = { ...item, id: Math.random().toString(36).substr(2, 9) };
+    setSalaries(prev => [newSalary, ...prev]);
+  };
+
+  const handleEditSalary = (id: string, item: Partial<SalaryTrackerItem>) => {
+    setSalaries(prev => prev.map(s => s.id === id ? { ...s, ...item } : s));
+  };
+
+  const handleDeleteSalary = (id: string) => {
+    setSalaries(prev => prev.filter(s => s.id !== id));
+  };
+
+  const handleAddLent = (item: Omit<LendMoneyItem, 'id'>) => {
+    const newLent: LendMoneyItem = { ...item, id: Math.random().toString(36).substr(2, 9) };
+    setLentList(prev => [newLent, ...prev]);
+  };
+
+  const handleEditLent = (id: string, item: Partial<LendMoneyItem>) => {
+    setLentList(prev => prev.map(l => l.id === id ? { ...l, ...item } : l));
+  };
+
+  const handleDeleteLent = (id: string) => {
+    setLentList(prev => prev.filter(l => l.id !== id));
+  };
+
+  const handleRecordLentReturn = (id: string, returnAmount: number) => {
+    setLentList(prev => prev.map(l => {
+      if (l.id !== id) return l;
+      const nextReturned = (l.returnedAmount || 0) + returnAmount;
+      const isReturned = nextReturned >= l.amount;
+      return {
+        ...l,
+        returnedAmount: nextReturned,
+        status: isReturned ? 'returned' : 'partially_returned'
+      };
+    }));
+  };
+
+  const handleAddBorrowed = (item: Omit<BorrowMoneyItem, 'id'>) => {
+    const newBorrow: BorrowMoneyItem = { ...item, id: Math.random().toString(36).substr(2, 9) };
+    setBorrowedList(prev => [newBorrow, ...prev]);
+  };
+
+  const handleEditBorrowed = (id: string, item: Partial<BorrowMoneyItem>) => {
+    setBorrowedList(prev => prev.map(b => b.id === id ? { ...b, ...item } : b));
+  };
+
+  const handleDeleteBorrowed = (id: string) => {
+    setBorrowedList(prev => prev.filter(b => b.id !== id));
+  };
+
+  const handleRecordBorrowRepayment = (id: string, repayAmount: number) => {
+    setBorrowedList(prev => prev.map(b => {
+      if (b.id !== id) return b;
+      const nextRepaid = (b.repaidAmount || 0) + repayAmount;
+      const isSettled = nextRepaid >= b.amount;
+      return {
+        ...b,
+        repaidAmount: nextRepaid,
+        status: isSettled ? 'settled' : 'partially_repaid'
+      };
+    }));
+  };
+
   const NavItems = ({ isMobile = false }: { isMobile?: boolean }) => {
     const items = [
       {
@@ -561,24 +728,24 @@ const App: React.FC = () => {
           </svg>
         )
       },
-      {
+      ...(isPremium ? [{
         to: "/income",
         label: "Income",
         mobLabel: "Income",
         badge: incomes.length,
-        badgeType: "emerald",
+        badgeType: "emerald" as const,
         icon: (className: string) => (
           <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
         )
-      },
+      }] : []),
       {
         to: "/history",
         label: "Transactions",
         mobLabel: "Txns",
         badge: expenses.length,
-        badgeType: "indigo",
+        badgeType: "indigo" as const,
         icon: (className: string) => (
           <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
@@ -586,6 +753,42 @@ const App: React.FC = () => {
         )
       },
       {
+        to: "/emi",
+        label: "EMI Tracker",
+        mobLabel: "EMIs",
+        badge: emis.filter(e => e.status === 'active').length,
+        badgeType: "emerald" as const,
+        icon: (className: string) => (
+          <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+          </svg>
+        )
+      },
+      {
+        to: "/salary",
+        label: "Salary Tracker",
+        mobLabel: "Salary",
+        badge: salaries.length,
+        badgeType: "emerald" as const,
+        icon: (className: string) => (
+          <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+          </svg>
+        )
+      },
+      {
+        to: "/borrow-lend",
+        label: "Borrow & Lend",
+        mobLabel: "Lend/Borrow",
+        badge: lentList.filter(l => l.status !== 'returned').length + borrowedList.filter(b => b.status !== 'settled').length,
+        badgeType: "indigo" as const,
+        icon: (className: string) => (
+          <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+          </svg>
+        )
+      },
+      ...(isPremium ? [{
         to: "/recurring",
         label: "Recurring",
         mobLabel: "Bills",
@@ -594,7 +797,7 @@ const App: React.FC = () => {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
           </svg>
         )
-      },
+      }] : []),
       {
         to: "/categories",
         label: "Categories",
@@ -790,16 +993,15 @@ const App: React.FC = () => {
           <NavItems isMobile={true} />
         </nav>
 
-        {/* AI Chat Bot FAB — Premium only */}
-        {isPremium && (
-          <button 
-            onClick={() => setIsChatBotOpen(true)}
-            className="fixed bottom-[calc(146px+env(safe-area-inset-bottom))] lg:bottom-10 right-5 lg:right-10 w-12 h-12 lg:w-16 lg:h-16 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-full shadow-2xl shadow-purple-500/30 flex items-center justify-center z-50 transition-all duration-300 lg:opacity-100 opacity-30 animate-pulse lg:animate-none lg:hover:scale-110 lg:hover:shadow-purple-500/50 active:scale-95 border border-white/20"
-            aria-label="AI Chat Bot"
-          >
-            <Bot className="w-6 h-6 lg:w-7 lg:h-7" />
-          </button>
-        )}
+        {/* AI Chat Bot FAB — Available in both Free & Premium */}
+        <button 
+          onClick={() => setIsChatBotOpen(true)}
+          className="fixed bottom-[calc(146px+env(safe-area-inset-bottom))] lg:bottom-10 right-5 lg:right-10 w-12 h-12 lg:w-16 lg:h-16 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-full shadow-2xl shadow-purple-500/30 flex items-center justify-center z-50 transition-all duration-300 lg:opacity-100 opacity-90 animate-pulse lg:animate-none lg:hover:scale-110 lg:hover:shadow-purple-500/50 active:scale-95 border border-white/20 cursor-pointer"
+          aria-label="AI Chat Bot"
+          title="Open SpendWise AI Assistant"
+        >
+          <Bot className="w-6 h-6 lg:w-7 lg:h-7" />
+        </button>
 
         {/* Mobile Floating Action Button (FAB) */}
         <button 
@@ -840,6 +1042,25 @@ const App: React.FC = () => {
                   isStandalone={isStandalone}
                   handleInstallClick={handleInstallClick}
                   isPremium={isPremium}
+                  emis={emis}
+                  onAddEmi={handleAddEmi}
+                  onEditEmi={handleEditEmi}
+                  onDeleteEmi={handleDeleteEmi}
+                  onRecordEmiPayment={handleRecordEmiPayment}
+                  salaries={salaries}
+                  onAddSalary={handleAddSalary}
+                  onEditSalary={handleEditSalary}
+                  onDeleteSalary={handleDeleteSalary}
+                  borrowedList={borrowedList}
+                  onAddBorrowed={handleAddBorrowed}
+                  onEditBorrowed={handleEditBorrowed}
+                  onDeleteBorrowed={handleDeleteBorrowed}
+                  onRecordBorrowRepayment={handleRecordBorrowRepayment}
+                  lentList={lentList}
+                  onAddLent={handleAddLent}
+                  onEditLent={handleEditLent}
+                  onDeleteLent={handleDeleteLent}
+                  onRecordLentReturn={handleRecordLentReturn}
                 />
                 
                 <div className="flex flex-col space-y-6 md:space-y-8 pb-10">
@@ -865,27 +1086,82 @@ const App: React.FC = () => {
                 </div>
               </div>
             } />
+
+            {/* Income Route - Premium Only */}
             <Route path="/income" element={
-              <div className="space-y-6 animate-in fade-in duration-500">
-                <IncomeManager 
-                  incomes={incomes}
-                  expenses={expenses}
-                  accounts={isPremium ? accounts : []}
-                  transfers={isPremium ? transfers : []}
-                  onAddIncome={handleSaveIncome}
-                  onDeleteIncome={deleteIncome}
-                  onEditIncome={handleEditIncome}
-                  openForm={() => {
-                    setEditingIncome(null);
-                    setShowIncomeForm(true);
-                  }}
-                  salaryRules={isPremium ? salaryRules : []}
-                  setSalaryRules={isPremium ? setSalaryRules : undefined}
-                  skippedSalaries={isPremium ? skippedSalaries : []}
-                  setSkippedSalaries={isPremium ? setSkippedSalaries : undefined}
-                />
-              </div>
+              isPremium ? (
+                <div className="space-y-6 animate-in fade-in duration-500">
+                  <IncomeManager 
+                    incomes={incomes}
+                    expenses={expenses}
+                    accounts={accounts}
+                    transfers={transfers}
+                    onAddIncome={handleSaveIncome}
+                    onDeleteIncome={deleteIncome}
+                    onEditIncome={handleEditIncome}
+                    openForm={() => {
+                      setEditingIncome(null);
+                      setShowIncomeForm(true);
+                    }}
+                    salaryRules={salaryRules}
+                    setSalaryRules={setSalaryRules}
+                    skippedSalaries={skippedSalaries}
+                    setSkippedSalaries={setSkippedSalaries}
+                  />
+                </div>
+              ) : (
+                <div className="p-8 text-center space-y-4 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800">
+                  <h3 className="text-xl font-black text-slate-900 dark:text-white">Income Management is a Premium Feature</h3>
+                  <p className="text-xs text-slate-400 max-w-md mx-auto">
+                    In Free Mode, track your salary credits directly via the Salary Tracker, or enable Premium mode in Settings or via the top badge to unlock multi-income streams and bank linking.
+                  </p>
+                  <button
+                    onClick={() => setIsPremium(true)}
+                    className="px-5 py-2.5 bg-gradient-to-r from-amber-400 to-yellow-400 text-amber-900 font-extrabold text-xs rounded-xl shadow-md cursor-pointer"
+                  >
+                    ⭐ Activate Premium Mode
+                  </button>
+                </div>
+              )
             } />
+
+            {/* EMI Tracker Route */}
+            <Route path="/emi" element={
+              <EMITracker
+                emis={emis}
+                onAddEmi={handleAddEmi}
+                onEditEmi={handleEditEmi}
+                onDeleteEmi={handleDeleteEmi}
+                onRecordPayment={handleRecordEmiPayment}
+              />
+            } />
+
+            {/* Salary Tracker Route */}
+            <Route path="/salary" element={
+              <SalaryTracker
+                salaries={salaries}
+                onAddSalary={handleAddSalary}
+                onEditSalary={handleEditSalary}
+                onDeleteSalary={handleDeleteSalary}
+              />
+            } />
+
+            {/* Borrow & Lend Tracker Route */}
+            <Route path="/borrow-lend" element={
+              <BorrowLendTracker
+                lentList={lentList}
+                borrowedList={borrowedList}
+                onAddLent={handleAddLent}
+                onEditLent={handleEditLent}
+                onDeleteLent={handleDeleteLent}
+                onRecordLentReturn={handleRecordLentReturn}
+                onAddBorrowed={handleAddBorrowed}
+                onEditBorrowed={handleEditBorrowed}
+                onDeleteBorrowed={handleDeleteBorrowed}
+                onRecordBorrowRepayment={handleRecordBorrowRepayment}
+              />
+            } />
+
             <Route path="/history" element={
               <div className="space-y-6 animate-in fade-in duration-500">
                 <h2 className="text-2xl md:text-3xl font-black text-slate-900 dark:text-white tracking-tight">Transaction History</h2>
@@ -945,6 +1221,12 @@ const App: React.FC = () => {
                 setTransfers={setTransfers}
                 openRouterApiKey={openRouterApiKey}
                 setOpenRouterApiKey={setOpenRouterApiKey}
+                geminiApiKey={geminiApiKey}
+                setGeminiApiKey={setGeminiApiKey}
+                aiProvider={aiProvider}
+                setAiProvider={setAiProvider}
+                openRouterModel={openRouterModel}
+                setOpenRouterModel={setOpenRouterModel}
                 showRunningBalance={showRunningBalance}
                 setShowRunningBalance={setShowRunningBalance}
                 deferredPrompt={deferredPrompt}
@@ -955,6 +1237,8 @@ const App: React.FC = () => {
                 setShowPwaHelp={setShowPwaHelp}
                 telegramBackupSettings={telegramBackupSettings}
                 setTelegramBackupSettings={setTelegramBackupSettings}
+                isPremium={isPremium}
+                setIsPremium={setIsPremium}
               />
             } />
           </Routes>
@@ -1000,16 +1284,29 @@ const App: React.FC = () => {
           />
         )}
 
-        {/* Global Chat Bot Modal — Premium only */}
-        {isPremium && (
-          <ChatBotModal
-            isOpen={isChatBotOpen}
-            onClose={() => setIsChatBotOpen(false)}
-            expenses={expenses}
-            monthlyBudget={monthlyBudget}
-            openRouterApiKey={openRouterApiKey}
-          />
-        )}
+        {/* Global Chat Bot Modal — Available in both Free & Premium */}
+        <ChatBotModal
+          isOpen={isChatBotOpen}
+          onClose={() => setIsChatBotOpen(false)}
+          expenses={expenses}
+          monthlyBudget={monthlyBudget}
+          emis={emis}
+          salaries={salaries}
+          borrowed={borrowedList}
+          lent={lentList}
+          aiSettings={{
+            provider: aiProvider,
+            geminiApiKey,
+            openRouterApiKey,
+            openRouterModel
+          }}
+          onUpdateAiSettings={(s) => {
+            setAiProvider(s.provider);
+            setGeminiApiKey(s.geminiApiKey);
+            setOpenRouterApiKey(s.openRouterApiKey);
+            setOpenRouterModel(s.openRouterModel);
+          }}
+        />
       </div>
     </Router>
   );

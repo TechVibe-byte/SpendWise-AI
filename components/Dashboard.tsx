@@ -5,9 +5,10 @@ import {
   PieChart, Pie, Cell, LineChart, Line, AreaChart, Area, Legend
 } from 'recharts';
 import { Smartphone, Download, X } from 'lucide-react';
-import { Expense, CategoryItem, Income, BudgetRuleType, Account, Transfer } from '../types';
+import { Expense, CategoryItem, Income, BudgetRuleType, Account, Transfer, EMITrackerItem, SalaryTrackerItem, BorrowMoneyItem, LendMoneyItem } from '../types';
 import { getCategoryIcon } from '../constants';
 import { formatCurrency, parseLocalDate } from '../utils';
+import TrackersHub from './TrackersHub';
 
 interface DashboardProps {
   expenses: Expense[];
@@ -24,6 +25,30 @@ interface DashboardProps {
   isStandalone?: boolean;
   handleInstallClick?: () => Promise<void>;
   isPremium?: boolean;
+
+  // Trackers props
+  emis?: EMITrackerItem[];
+  onAddEmi?: (item: Omit<EMITrackerItem, 'id'>) => void;
+  onEditEmi?: (id: string, item: Partial<EMITrackerItem>) => void;
+  onDeleteEmi?: (id: string) => void;
+  onRecordEmiPayment?: (id: string) => void;
+
+  salaries?: SalaryTrackerItem[];
+  onAddSalary?: (item: Omit<SalaryTrackerItem, 'id'>) => void;
+  onEditSalary?: (id: string, item: Partial<SalaryTrackerItem>) => void;
+  onDeleteSalary?: (id: string) => void;
+
+  borrowedList?: BorrowMoneyItem[];
+  onAddBorrowed?: (item: Omit<BorrowMoneyItem, 'id'>) => void;
+  onEditBorrowed?: (id: string, item: Partial<BorrowMoneyItem>) => void;
+  onDeleteBorrowed?: (id: string) => void;
+  onRecordBorrowRepayment?: (id: string, repayAmount: number) => void;
+
+  lentList?: LendMoneyItem[];
+  onAddLent?: (item: Omit<LendMoneyItem, 'id'>) => void;
+  onEditLent?: (id: string, item: Partial<LendMoneyItem>) => void;
+  onDeleteLent?: (id: string) => void;
+  onRecordLentReturn?: (id: string, returnAmount: number) => void;
 }
 
 const Dashboard: React.FC<DashboardProps> = ({ 
@@ -40,7 +65,26 @@ const Dashboard: React.FC<DashboardProps> = ({
   showInstallBtn = false,
   isStandalone = false,
   handleInstallClick,
-  isPremium = false
+  isPremium = false,
+  emis = [],
+  onAddEmi = () => {},
+  onEditEmi = () => {},
+  onDeleteEmi = () => {},
+  onRecordEmiPayment = () => {},
+  salaries = [],
+  onAddSalary = () => {},
+  onEditSalary = () => {},
+  onDeleteSalary = () => {},
+  borrowedList = [],
+  onAddBorrowed = () => {},
+  onEditBorrowed = () => {},
+  onDeleteBorrowed = () => {},
+  onRecordBorrowRepayment = () => {},
+  lentList = [],
+  onAddLent = () => {},
+  onEditLent = () => {},
+  onDeleteLent = () => {},
+  onRecordLentReturn = () => {}
 }) => {
   const isDark = window.document.documentElement.classList.contains('dark');
   const [distView, setDistView] = useState<'monthly' | 'yearly' | 'overall'>('monthly');
@@ -1408,157 +1452,283 @@ const Dashboard: React.FC<DashboardProps> = ({
         </div>
       </div>
 
-      {/* 3. Deep Reports & Analytics Charting Panel (Section 14) */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Core Financial analytics plots */}
-        <div className="bg-white dark:bg-slate-900 p-5 md:p-6 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col justify-between">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-            <div>
-              <h4 className="text-slate-850 dark:text-slate-200 font-black text-sm md:text-base">Intelligence charts & reports</h4>
-              <p className="text-xs text-slate-500">Slice and review structural cashflow datasets</p>
-            </div>
+      {/* 3. Free Mode: Financial Trackers Hub in place of Income & Cash Flow; Premium: Intelligence Charts & Trackers */}
+      {!isPremium ? (
+        <div className="space-y-6">
+          <TrackersHub
+            emis={emis}
+            onAddEmi={onAddEmi}
+            onEditEmi={onEditEmi}
+            onDeleteEmi={onDeleteEmi}
+            onRecordEmiPayment={onRecordEmiPayment}
+            salaries={salaries}
+            onAddSalary={onAddSalary}
+            onEditSalary={onEditSalary}
+            onDeleteSalary={onDeleteSalary}
+            borrowedList={borrowedList}
+            onAddBorrowed={onAddBorrowed}
+            onEditBorrowed={onEditBorrowed}
+            onDeleteBorrowed={onDeleteBorrowed}
+            onRecordBorrowRepayment={onRecordBorrowRepayment}
+            lentList={lentList}
+            onAddLent={onAddLent}
+            onEditLent={onEditLent}
+            onDeleteLent={onDeleteLent}
+            onRecordLentReturn={onRecordLentReturn}
+          />
 
-            {/* Selector tabs */}
-            <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-xl border border-slate-200/50 dark:border-slate-700 shrink-0">
-              {(['income_expense', 'savings_trend', 'balance_trend'] as const).map(tab => (
-                <button
-                  key={tab}
-                  onClick={() => setAnalyticsTab(tab)}
-                  className={`px-3 py-1.5 rounded-lg text-[10px] md:text-[11px] font-bold transition-all whitespace-nowrap ${analyticsTab === tab ? 'bg-white dark:bg-slate-900 text-indigo-700 dark:text-indigo-400 shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'}`}
-                >
-                  {tab === 'income_expense' ? 'Inc vs Exp' : tab === 'savings_trend' ? 'Savings' : 'Balances'}
-                </button>
-              ))}
+          {/* Expense Distribution Breakdown */}
+          <div className="bg-white dark:bg-slate-900 p-5 md:p-6 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
+              <div>
+                <h4 className="text-slate-800 dark:text-slate-200 font-bold text-sm md:text-base">Expense Distribution</h4>
+                <p className="text-xs text-slate-400 mt-0.5">Structure patterns of logged expense categories</p>
+              </div>
+              {/* View Switcher Controls */}
+              <div className="flex items-center space-x-1 bg-slate-100 dark:bg-slate-800 p-0.5 rounded-xl border border-slate-200/50 dark:border-slate-700">
+                {(['monthly', 'yearly', 'overall'] as const).map((view) => (
+                  <button
+                    key={view}
+                    type="button"
+                    onClick={() => {
+                      setDistView(view);
+                      setActiveIndex(null);
+                      setIsOthersExpanded(false);
+                    }}
+                    className={`px-3 py-1.5 rounded-lg text-[9.5px] font-black transition-all capitalize ${distView === view ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-sm' : 'text-slate-600 dark:text-slate-400'}`}
+                  >
+                    {view}
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
+            
+            <div className="flex flex-col md:flex-row items-center justify-center gap-6 flex-1">
+              <div className="w-full md:w-1/2 h-44 flex flex-col items-center justify-center relative select-none">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={chartCategoryData}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={50}
+                      outerRadius={68}
+                      paddingAngle={1.5}
+                      dataKey="value"
+                      onMouseEnter={(_, index) => setActiveIndex(index)}
+                      onMouseLeave={() => setActiveIndex(null)}
+                    >
+                      {chartCategoryData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                  </PieChart>
+                </ResponsiveContainer>
+                <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none text-center mt-1">
+                  <span className="text-[9px] uppercase font-bold tracking-widest text-slate-400">Debits</span>
+                  <span className="text-sm font-black text-slate-900 dark:text-white font-mono mt-0.5">
+                    {formatCurrency(chartTotal)}
+                  </span>
+                </div>
+              </div>
 
-          <div className="h-[300px] w-full">
-            {analyticsTab === 'income_expense' ? (
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={monthlyCashFlowChartData}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDark ? "#1e293b" : "#f1f5f9"} />
-                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 10}} />
-                  <YAxis axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 10}} width={45} />
-                  <Tooltip 
-                    formatter={(value: number) => [formatCurrency(value), '']}
-                    contentStyle={{ borderRadius: '12px', border: 'none', backgroundColor: isDark ? '#1e293b' : '#ffffff', color: isDark ? '#f1f5f9' : '#1e293b', fontSize: '11px' }}
-                  />
-                  <Legend iconType="circle" wrapperStyle={{ fontSize: '10px', fontWeight: 'bold' }} />
-                  <Bar dataKey="Income" fill="#10B981" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="Expense" fill="#EF4444" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            ) : analyticsTab === 'savings_trend' ? (
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={savingsTrendData}>
-                  <defs>
-                    <linearGradient id="savingsGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#818cf8" stopOpacity={0.25}/>
-                      <stop offset="95%" stopColor="#818cf8" stopOpacity={0}/>
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDark ? "#1e293b" : "#f1f5f9"} />
-                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 10}} />
-                  <YAxis axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 10}} width={45} />
-                  <Tooltip 
-                    formatter={(value: number) => [formatCurrency(value), 'Saved']}
-                    contentStyle={{ borderRadius: '12px', border: 'none', backgroundColor: isDark ? '#1e293b' : '#ffffff', color: isDark ? '#f1f5f9' : '#1e293b', fontSize: '11px' }}
-                  />
-                  <Area type="monotone" dataKey="Savings" stroke="#6366f1" strokeWidth={3} fillOpacity={1} fill="url(#savingsGrad)" />
-                </AreaChart>
-              </ResponsiveContainer>
-            ) : (
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={accountBalanceTrendData}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDark ? "#1e293b" : "#f1f5f9"} />
-                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 10}} />
-                  <YAxis axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 10}} width={50} />
-                  <Tooltip 
-                    formatter={(value: number) => [formatCurrency(value), 'Statement balance']}
-                    contentStyle={{ borderRadius: '12px', border: 'none', backgroundColor: isDark ? '#1e293b' : '#ffffff', color: isDark ? '#f1f5f9' : '#1e293b', fontSize: '11px' }}
-                  />
-                  <Line type="monotone" dataKey="Available Balance" stroke="#10b981" strokeWidth={3.5} dot={{ fill: '#10b981', r: 4 }} />
-                </LineChart>
-              </ResponsiveContainer>
-            )}
+              <div className="w-full md:w-1/2 flex flex-col space-y-1.5 max-h-48 overflow-y-auto pr-1">
+                {chartCategoryData.map((entry, index) => {
+                  const pct = chartTotal > 0 ? ((entry.value / chartTotal) * 100).toFixed(1) : '0';
+                  return (
+                    <div key={index} className="flex justify-between items-center text-xs">
+                      <div className="flex items-center space-x-2 shrink-1 truncate">
+                        <span className="w-2 h-2 rounded-full block shrink-0" style={{ backgroundColor: entry.color }} />
+                        <span className="font-bold text-slate-600 dark:text-slate-300 truncate">{entry.name}</span>
+                      </div>
+                      <div className="font-mono text-right shrink-0 ml-2">
+                        <span className="font-bold text-slate-800 dark:text-white">{formatCurrency(entry.value)}</span>
+                        <span className="text-slate-400 font-medium text-[9px] ml-1">({pct}%)</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
           </div>
         </div>
+      ) : (
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Core Financial analytics plots */}
+            <div className="bg-white dark:bg-slate-900 p-5 md:p-6 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col justify-between">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+                <div>
+                  <h4 className="text-slate-850 dark:text-slate-200 font-black text-sm md:text-base">Intelligence charts & reports</h4>
+                  <p className="text-xs text-slate-500">Slice and review structural cashflow datasets</p>
+                </div>
 
-        {/* Existing Distribution Breakdown */}
-        <div className="bg-white dark:bg-slate-900 p-5 md:p-6 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col justify-between">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
-            <div>
-              <h4 className="text-slate-800 dark:text-slate-200 font-bold text-sm md:text-base">Expense Distribution</h4>
-              <p className="text-xs text-slate-400 mt-0.5">Structure patterns of logged expense categories</p>
-            </div>
-            {/* View Switcher Controls */}
-            <div className="flex items-center space-x-1 bg-slate-100 dark:bg-slate-800 p-0.5 rounded-xl border border-slate-200/50 dark:border-slate-700">
-              {(['monthly', 'yearly', 'overall'] as const).map((view) => (
-                <button
-                  key={view}
-                  type="button"
-                  onClick={() => {
-                    setDistView(view);
-                    setActiveIndex(null);
-                    setIsOthersExpanded(false);
-                  }}
-                  className={`px-3 py-1.5 rounded-lg text-[9.5px] font-black transition-all capitalize ${distView === view ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-sm' : 'text-slate-600 dark:text-slate-400'}`}
-                >
-                  {view}
-                </button>
-              ))}
-            </div>
-          </div>
-          
-          <div className="flex flex-col md:flex-row items-center justify-center gap-6 flex-1">
-            <div className="w-full md:w-1/2 h-44 flex flex-col items-center justify-center relative select-none">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={chartCategoryData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={50}
-                    outerRadius={68}
-                    paddingAngle={1.5}
-                    dataKey="value"
-                    onMouseEnter={(_, index) => setActiveIndex(index)}
-                    onMouseLeave={() => setActiveIndex(null)}
-                  >
-                    {chartCategoryData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                </PieChart>
-              </ResponsiveContainer>
-              <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none text-center mt-1">
-                <span className="text-[9px] uppercase font-bold tracking-widest text-slate-400">Debits</span>
-                <span className="text-sm font-black text-slate-900 dark:text-white font-mono mt-0.5">
-                  {formatCurrency(chartTotal)}
-                </span>
+                {/* Selector tabs */}
+                <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-xl border border-slate-200/50 dark:border-slate-700 shrink-0">
+                  {(['income_expense', 'savings_trend', 'balance_trend'] as const).map(tab => (
+                    <button
+                      key={tab}
+                      onClick={() => setAnalyticsTab(tab)}
+                      className={`px-3 py-1.5 rounded-lg text-[10px] md:text-[11px] font-bold transition-all whitespace-nowrap ${analyticsTab === tab ? 'bg-white dark:bg-slate-900 text-indigo-700 dark:text-indigo-400 shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'}`}
+                    >
+                      {tab === 'income_expense' ? 'Inc vs Exp' : tab === 'savings_trend' ? 'Savings' : 'Balances'}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="h-[300px] w-full">
+                {analyticsTab === 'income_expense' ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={monthlyCashFlowChartData}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDark ? "#1e293b" : "#f1f5f9"} />
+                      <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 10}} />
+                      <YAxis axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 10}} width={45} />
+                      <Tooltip 
+                        formatter={(value: number) => [formatCurrency(value), '']}
+                        contentStyle={{ borderRadius: '12px', border: 'none', backgroundColor: isDark ? '#1e293b' : '#ffffff', color: isDark ? '#f1f5f9' : '#1e293b', fontSize: '11px' }}
+                      />
+                      <Legend iconType="circle" wrapperStyle={{ fontSize: '10px', fontWeight: 'bold' }} />
+                      <Bar dataKey="Income" fill="#10B981" radius={[4, 4, 0, 0]} />
+                      <Bar dataKey="Expense" fill="#EF4444" radius={[4, 4, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                ) : analyticsTab === 'savings_trend' ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={savingsTrendData}>
+                      <defs>
+                        <linearGradient id="savingsGrad" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#818cf8" stopOpacity={0.25}/>
+                          <stop offset="95%" stopColor="#818cf8" stopOpacity={0}/>
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDark ? "#1e293b" : "#f1f5f9"} />
+                      <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 10}} />
+                      <YAxis axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 10}} width={45} />
+                      <Tooltip 
+                        formatter={(value: number) => [formatCurrency(value), 'Saved']}
+                        contentStyle={{ borderRadius: '12px', border: 'none', backgroundColor: isDark ? '#1e293b' : '#ffffff', color: isDark ? '#f1f5f9' : '#1e293b', fontSize: '11px' }}
+                      />
+                      <Area type="monotone" dataKey="Savings" stroke="#6366f1" strokeWidth={3} fillOpacity={1} fill="url(#savingsGrad)" />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={accountBalanceTrendData}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDark ? "#1e293b" : "#f1f5f9"} />
+                      <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 10}} />
+                      <YAxis axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 10}} width={50} />
+                      <Tooltip 
+                        formatter={(value: number) => [formatCurrency(value), 'Statement balance']}
+                        contentStyle={{ borderRadius: '12px', border: 'none', backgroundColor: isDark ? '#1e293b' : '#ffffff', color: isDark ? '#f1f5f9' : '#1e293b', fontSize: '11px' }}
+                      />
+                      <Line type="monotone" dataKey="Available Balance" stroke="#10b981" strokeWidth={3.5} dot={{ fill: '#10b981', r: 4 }} />
+                    </LineChart>
+                  </ResponsiveContainer>
+                )}
               </div>
             </div>
 
-            <div className="w-full md:w-1/2 flex flex-col space-y-1.5 max-h-48 overflow-y-auto pr-1">
-              {chartCategoryData.map((entry, index) => {
-                const pct = chartTotal > 0 ? ((entry.value / chartTotal) * 100).toFixed(1) : '0';
-                return (
-                  <div key={index} className="flex justify-between items-center text-xs">
-                    <div className="flex items-center space-x-2 shrink-1 truncate">
-                      <span className="w-2 h-2 rounded-full block shrink-0" style={{ backgroundColor: entry.color }} />
-                      <span className="font-bold text-slate-600 dark:text-slate-300 truncate">{entry.name}</span>
-                    </div>
-                    <div className="font-mono text-right shrink-0 ml-2">
-                      <span className="font-bold text-slate-800 dark:text-white">{formatCurrency(entry.value)}</span>
-                      <span className="text-slate-400 font-medium text-[9px] ml-1">({pct}%)</span>
-                    </div>
+            {/* Existing Distribution Breakdown */}
+            <div className="bg-white dark:bg-slate-900 p-5 md:p-6 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col justify-between">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
+                <div>
+                  <h4 className="text-slate-800 dark:text-slate-200 font-bold text-sm md:text-base">Expense Distribution</h4>
+                  <p className="text-xs text-slate-400 mt-0.5">Structure patterns of logged expense categories</p>
+                </div>
+                {/* View Switcher Controls */}
+                <div className="flex items-center space-x-1 bg-slate-100 dark:bg-slate-800 p-0.5 rounded-xl border border-slate-200/50 dark:border-slate-700">
+                  {(['monthly', 'yearly', 'overall'] as const).map((view) => (
+                    <button
+                      key={view}
+                      type="button"
+                      onClick={() => {
+                        setDistView(view);
+                        setActiveIndex(null);
+                        setIsOthersExpanded(false);
+                      }}
+                      className={`px-3 py-1.5 rounded-lg text-[9.5px] font-black transition-all capitalize ${distView === view ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-sm' : 'text-slate-600 dark:text-slate-400'}`}
+                    >
+                      {view}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              
+              <div className="flex flex-col md:flex-row items-center justify-center gap-6 flex-1">
+                <div className="w-full md:w-1/2 h-44 flex flex-col items-center justify-center relative select-none">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={chartCategoryData}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={50}
+                        outerRadius={68}
+                        paddingAngle={1.5}
+                        dataKey="value"
+                        onMouseEnter={(_, index) => setActiveIndex(index)}
+                        onMouseLeave={() => setActiveIndex(null)}
+                      >
+                        {chartCategoryData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        ))}
+                      </Pie>
+                    </PieChart>
+                  </ResponsiveContainer>
+                  <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none text-center mt-1">
+                    <span className="text-[9px] uppercase font-bold tracking-widest text-slate-400">Debits</span>
+                    <span className="text-sm font-black text-slate-900 dark:text-white font-mono mt-0.5">
+                      {formatCurrency(chartTotal)}
+                    </span>
                   </div>
-                );
-              })}
+                </div>
+
+                <div className="w-full md:w-1/2 flex flex-col space-y-1.5 max-h-48 overflow-y-auto pr-1">
+                  {chartCategoryData.map((entry, index) => {
+                    const pct = chartTotal > 0 ? ((entry.value / chartTotal) * 100).toFixed(1) : '0';
+                    return (
+                      <div key={index} className="flex justify-between items-center text-xs">
+                        <div className="flex items-center space-x-2 shrink-1 truncate">
+                          <span className="w-2 h-2 rounded-full block shrink-0" style={{ backgroundColor: entry.color }} />
+                          <span className="font-bold text-slate-600 dark:text-slate-300 truncate">{entry.name}</span>
+                        </div>
+                        <div className="font-mono text-right shrink-0 ml-2">
+                          <span className="font-bold text-slate-800 dark:text-white">{formatCurrency(entry.value)}</span>
+                          <span className="text-slate-400 font-medium text-[9px] ml-1">({pct}%)</span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
             </div>
           </div>
+
+          {/* Trackers Hub also accessible in Premium */}
+          <TrackersHub
+            emis={emis}
+            onAddEmi={onAddEmi}
+            onEditEmi={onEditEmi}
+            onDeleteEmi={onDeleteEmi}
+            onRecordEmiPayment={onRecordEmiPayment}
+            salaries={salaries}
+            onAddSalary={onAddSalary}
+            onEditSalary={onEditSalary}
+            onDeleteSalary={onDeleteSalary}
+            borrowedList={borrowedList}
+            onAddBorrowed={onAddBorrowed}
+            onEditBorrowed={onEditBorrowed}
+            onDeleteBorrowed={onDeleteBorrowed}
+            onRecordBorrowRepayment={onRecordBorrowRepayment}
+            lentList={lentList}
+            onAddLent={onAddLent}
+            onEditLent={onEditLent}
+            onDeleteLent={onDeleteLent}
+            onRecordLentReturn={onRecordLentReturn}
+          />
         </div>
-      </div>
+      )}
     </div>
   );
 };
