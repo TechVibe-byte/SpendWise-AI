@@ -386,6 +386,14 @@ export const TrackersHub: React.FC<TrackersHubProps> = ({
               </span>
             )}
           </button>
+
+          <Link
+            to="/split-bill"
+            className="flex-1 sm:flex-none px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center space-x-1 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/40 cursor-pointer"
+            title="Split a bill with friends and share on WhatsApp"
+          >
+            <span>👥 Split Bill</span>
+          </Link>
         </div>
       </div>
 

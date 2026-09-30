@@ -1,4 +1,5 @@
 import React, { useState, useRef } from 'react';
+import { Link } from 'react-router-dom';
 import { LendMoneyItem, BorrowMoneyItem } from '../types';
 import { formatCurrency } from '../utils';
 import { Plus, Users, HandCoins, ArrowUpRight, ArrowDownLeft, Calendar, Image as ImageIcon, Eye, Trash2, CheckCircle2, Clock, X } from 'lucide-react';
@@ -214,6 +215,13 @@ export const BorrowLendTracker: React.FC<BorrowLendTrackerProps> = ({
               Money Borrowed
             </button>
           </div>
+
+          <Link
+            to="/split-bill"
+            className="px-3.5 py-2 bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 text-emerald-700 dark:text-emerald-300 font-bold text-xs rounded-xl border border-emerald-200 dark:border-emerald-800/40 flex items-center space-x-1.5 transition-all shrink-0 cursor-pointer"
+          >
+            <span>👥 Split a Bill</span>
+          </Link>
 
           <button
             onClick={() => activeTab === 'lent' ? setShowLentModal(true) : setShowBorrowModal(true)}

@@ -207,3 +207,27 @@ export interface AISettings {
   openRouterApiKey: string;
   openRouterModel: string;
 }
+
+export type SplitType = 'equal' | 'exact' | 'percentage';
+
+export interface SplitParticipant {
+  id: string;
+  name: string;
+  shareAmount: number;
+  paidAmount?: number;
+  percentage?: number;
+  settled?: boolean;
+}
+
+export interface SplitBillItem {
+  id: string;
+  title: string;
+  totalAmount: number;
+  date: string;
+  paidBy: string; // e.g. "You" or a friend's name
+  splitType: SplitType;
+  participants: SplitParticipant[];
+  notes?: string;
+  category?: string;
+  createdAt: string;
+}

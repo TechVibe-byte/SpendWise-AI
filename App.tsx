@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Bot } from 'lucide-react';
 import { HashRouter as Router, Routes, Route, NavLink } from 'react-router-dom';
-import { Expense, RecurringExpense, RecurringFrequency, CategoryItem, Income, BudgetRuleType, Account, Transfer, SalaryRule, TelegramBackupSettings, EMITrackerItem, SalaryTrackerItem, BorrowMoneyItem, LendMoneyItem } from './types';
+import { Expense, RecurringExpense, RecurringFrequency, CategoryItem, Income, BudgetRuleType, Account, Transfer, SalaryRule, TelegramBackupSettings, EMITrackerItem, SalaryTrackerItem, BorrowMoneyItem, LendMoneyItem, SplitBillItem } from './types';
 import { DEFAULT_CATEGORIES } from './constants';
 import { formatCurrency, parseLocalDate, formatLocalDate } from './utils';
 import Dashboard from './components/Dashboard';
@@ -17,6 +17,7 @@ import IncomeManager from './components/IncomeManager';
 import EMITracker from './components/EMITracker';
 import SalaryTracker from './components/SalaryTracker';
 import BorrowLendTracker from './components/BorrowLendTracker';
+import SplitBill from './components/SplitBill';
 import { Logo } from './components/Logo';
 import AIInsights from './components/AIInsights';
 import { ThemeToggle } from './components/ThemeToggle';
@@ -148,6 +149,20 @@ const App: React.FC = () => {
   useEffect(() => {
     localStorage.setItem('spendwise-lent', JSON.stringify(lentList));
   }, [lentList]);
+
+  // Split Bill State
+  const [splitBills, setSplitBills] = useState<SplitBillItem[]>(() => {
+    try {
+      const saved = localStorage.getItem('spendwise_split_bills');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  useEffect(() => {
+    localStorage.setItem('spendwise_split_bills', JSON.stringify(splitBills));
+  }, [splitBills]);
 
   useEffect(() => {
     localStorage.setItem('spendwise-gemini-key', geminiApiKey);
@@ -788,6 +803,18 @@ const App: React.FC = () => {
           </svg>
         )
       },
+      {
+        to: "/split-bill",
+        label: "Split Bill",
+        mobLabel: "Split",
+        badge: splitBills.length > 0 ? splitBills.length : undefined,
+        badgeType: "emerald" as const,
+        icon: (className: string) => (
+          <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+          </svg>
+        )
+      },
       ...(isPremium ? [{
         to: "/recurring",
         label: "Recurring",
@@ -1160,6 +1187,18 @@ const App: React.FC = () => {
                 onDeleteBorrowed={handleDeleteBorrowed}
                 onRecordBorrowRepayment={handleRecordBorrowRepayment}
               />
+            } />
+
+            {/* Split Bill Route */}
+            <Route path="/split-bill" element={
+              <div className="space-y-6 animate-in fade-in duration-500">
+                <SplitBill 
+                  onAddLent={handleAddLent}
+                  onAddExpense={handleSaveExpense}
+                  savedBills={splitBills}
+                  onSaveBills={setSplitBills}
+                />
+              </div>
             } />
 
             <Route path="/history" element={
