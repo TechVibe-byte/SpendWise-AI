@@ -29,6 +29,9 @@ export enum RecurringFrequency {
   YEARLY = 'Yearly'
 }
 
+export type PaymentType = 'bank' | 'credit_card' | 'credit_card_upi' | 'cash';
+export type CreditCardExpenseType = 'credit_card' | 'credit_card_upi';
+
 export interface Expense {
   id: string;
   amount: number;
@@ -36,6 +39,8 @@ export interface Expense {
   category: Category;
   date: string;
   bankName?: string;
+  paymentType?: PaymentType;
+  creditCardType?: CreditCardExpenseType;
   recurringId?: string;
   receiptImage?: string; // Base64 data URL
   note?: string; // Used for tracking IDs or extra notes

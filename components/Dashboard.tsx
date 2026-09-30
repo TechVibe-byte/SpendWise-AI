@@ -1437,7 +1437,7 @@ const Dashboard: React.FC<DashboardProps> = ({
       )}
 
       {/* Quick Stats Block (Moved from App.tsx) */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 md:gap-6 mb-6 md:mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-6 md:mb-8">
         <div className="bg-white dark:bg-slate-900 p-5 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col items-center justify-center text-center">
           <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1.5">Avg. Daily Spend</span>
           <span className="text-xl font-black text-slate-800 dark:text-white">{formatCurrency(expenses.reduce((s, e) => s + e.amount, 0) / (expenses.length > 0 ? 30 : 1))}</span>
@@ -1450,12 +1450,19 @@ const Dashboard: React.FC<DashboardProps> = ({
           <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1.5">Active Categories</span>
           <span className="text-xl font-black text-slate-800 dark:text-white">{new Set(expenses.map(e => e.category)).size}</span>
         </div>
+        <div className="bg-white dark:bg-slate-900 p-5 rounded-3xl border border-indigo-100/60 dark:border-indigo-900/30 shadow-sm flex flex-col items-center justify-center text-center">
+          <span className="text-[10px] font-bold text-indigo-500 uppercase tracking-widest mb-1.5">💳 CC Outflow</span>
+          <span className="text-xl font-black text-indigo-600 dark:text-indigo-400 font-mono">
+            {formatCurrency(expenses.filter(e => e.paymentType === 'credit_card' || e.paymentType === 'credit_card_upi' || !!e.creditCardType || (e.bankName && e.bankName.toLowerCase().includes('card'))).reduce((s, e) => s + e.amount, 0))}
+          </span>
+        </div>
       </div>
 
       {/* 3. Free Mode: Financial Trackers Hub in place of Income & Cash Flow; Premium: Intelligence Charts & Trackers */}
       {!isPremium ? (
         <div className="space-y-6">
           <TrackersHub
+            expenses={expenses}
             emis={emis}
             onAddEmi={onAddEmi}
             onEditEmi={onEditEmi}
@@ -1707,6 +1714,7 @@ const Dashboard: React.FC<DashboardProps> = ({
 
           {/* Trackers Hub also accessible in Premium */}
           <TrackersHub
+            expenses={expenses}
             emis={emis}
             onAddEmi={onAddEmi}
             onEditEmi={onEditEmi}

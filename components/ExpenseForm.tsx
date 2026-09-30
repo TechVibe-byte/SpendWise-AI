@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Expense, Category, RecurringFrequency, CategoryItem, DefaultCategory, Account } from '../types';
-import { getCategoryIcon } from '../constants';
+import { Expense, Category, RecurringFrequency, CategoryItem, DefaultCategory, Account, PaymentType, CreditCardExpenseType } from '../types';
+import { getCategoryIcon, INDIAN_BANKS, INDIAN_CREDIT_CARD_BANKS } from '../constants';
 import { IconPickerModal } from './IconPickerModal';
 
 interface ExpenseFormProps {
@@ -81,7 +81,34 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({ onAdd, onClose, initialExpens
   const [description, setDescription] = useState(initialExpense?.description || '');
   const [amount, setAmount] = useState(initialExpense?.amount.toString() || '');
   const [category, setCategory] = useState<Category>(initialExpense?.category || DefaultCategory.OTHER);
-  const [bankName, setBankName] = useState(initialExpense?.bankName || (accounts && accounts.length > 0 ? accounts[0].name : ''));
+  const [bankName, setBankName] = useState(() => {
+    if (initialExpense?.bankName) return initialExpense.bankName;
+    if (initialExpense?.creditCardType || initialExpense?.paymentType === 'credit_card' || initialExpense?.paymentType === 'credit_card_upi') {
+      return INDIAN_CREDIT_CARD_BANKS[0];
+    }
+    return accounts && accounts.length > 0 ? accounts[0].name : INDIAN_BANKS[0];
+  });
+
+  // Payment Method: 'credit_card' | 'bank' | 'cash'
+  const [paymentMethod, setPaymentMethod] = useState<'credit_card' | 'bank' | 'cash'>(() => {
+    if (initialExpense?.creditCardType || initialExpense?.paymentType === 'credit_card' || initialExpense?.paymentType === 'credit_card_upi') {
+      return 'credit_card';
+    }
+    if (initialExpense?.paymentType === 'cash' || initialExpense?.bankName?.toLowerCase() === 'cash') {
+      return 'cash';
+    }
+    return 'bank';
+  });
+
+  // Credit Card Expense Type dropdown: 'credit_card' | 'credit_card_upi'
+  const [creditCardType, setCreditCardType] = useState<CreditCardExpenseType>(() => {
+    if (initialExpense?.creditCardType) return initialExpense.creditCardType;
+    if (initialExpense?.paymentType === 'credit_card_upi') return 'credit_card_upi';
+    return 'credit_card';
+  });
+
+  const [bankSearch, setBankSearch] = useState('');
+  const [isBankDropdownOpen, setIsBankDropdownOpen] = useState(false);
   const [date, setDate] = useState(initialExpense?.date || new Date().toISOString().split('T')[0]);
   const [note, setNote] = useState(initialExpense?.note || '');
   const [isRecurring, setIsRecurring] = useState(false);
@@ -111,10 +138,21 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({ onAdd, onClose, initialExpens
       setDescription(initialExpense.description);
       setAmount(initialExpense.amount.toString());
       setCategory(initialExpense.category);
-      setBankName(initialExpense.bankName || '');
       setDate(initialExpense.date);
       setNote(initialExpense.note || '');
       setReceiptImage(initialExpense.receiptImage || null);
+
+      if (initialExpense.creditCardType || initialExpense.paymentType === 'credit_card' || initialExpense.paymentType === 'credit_card_upi') {
+        setPaymentMethod('credit_card');
+        setCreditCardType(initialExpense.creditCardType || (initialExpense.paymentType === 'credit_card_upi' ? 'credit_card_upi' : 'credit_card'));
+        setBankName(initialExpense.bankName || INDIAN_CREDIT_CARD_BANKS[0]);
+      } else if (initialExpense.paymentType === 'cash' || initialExpense.bankName?.toLowerCase() === 'cash') {
+        setPaymentMethod('cash');
+        setBankName('Cash');
+      } else {
+        setPaymentMethod('bank');
+        setBankName(initialExpense.bankName || (accounts && accounts.length > 0 ? accounts[0].name : INDIAN_BANKS[0]));
+      }
       
       if (initialRecurringFrequency) {
         setIsRecurring(true);
@@ -128,7 +166,9 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({ onAdd, onClose, initialExpens
       setDescription('');
       setAmount('');
       setCategory(DefaultCategory.OTHER);
-      setBankName(accounts && accounts.length > 0 ? accounts[0].name : '');
+      setPaymentMethod('bank');
+      setCreditCardType('credit_card');
+      setBankName(accounts && accounts.length > 0 ? accounts[0].name : INDIAN_BANKS[0]);
       setDate(new Date().toISOString().split('T')[0]);
       setNote('');
       setReceiptImage(null);
@@ -250,11 +290,27 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({ onAdd, onClose, initialExpens
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!description || !amount) return;
-    // Only require bank account if accounts are available (Premium mode)
-    if (accounts && accounts.length > 0 && !bankName) {
-      alert("Please select a payment account first.");
-      return;
+
+    let finalBank = bankName.trim();
+    if (paymentMethod === 'cash') {
+      finalBank = 'Cash';
+    } else if (!finalBank) {
+      if (paymentMethod === 'credit_card') {
+        finalBank = INDIAN_CREDIT_CARD_BANKS[0];
+      } else {
+        finalBank = accounts && accounts.length > 0 ? accounts[0].name : INDIAN_BANKS[0];
+      }
     }
+
+    const finalPaymentType: PaymentType = 
+      paymentMethod === 'credit_card'
+        ? (creditCardType === 'credit_card_upi' ? 'credit_card_upi' : 'credit_card')
+        : paymentMethod === 'cash'
+          ? 'cash'
+          : 'bank';
+
+    const finalCcType: CreditCardExpenseType | undefined = 
+      paymentMethod === 'credit_card' ? creditCardType : undefined;
 
     onAdd(
       {
@@ -262,7 +318,9 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({ onAdd, onClose, initialExpens
         amount: parseFloat(amount),
         category,
         date,
-        bankName: bankName || undefined,
+        bankName: finalBank || undefined,
+        paymentType: finalPaymentType,
+        creditCardType: finalCcType,
         note: note || undefined,
         receiptImage: receiptImage || undefined
       },
@@ -371,119 +429,175 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({ onAdd, onClose, initialExpens
               })()}
             </div>
 
-            {/* Paid From Account — only shown in Premium mode (when accounts exist) */}
-            {accounts && accounts.length > 0 && (
-              <div>
-                <label className="block text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">
-                  Paid From Account <span className="text-red-500">*</span>
+            {/* Payment Method / Mode Selection: Bank (Normal) vs Credit Card vs Cash */}
+            <div>
+              <label className="block text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">
+                Payment Type / Account
+              </label>
+              <div className="grid grid-cols-3 gap-2 p-1 bg-slate-100 dark:bg-slate-800/80 rounded-2xl border border-slate-200/80 dark:border-slate-700/60">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPaymentMethod('credit_card');
+                    if (!INDIAN_CREDIT_CARD_BANKS.includes(bankName)) {
+                      setBankName(INDIAN_CREDIT_CARD_BANKS[0]);
+                    }
+                  }}
+                  className={`py-2 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                    paymentMethod === 'credit_card'
+                      ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-sm font-black'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                  }`}
+                >
+                  <span>💳</span>
+                  <span>Credit Card</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPaymentMethod('bank');
+                    if (accounts && accounts.length > 0) {
+                      setBankName(accounts[0].name);
+                    } else if (!INDIAN_BANKS.includes(bankName)) {
+                      setBankName(INDIAN_BANKS[0]);
+                    }
+                  }}
+                  className={`py-2 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                    paymentMethod === 'bank'
+                      ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-sm font-black'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                  }`}
+                >
+                  <span>🏦</span>
+                  <span>Bank / UPI</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPaymentMethod('cash');
+                    setBankName('Cash');
+                  }}
+                  className={`py-2 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                    paymentMethod === 'cash'
+                      ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-sm font-black'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                  }`}
+                >
+                  <span>💵</span>
+                  <span>Cash</span>
+                </button>
+              </div>
+            </div>
+
+            {/* If Credit Card Payment Method is selected */}
+            {paymentMethod === 'credit_card' && (
+              <div className="p-4 rounded-2xl bg-indigo-50/70 dark:bg-indigo-950/20 border border-indigo-100 dark:border-indigo-900/40 space-y-3.5 animate-in fade-in duration-150">
+                {/* 1. Dropdown: Credit Card or Credit Card UPI as Type of Credit Card Expenses */}
+                <div>
+                  <label className="block text-xs font-bold text-indigo-900 dark:text-indigo-300 uppercase tracking-wider mb-1.5">
+                    Type of Credit Card Expense <span className="text-red-500">*</span>
+                  </label>
+                  <div className="relative">
+                    <select
+                      value={creditCardType}
+                      onChange={(e) => setCreditCardType(e.target.value as CreditCardExpenseType)}
+                      className="w-full px-4 py-3 rounded-xl border border-indigo-200 dark:border-indigo-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all font-semibold text-sm cursor-pointer appearance-none pr-10"
+                    >
+                      <option value="credit_card">💳 Credit Card (Swipe / POS / Online)</option>
+                      <option value="credit_card_upi">⚡ Credit Card UPI (RuPay on UPI / QR Scan)</option>
+                    </select>
+                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-indigo-500">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                    </div>
+                  </div>
+                  <p className="text-[11px] text-indigo-600/80 dark:text-indigo-400/80 mt-1">
+                    {creditCardType === 'credit_card_upi' 
+                      ? '⚡ RuPay Credit Card on UPI: Scan QR or pay online through PhonePe, GPay, Paytm, etc.' 
+                      : '💳 Standard Credit Card: POS machine swipe/tap or web e-commerce transactions'}
+                  </p>
+                </div>
+
+                {/* 2. Indian Bank Name Dropdown for Credit Card */}
+                <div>
+                  <label className="block text-xs font-bold text-indigo-900 dark:text-indigo-300 uppercase tracking-wider mb-1.5">
+                    Credit Card Bank / Issuer Name <span className="text-red-500">*</span>
+                  </label>
+                  <div className="relative">
+                    <select
+                      value={bankName}
+                      onChange={(e) => setBankName(e.target.value)}
+                      className="w-full px-4 py-3 rounded-xl border border-indigo-200 dark:border-indigo-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all font-semibold text-sm cursor-pointer appearance-none pr-10"
+                    >
+                      {/* User's configured credit card accounts if any */}
+                      {accounts && accounts.some(a => a.type === 'credit_card') && (
+                        <optgroup label="Your Configured Credit Cards">
+                          {accounts.filter(a => a.type === 'credit_card').map(acc => (
+                            <option key={acc.id} value={acc.name}>
+                              {acc.name} {acc.bankName !== acc.name ? `(${acc.bankName})` : ''}
+                            </option>
+                          ))}
+                        </optgroup>
+                      )}
+                      <optgroup label="All Indian Credit Card Issuers & Banks">
+                        {INDIAN_CREDIT_CARD_BANKS.map((bName) => (
+                          <option key={bName} value={bName}>
+                            {bName}
+                          </option>
+                        ))}
+                      </optgroup>
+                    </select>
+                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-indigo-500">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* If Normal Bank / UPI Payment Method is selected */}
+            {paymentMethod === 'bank' && (
+              <div className="space-y-1.5 animate-in fade-in duration-150">
+                <label className="block text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                  Bank Name / Type (Indian Banks) <span className="text-red-500">*</span>
                 </label>
-              {accounts && accounts.length > 0 ? (
                 <div className="relative">
-                  {/* Visually hidden select for browser validation */}
                   <select
-                    required
-                    tabIndex={-1}
-                    className="sr-only"
                     value={bankName}
                     onChange={(e) => setBankName(e.target.value)}
+                    className="w-full px-4 py-3.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all font-semibold text-sm cursor-pointer appearance-none pr-10"
                   >
-                    <option value="">Choose Account</option>
-                    {accounts.map(acc => (
-                      <option key={acc.id} value={acc.name}>
-                        {acc.name}
-                      </option>
-                    ))}
+                    {/* User's accounts if any */}
+                    {accounts && accounts.length > 0 && (
+                      <optgroup label="Your Saved Accounts">
+                        {accounts.map(acc => (
+                          <option key={acc.id} value={acc.name}>
+                            {acc.name} {acc.bankName !== acc.name ? `(${acc.bankName})` : ''}
+                          </option>
+                        ))}
+                      </optgroup>
+                    )}
+                    <optgroup label="All Indian Banks (Public, Private, Payments & SFB)">
+                      {INDIAN_BANKS.map((bName) => (
+                        <option key={bName} value={bName}>
+                          {bName}
+                        </option>
+                      ))}
+                    </optgroup>
                   </select>
-
-                  {/* Custom Styled Select Trigger */}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsAccountDropdownOpen(!isAccountDropdownOpen);
-                      setIsCategoryDropdownOpen(false);
-                    }}
-                    className="w-full px-4 py-4 md:py-3 rounded-xl border border-slate-205 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all flex items-center justify-between cursor-pointer text-base font-semibold"
-                  >
-                    <span className="truncate">
-                      {bankName ? (
-                        accounts.find(acc => acc.name === bankName) ? (
-                          `${bankName} ${
-                            (() => {
-                              const acc = accounts.find(a => a.name === bankName);
-                              return acc && acc.bankName !== acc.name ? `(${acc.bankName})` : '';
-                            })()
-                          }`
-                        ) : bankName
-                      ) : (
-                        <span className="text-slate-400 dark:text-slate-500">Choose Account</span>
-                      )}
-                    </span>
-                    <svg 
-                      className={`w-5 h-5 text-slate-400 transition-transform duration-200 ${isAccountDropdownOpen ? 'rotate-180' : ''}`} 
-                      fill="none" 
-                      stroke="currentColor" 
-                      viewBox="0 0 24 24"
-                    >
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                    </svg>
-                  </button>
-
-                  {/* Backdrop for click outside */}
-                  {isAccountDropdownOpen && (
-                    <div 
-                      className="fixed inset-0 z-40 cursor-default" 
-                      onClick={() => setIsAccountDropdownOpen(false)} 
-                    />
-                  )}
-
-                  {/* Dropdown Options List */}
-                  {isAccountDropdownOpen && (
-                    <div className="absolute left-0 right-0 mt-2 bg-white dark:bg-[#0F172A] border border-slate-200 dark:border-white/[0.08] rounded-2xl shadow-xl z-50 max-h-60 overflow-y-auto py-1">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setBankName('');
-                          setIsAccountDropdownOpen(false);
-                        }}
-                        className={`w-full text-left px-4 py-3 text-sm font-semibold hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors ${!bankName ? 'text-indigo-500 bg-slate-50/50 dark:bg-slate-800/40' : 'text-slate-700 dark:text-slate-300'}`}
-                      >
-                        Choose Account
-                      </button>
-                      {accounts.map(acc => {
-                        const isSelected = bankName === acc.name;
-                        return (
-                          <button
-                            key={acc.id}
-                            type="button"
-                            onClick={() => {
-                              setBankName(acc.name);
-                              setIsAccountDropdownOpen(false);
-                            }}
-                            className={`w-full text-left px-4 py-3 text-sm font-semibold hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors flex items-center justify-between ${isSelected ? 'text-indigo-500 bg-slate-50/50 dark:bg-slate-800/40 font-black' : 'text-slate-700 dark:text-slate-300'}`}
-                          >
-                            <span>
-                              {acc.name} {acc.bankName !== acc.name ? `(${acc.bankName})` : ''}
-                            </span>
-                            {isSelected && (
-                              <svg className="w-4 h-4 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                              </svg>
-                            )}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  )}
+                  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-slate-400">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                  </div>
                 </div>
-              ) : (
-                <div className="text-sm text-amber-650 bg-amber-50 dark:bg-amber-950/20 dark:text-amber-400 p-4 rounded-xl border border-amber-100 dark:border-transparent flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
-                  <span>No accounts set up yet. Add one first.</span>
-                  <a href="#/settings" className="text-xs font-black underline flex items-center hover:text-amber-700 shrink-0" onClick={onClose}>
-                    Go to Settings &rarr;
-                  </a>
-                </div>
-              )}
-            </div>
+                <p className="text-[11px] text-slate-400">Choose from all Indian public, private, payments, or neo-banks.</p>
+              </div>
+            )}
+
+            {/* If Cash Payment Method is selected */}
+            {paymentMethod === 'cash' && (
+              <div className="p-3 bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900/30 rounded-xl flex items-center gap-2 text-xs text-emerald-700 dark:text-emerald-400 font-semibold animate-in fade-in duration-150">
+                <span>💵</span>
+                <span>Payment recorded as physical cash expense.</span>
+              </div>
             )}
 
             <div className="grid grid-cols-2 gap-4">

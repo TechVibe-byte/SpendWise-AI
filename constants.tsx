@@ -308,3 +308,94 @@ export const getCategoryIcon = (categoryName: string, customIcon?: string): Reac
     </svg>
   );
 };
+
+// Comprehensive list of Indian Banks for general expenses (Bank / UPI / Debit / Net Banking)
+export const INDIAN_BANKS = [
+  // Top Public Sector Banks
+  "State Bank of India (SBI)",
+  "Punjab National Bank (PNB)",
+  "Bank of Baroda (BOB)",
+  "Canara Bank",
+  "Union Bank of India",
+  "Bank of India",
+  "Indian Bank",
+  "Central Bank of India",
+  "Indian Overseas Bank",
+  "UCO Bank",
+  "Bank of Maharashtra",
+  "Punjab & Sind Bank",
+
+  // Top Private Sector Banks
+  "HDFC Bank",
+  "ICICI Bank",
+  "Axis Bank",
+  "Kotak Mahindra Bank",
+  "IndusInd Bank",
+  "IDFC First Bank",
+  "YES Bank",
+  "Federal Bank",
+  "South Indian Bank",
+  "RBL Bank",
+  "Bandhan Bank",
+  "City Union Bank",
+  "Karur Vysya Bank",
+  "Karnataka Bank",
+  "CSB Bank",
+  "Tamilnad Mercantile Bank",
+  "IDBI Bank",
+  "Standard Chartered Bank",
+  "HSBC India",
+  "DBS Bank India",
+
+  // Small Finance & Payments Banks
+  "AU Small Finance Bank",
+  "Equitas Small Finance Bank",
+  "Ujjivan Small Finance Bank",
+  "Jana Small Finance Bank",
+  "ESAF Small Finance Bank",
+  "Utkarsh Small Finance Bank",
+  "Airtel Payments Bank",
+  "Paytm Payments Bank",
+  "India Post Payments Bank (IPPB)",
+  "Jio Payments Bank",
+
+  // Fintech & Neo-banks
+  "Jupiter CSB / Federal",
+  "Fi Federal Bank",
+  "PayZapp / HDFC UPI",
+
+  // Other
+  "Cash",
+  "Other Indian Bank"
+];
+
+// Comprehensive list of Indian Credit Card Issuers & Banks for Credit Card expenses
+export const INDIAN_CREDIT_CARD_BANKS = [
+  "HDFC Bank Credit Card",
+  "SBI Card / State Bank of India",
+  "ICICI Bank Credit Card",
+  "Axis Bank Credit Card",
+  "Kotak Mahindra Bank Credit Card",
+  "IndusInd Bank Credit Card",
+  "IDFC First Bank Credit Card",
+  "RBL Bank Credit Card",
+  "AU Small Finance Bank Credit Card",
+  "Bank of Baroda (BOB Financial)",
+  "Federal Bank Credit Card",
+  "YES Bank Credit Card",
+  "Standard Chartered Credit Card",
+  "American Express India",
+  "HSBC India Credit Card",
+  "OneCard (Federal / BOB / SBM / CSB)",
+  "Amazon Pay ICICI Card",
+  "Flipkart Axis Bank Card",
+  "Tata Neu HDFC RuPay Card",
+  "Jupiter Edge CSB RuPay CC",
+  "Scapia Federal Credit Card",
+  "Slice Credit Card",
+  "Punjab National Bank (PNB) Card",
+  "Union Bank of India Card",
+  "Canara Bank Credit Card",
+  "Other Credit Card"
+];
+

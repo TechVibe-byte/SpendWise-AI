@@ -48,8 +48,38 @@ const ExpenseList: React.FC<ExpenseListProps> = ({
   const [customStartDate, setCustomStartDate] = useState(() => localStorage.getItem('spendwise_filter_customStartDate') || '');
   const [customEndDate, setCustomEndDate] = useState(() => localStorage.getItem('spendwise_filter_customEndDate') || '');
   const [activeQuickChip, setActiveQuickChip] = useState<string | null>(() => localStorage.getItem('spendwise_filter_activeQuickChip') || 'all_time');
+  const [selectedPaymentType, setSelectedPaymentType] = useState<'all' | 'credit_card_all' | 'credit_card' | 'credit_card_upi' | 'bank' | 'cash'>('all');
 
   const [confirmEditExpense, setConfirmEditExpense] = useState<Expense | null>(null);
+
+  // Dynamic counts for each payment type
+  const paymentCounts = useMemo(() => {
+    let ccStandard = 0;
+    let ccUpi = 0;
+    let bank = 0;
+    let cash = 0;
+
+    expenses.forEach(e => {
+      if (e.paymentType === 'credit_card_upi' || e.creditCardType === 'credit_card_upi') {
+        ccUpi++;
+      } else if (e.paymentType === 'credit_card' || e.creditCardType === 'credit_card' || (e.bankName && e.bankName.toLowerCase().includes('card'))) {
+        ccStandard++;
+      } else if (e.paymentType === 'cash' || e.bankName?.toLowerCase() === 'cash') {
+        cash++;
+      } else {
+        bank++;
+      }
+    });
+
+    return {
+      all: expenses.length,
+      ccAll: ccStandard + ccUpi,
+      ccStandard,
+      ccUpi,
+      bank,
+      cash
+    };
+  }, [expenses]);
 
   // Sync state variables to localStorage
   useEffect(() => {
@@ -260,6 +290,25 @@ const ExpenseList: React.FC<ExpenseListProps> = ({
       // 2. Specific Bank Match
       const matchesBank = selectedBank ? expense.bankName === selectedBank : true;
 
+      // 2b. Payment Type Match
+      let matchesPayment = true;
+      const isCcUpi = expense.paymentType === 'credit_card_upi' || expense.creditCardType === 'credit_card_upi';
+      const isCcStandard = Boolean(expense.paymentType === 'credit_card' || expense.creditCardType === 'credit_card' || expense.bankName?.toLowerCase().includes('card')) && !isCcUpi;
+      const isCash = Boolean(expense.paymentType === 'cash' || expense.bankName?.toLowerCase() === 'cash');
+      const isBank = !isCcUpi && !isCcStandard && !isCash;
+
+      if (selectedPaymentType === 'credit_card_all') {
+        matchesPayment = isCcUpi || isCcStandard;
+      } else if (selectedPaymentType === 'credit_card') {
+        matchesPayment = isCcStandard;
+      } else if (selectedPaymentType === 'credit_card_upi') {
+        matchesPayment = isCcUpi;
+      } else if (selectedPaymentType === 'bank') {
+        matchesPayment = isBank;
+      } else if (selectedPaymentType === 'cash') {
+        matchesPayment = isCash;
+      }
+
       // 3. Date / Time Period Match
       let matchesDate = true;
       if (filterMode === 'custom') {
@@ -286,9 +335,9 @@ const ExpenseList: React.FC<ExpenseListProps> = ({
         }
       }
 
-      return matchesSearch && matchesBank && matchesDate;
+      return matchesSearch && matchesBank && matchesPayment && matchesDate;
     });
-  }, [expenses, searchQuery, selectedBank, filterMode, customStartDate, customEndDate, selectedMonth, selectedYear]);
+  }, [expenses, searchQuery, selectedBank, selectedPaymentType, filterMode, customStartDate, customEndDate, selectedMonth, selectedYear]);
 
   // Sort chronological descending
   const sortedExpenses = useMemo(() => {
@@ -672,6 +721,70 @@ const ExpenseList: React.FC<ExpenseListProps> = ({
               </div>
             </div>
           )}
+
+          {/* Payment Type Tracker Segment */}
+          <div className="flex flex-wrap items-center gap-1.5 pt-2 border-t border-slate-100 dark:border-slate-800/60">
+            <span className="text-[10px] uppercase font-bold tracking-widest text-slate-400 dark:text-slate-500 mr-1.5">Payment Type:</span>
+            <button
+              type="button"
+              onClick={() => setSelectedPaymentType('all')}
+              className={`px-3 py-1 text-xs font-bold rounded-xl border transition-all cursor-pointer ${
+                selectedPaymentType === 'all'
+                  ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 border-transparent shadow-sm'
+                  : 'bg-slate-50 dark:bg-slate-800/40 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+              }`}
+            >
+              All ({paymentCounts.all})
+            </button>
+            <button
+              type="button"
+              onClick={() => setSelectedPaymentType('credit_card_all')}
+              className={`px-3 py-1 text-xs font-bold rounded-xl border transition-all cursor-pointer flex items-center gap-1 ${
+                selectedPaymentType === 'credit_card_all'
+                  ? 'bg-indigo-600 border-transparent text-white shadow-sm'
+                  : 'bg-indigo-50/50 dark:bg-indigo-950/20 border-indigo-200/50 dark:border-indigo-900/30 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-900/40'
+              }`}
+            >
+              <span>💳 Credit Card</span>
+              <span className="text-[10px] font-black px-1.5 py-0.2 rounded-full bg-indigo-200/50 dark:bg-indigo-900/80">{paymentCounts.ccAll}</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setSelectedPaymentType('credit_card_upi')}
+              className={`px-3 py-1 text-xs font-bold rounded-xl border transition-all cursor-pointer flex items-center gap-1 ${
+                selectedPaymentType === 'credit_card_upi'
+                  ? 'bg-amber-600 border-transparent text-white shadow-sm'
+                  : 'bg-amber-50/50 dark:bg-amber-950/20 border-amber-200/50 dark:border-amber-900/30 text-amber-700 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900/40'
+              }`}
+            >
+              <span>⚡ Credit Card UPI</span>
+              <span className="text-[10px] font-black px-1.5 py-0.2 rounded-full bg-amber-200/50 dark:bg-amber-900/80">{paymentCounts.ccUpi}</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setSelectedPaymentType('bank')}
+              className={`px-3 py-1 text-xs font-bold rounded-xl border transition-all cursor-pointer flex items-center gap-1 ${
+                selectedPaymentType === 'bank'
+                  ? 'bg-sky-600 border-transparent text-white shadow-sm'
+                  : 'bg-slate-50 dark:bg-slate-800/40 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+              }`}
+            >
+              <span>🏦 Bank</span>
+              <span className="text-[10px] font-black px-1.5 py-0.2 rounded-full bg-slate-200 dark:bg-slate-700">{paymentCounts.bank}</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setSelectedPaymentType('cash')}
+              className={`px-3 py-1 text-xs font-bold rounded-xl border transition-all cursor-pointer flex items-center gap-1 ${
+                selectedPaymentType === 'cash'
+                  ? 'bg-emerald-600 border-transparent text-white shadow-sm'
+                  : 'bg-slate-50 dark:bg-slate-800/40 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+              }`}
+            >
+              <span>💵 Cash</span>
+              <span className="text-[10px] font-black px-1.5 py-0.2 rounded-full bg-slate-200 dark:bg-slate-700">{paymentCounts.cash}</span>
+            </button>
+          </div>
         </div>
 
         {/* Transaction Summary Card */}
@@ -789,6 +902,37 @@ const ExpenseList: React.FC<ExpenseListProps> = ({
                         </span>
                         <span className="font-medium text-slate-500 dark:text-slate-400">{expense.category}</span>
                       </span>
+                      {/* Payment Type Badge */}
+                      {(expense.paymentType === 'credit_card_upi' || expense.creditCardType === 'credit_card_upi') ? (
+                        <>
+                          <span className="mx-1.5">•</span>
+                          <span className="inline-flex items-center px-1.5 py-0.2 rounded-md text-[9.5px] font-black bg-amber-100 text-amber-800 dark:bg-amber-950/70 dark:text-amber-300 border border-amber-300/40">
+                            ⚡ CC UPI
+                          </span>
+                        </>
+                      ) : (expense.paymentType === 'credit_card' || expense.creditCardType === 'credit_card' || (expense.bankName && expense.bankName.toLowerCase().includes('card'))) ? (
+                        <>
+                          <span className="mx-1.5">•</span>
+                          <span className="inline-flex items-center px-1.5 py-0.2 rounded-md text-[9.5px] font-black bg-purple-100 text-purple-800 dark:bg-purple-950/70 dark:text-purple-300 border border-purple-300/40">
+                            💳 Credit Card
+                          </span>
+                        </>
+                      ) : (expense.paymentType === 'cash' || expense.bankName?.toLowerCase() === 'cash') ? (
+                        <>
+                          <span className="mx-1.5">•</span>
+                          <span className="inline-flex items-center px-1.5 py-0.2 rounded-md text-[9.5px] font-black bg-emerald-100 text-emerald-800 dark:bg-emerald-950/70 dark:text-emerald-300 border border-emerald-300/40">
+                            💵 Cash
+                          </span>
+                        </>
+                      ) : (
+                        <>
+                          <span className="mx-1.5">•</span>
+                          <span className="inline-flex items-center px-1.5 py-0.2 rounded-md text-[9.5px] font-black bg-sky-100 text-sky-800 dark:bg-sky-950/70 dark:text-sky-300 border border-sky-300/40">
+                            🏦 Bank
+                          </span>
+                        </>
+                      )}
+
                       {expense.bankName && (
                         <>
                           <span className="mx-1.5">•</span>

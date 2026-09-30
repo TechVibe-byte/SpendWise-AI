@@ -1,14 +1,16 @@
 import React, { useState, useRef } from 'react';
-import { EMITrackerItem, SalaryTrackerItem, BorrowMoneyItem, LendMoneyItem } from '../types';
+import { EMITrackerItem, SalaryTrackerItem, BorrowMoneyItem, LendMoneyItem, Expense } from '../types';
 import { formatCurrency } from '../utils';
 import { 
   Plus, Calendar, CheckCircle2, Clock, Landmark, Briefcase, 
   HandCoins, Users, ArrowUpRight, ArrowDownLeft, Image as ImageIcon, 
-  Eye, X, ExternalLink, ChevronRight, UploadCloud 
+  Eye, X, ExternalLink, ChevronRight, UploadCloud, CreditCard, Zap
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 interface TrackersHubProps {
+  expenses?: Expense[];
+
   emis: EMITrackerItem[];
   onAddEmi: (item: Omit<EMITrackerItem, 'id'>) => void;
   onEditEmi: (id: string, item: Partial<EMITrackerItem>) => void;
@@ -34,6 +36,7 @@ interface TrackersHubProps {
 }
 
 export const TrackersHub: React.FC<TrackersHubProps> = ({
+  expenses = [],
   emis,
   onAddEmi,
   onRecordEmiPayment,
@@ -47,7 +50,8 @@ export const TrackersHub: React.FC<TrackersHubProps> = ({
   onEditLent,
   onRecordLentReturn
 }) => {
-  const [activeTab, setActiveTab] = useState<'emi' | 'salary' | 'borrow' | 'lent'>('emi');
+  const [activeTab, setActiveTab] = useState<'credit_card' | 'emi' | 'salary' | 'borrow' | 'lent'>('credit_card');
+  const [ccTypeFilter, setCcTypeFilter] = useState<'all' | 'credit_card' | 'credit_card_upi'>('all');
 
   // Modals state
   const [showAddEmiModal, setShowAddEmiModal] = useState(false);
@@ -95,6 +99,57 @@ export const TrackersHub: React.FC<TrackersHubProps> = ({
   const [quickSnippetTargetId, setQuickSnippetTargetId] = useState<string | null>(null);
 
   // Metrics calculations
+  const creditCardExpenses = React.useMemo(() => {
+    return (expenses || []).filter(e => 
+      e.paymentType === 'credit_card' || 
+      e.paymentType === 'credit_card_upi' || 
+      !!e.creditCardType || 
+      (e.bankName && e.bankName.toLowerCase().includes('card'))
+    );
+  }, [expenses]);
+
+  const filteredCcExpenses = React.useMemo(() => {
+    if (ccTypeFilter === 'credit_card_upi') {
+      return creditCardExpenses.filter(e => e.paymentType === 'credit_card_upi' || e.creditCardType === 'credit_card_upi');
+    }
+    if (ccTypeFilter === 'credit_card') {
+      return creditCardExpenses.filter(e => e.paymentType !== 'credit_card_upi' && e.creditCardType !== 'credit_card_upi');
+    }
+    return creditCardExpenses;
+  }, [creditCardExpenses, ccTypeFilter]);
+
+  const totalCcSpend = React.useMemo(() => {
+    return creditCardExpenses.reduce((s, e) => s + e.amount, 0);
+  }, [creditCardExpenses]);
+
+  const totalCcStandardSpend = React.useMemo(() => {
+    return creditCardExpenses
+      .filter(e => e.paymentType !== 'credit_card_upi' && e.creditCardType !== 'credit_card_upi')
+      .reduce((s, e) => s + e.amount, 0);
+  }, [creditCardExpenses]);
+
+  const totalCcUpiSpend = React.useMemo(() => {
+    return creditCardExpenses
+      .filter(e => e.paymentType === 'credit_card_upi' || e.creditCardType === 'credit_card_upi')
+      .reduce((s, e) => s + e.amount, 0);
+  }, [creditCardExpenses]);
+
+  const ccSpendByBank = React.useMemo(() => {
+    const map: Record<string, { total: number; count: number; upiCount: number }> = {};
+    creditCardExpenses.forEach(e => {
+      const bName = e.bankName || 'General Credit Card';
+      if (!map[bName]) {
+        map[bName] = { total: 0, count: 0, upiCount: 0 };
+      }
+      map[bName].total += e.amount;
+      map[bName].count += 1;
+      if (e.paymentType === 'credit_card_upi' || e.creditCardType === 'credit_card_upi') {
+        map[bName].upiCount += 1;
+      }
+    });
+    return Object.entries(map).sort((a, b) => b[1].total - a[1].total);
+  }, [creditCardExpenses]);
+
   const activeEmis = emis.filter(e => e.status === 'active');
   const totalMonthlyEmi = activeEmis.reduce((s, e) => s + e.emiAmount, 0);
 
@@ -255,6 +310,22 @@ export const TrackersHub: React.FC<TrackersHubProps> = ({
         {/* Tab Controls */}
         <div className="flex flex-wrap gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-2xl border border-slate-200/60 dark:border-slate-700/60 self-stretch sm:self-auto">
           <button
+            onClick={() => setActiveTab('credit_card')}
+            className={`flex-1 sm:flex-none px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center space-x-1.5 cursor-pointer ${
+              activeTab === 'credit_card'
+                ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-sm'
+                : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
+            }`}
+          >
+            <span>💳 Credit Cards</span>
+            {creditCardExpenses.length > 0 && (
+              <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-purple-100 dark:bg-purple-950 font-black text-purple-600 dark:text-purple-400">
+                {creditCardExpenses.length}
+              </span>
+            )}
+          </button>
+
+          <button
             onClick={() => setActiveTab('emi')}
             className={`flex-1 sm:flex-none px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center space-x-1.5 cursor-pointer ${
               activeTab === 'emi'
@@ -262,7 +333,7 @@ export const TrackersHub: React.FC<TrackersHubProps> = ({
                 : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
             }`}
           >
-            <span>💳 EMIs</span>
+            <span>🏦 EMIs</span>
             {activeEmis.length > 0 && (
               <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-indigo-100 dark:bg-indigo-950 font-black text-indigo-600 dark:text-indigo-400">
                 {activeEmis.length}
@@ -317,6 +388,167 @@ export const TrackersHub: React.FC<TrackersHubProps> = ({
           </button>
         </div>
       </div>
+
+      {/* TAB 0: CREDIT CARD TRACKER */}
+      {activeTab === 'credit_card' && (
+        <div className="space-y-4">
+          {/* Quick Metrics Bar */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div className="p-3.5 bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-950/40 dark:to-purple-950/40 rounded-2xl border border-indigo-100 dark:border-indigo-900/40">
+              <span className="text-[10px] font-bold text-indigo-500 uppercase tracking-wider block">Total CC Spend</span>
+              <span className="text-lg md:text-xl font-black font-mono text-slate-900 dark:text-white mt-0.5 block">
+                {formatCurrency(totalCcSpend)}
+              </span>
+              <span className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5 block">
+                {creditCardExpenses.length} transactions
+              </span>
+            </div>
+
+            <div className="p-3.5 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800">
+              <span className="text-[10px] font-bold text-purple-500 uppercase tracking-wider block">💳 Standard Card</span>
+              <span className="text-lg md:text-xl font-black font-mono text-purple-600 dark:text-purple-400 mt-0.5 block">
+                {formatCurrency(totalCcStandardSpend)}
+              </span>
+              <span className="text-[10px] text-slate-400 block mt-0.5">POS & Online Swipe</span>
+            </div>
+
+            <div className="p-3.5 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800">
+              <span className="text-[10px] font-bold text-amber-500 uppercase tracking-wider block">⚡ Credit Card UPI</span>
+              <span className="text-lg md:text-xl font-black font-mono text-amber-600 dark:text-amber-400 mt-0.5 block">
+                {formatCurrency(totalCcUpiSpend)}
+              </span>
+              <span className="text-[10px] text-slate-400 block mt-0.5">RuPay Scan & Pay</span>
+            </div>
+
+            <div className="p-3.5 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800 flex flex-col justify-between">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Quick Filter</span>
+              <div className="flex items-center gap-1 mt-1">
+                {(['all', 'credit_card', 'credit_card_upi'] as const).map(f => (
+                  <button
+                    key={f}
+                    onClick={() => setCcTypeFilter(f)}
+                    className={`px-2 py-1 rounded-lg text-[10px] font-bold transition-all cursor-pointer ${
+                      ccTypeFilter === f
+                        ? 'bg-indigo-600 text-white shadow-xs'
+                        : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700'
+                    }`}
+                  >
+                    {f === 'all' ? 'All' : f === 'credit_card' ? 'Standard' : 'UPI'}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Breakdown by Indian Bank / Issuer */}
+          {ccSpendByBank.length > 0 && (
+            <div className="p-4 bg-slate-50/70 dark:bg-slate-800/40 rounded-2xl border border-slate-100 dark:border-slate-800 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+                  Outflow by Indian Bank / Issuer
+                </span>
+                <span className="text-[10px] text-slate-400">
+                  {ccSpendByBank.length} Active {ccSpendByBank.length === 1 ? 'Bank' : 'Banks'}
+                </span>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
+                {ccSpendByBank.map(([bName, data]) => {
+                  const pct = totalCcSpend > 0 ? ((data.total / totalCcSpend) * 100).toFixed(0) : '0';
+                  return (
+                    <div key={bName} className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-100 dark:border-slate-800 shadow-xs">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-slate-900 dark:text-white truncate max-w-[170px]" title={bName}>
+                          {bName}
+                        </span>
+                        <span className="text-[11px] font-black text-indigo-600 dark:text-indigo-400 font-mono">
+                          {formatCurrency(data.total)}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between text-[10px] text-slate-400 mt-1">
+                        <span>{data.count} {data.count === 1 ? 'tx' : 'txns'} {data.upiCount > 0 ? `(${data.upiCount} UPI)` : ''}</span>
+                        <span>{pct}% share</span>
+                      </div>
+                      <div className="w-full bg-slate-100 dark:bg-slate-800 h-1.5 rounded-full mt-1.5 overflow-hidden">
+                        <div 
+                          className="bg-indigo-500 h-full rounded-full transition-all"
+                          style={{ width: `${Math.min(100, Math.max(5, Number(pct)))}%` }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Credit Card Expenses List */}
+          {filteredCcExpenses.length === 0 ? (
+            <div className="py-8 text-center border border-dashed border-slate-200 dark:border-slate-800 rounded-2xl">
+              <CreditCard className="w-8 h-8 text-slate-300 dark:text-slate-600 mx-auto mb-2" />
+              <p className="text-xs font-bold text-slate-600 dark:text-slate-400">No credit card expenses logged yet</p>
+              <p className="text-[11px] text-slate-400 mt-0.5">When you add an expense, choose "Credit Card" or "Credit Card UPI" to track them here.</p>
+              <Link
+                to="/expenses"
+                className="inline-block mt-3 px-3.5 py-1.5 bg-indigo-600 text-white font-bold text-xs rounded-xl shadow-xs cursor-pointer hover:bg-indigo-700 transition-colors"
+              >
+                Go to Add Expense
+              </Link>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between px-1">
+                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                  Logged Credit Card Transactions ({filteredCcExpenses.length})
+                </span>
+                <Link to="/expenses" className="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-0.5">
+                  <span>View All in Transactions</span>
+                  <ChevronRight className="w-3.5 h-3.5" />
+                </Link>
+              </div>
+              <div className="divide-y divide-slate-100 dark:divide-slate-800 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl overflow-hidden shadow-xs">
+                {filteredCcExpenses.slice(0, 8).map((expense) => {
+                  const isUpi = expense.paymentType === 'credit_card_upi' || expense.creditCardType === 'credit_card_upi';
+                  return (
+                    <div key={expense.id} className="p-3.5 flex items-center justify-between hover:bg-slate-50/60 dark:hover:bg-slate-800/40 transition-colors">
+                      <div className="flex items-center gap-3">
+                        <div className={`w-8 h-8 rounded-xl flex items-center justify-center text-xs ${
+                          isUpi ? 'bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-400' : 'bg-purple-100 text-purple-700 dark:bg-purple-950/60 dark:text-purple-400'
+                        }`}>
+                          {isUpi ? <Zap className="w-4 h-4" /> : <CreditCard className="w-4 h-4" />}
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-bold text-slate-900 dark:text-white line-clamp-1">{expense.description}</span>
+                            <span className={`px-1.5 py-0.2 text-[9.5px] font-black rounded-md border ${
+                              isUpi 
+                                ? 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/50 dark:text-amber-300 dark:border-amber-800/40' 
+                                : 'bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/50 dark:text-purple-300 dark:border-purple-800/40'
+                            }`}>
+                              {isUpi ? '⚡ CC UPI' : '💳 Credit Card'}
+                            </span>
+                          </div>
+                          <div className="text-[11px] text-slate-400 flex items-center gap-1.5 mt-0.5">
+                            <span className="font-semibold text-indigo-600 dark:text-indigo-400">{expense.bankName || 'Credit Card'}</span>
+                            <span>•</span>
+                            <span>{expense.category}</span>
+                            <span>•</span>
+                            <span>{expense.date}</span>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-sm md:text-base font-black font-mono text-slate-900 dark:text-white">
+                          -{formatCurrency(expense.amount)}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* TAB 1: EMI TRACKER */}
       {activeTab === 'emi' && (
